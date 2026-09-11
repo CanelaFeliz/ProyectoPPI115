@@ -2496,6 +2496,39 @@
         <mxCell id="QsBLLxUm5rb8zngq4_na-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="estado_disponibilidad" vertex="1">
           <mxGeometry height="80" width="140" x="520" y="650" as="geometry" />
         </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Mesas" vertex="1">
+          <mxGeometry height="60" width="140" x="150" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-8" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;u&gt;id_mesa&lt;/u&gt;" vertex="1">
+          <mxGeometry height="80" width="140" x="350" y="780" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-9" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="numero_mesa" vertex="1">
+          <mxGeometry height="80" width="140" x="510" y="860" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-10" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="estado_mesa" vertex="1">
+          <mxGeometry height="80" width="140" x="350" y="920" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-11" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Pedidos" vertex="1">
+          <mxGeometry height="60" width="140" x="140" y="1300" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-12" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;u&gt;id_pedido&lt;/u&gt;" vertex="1">
+          <mxGeometry height="80" width="140" x="350" y="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-13" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="fecha_hora" vertex="1">
+          <mxGeometry height="80" width="140" x="510" y="1180" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-14" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="estado_pedido" vertex="1">
+          <mxGeometry height="80" width="140" x="350" y="1240" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-15" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="porcentaje_propina" vertex="1">
+          <mxGeometry height="80" width="140" x="510" y="1325" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-16" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="total_pagar" vertex="1">
+          <mxGeometry height="80" width="140" x="350" y="1390" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-17" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="metodo_pago" vertex="1">
+          <mxGeometry height="80" width="140" x="510" y="1470" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
