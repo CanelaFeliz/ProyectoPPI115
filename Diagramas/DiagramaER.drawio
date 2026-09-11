@@ -2473,13 +2473,13 @@
           <mxGeometry height="60" width="140" x="150" y="480" as="geometry" />
         </mxCell>
         <mxCell id="H4ri4_jNj5RpE54PBurm-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;u&gt;id_categoria&lt;/u&gt;" vertex="1">
-          <mxGeometry height="80" width="140" x="414" y="-40" as="geometry" />
+          <mxGeometry height="80" width="140" x="360" y="-60" as="geometry" />
         </mxCell>
         <mxCell id="H4ri4_jNj5RpE54PBurm-4" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="nombre_categoria" vertex="1">
-          <mxGeometry height="80" width="140" x="414" y="60" as="geometry" />
+          <mxGeometry height="80" width="140" x="360" y="80" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;u&gt;id_producto&lt;/u&gt;" vertex="1">
-          <mxGeometry height="80" width="140" x="360" y="280" as="geometry" />
+          <mxGeometry height="80" width="140" x="220" y="320" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="nombre_producto" vertex="1">
           <mxGeometry height="80" width="140" x="520" y="360" as="geometry" />
@@ -2512,22 +2512,37 @@
           <mxGeometry height="60" width="140" x="140" y="1300" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-12" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;u&gt;id_pedido&lt;/u&gt;" vertex="1">
-          <mxGeometry height="80" width="140" x="350" y="1100" as="geometry" />
+          <mxGeometry height="80" width="140" x="230" y="1150" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-13" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="fecha_hora" vertex="1">
           <mxGeometry height="80" width="140" x="510" y="1180" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-14" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="estado_pedido" vertex="1">
-          <mxGeometry height="80" width="140" x="350" y="1240" as="geometry" />
+          <mxGeometry height="80" width="140" x="370" y="1260" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-15" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="porcentaje_propina" vertex="1">
           <mxGeometry height="80" width="140" x="510" y="1325" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-16" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="total_pagar" vertex="1">
-          <mxGeometry height="80" width="140" x="350" y="1390" as="geometry" />
+          <mxGeometry height="80" width="140" x="370" y="1410" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-17" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="metodo_pago" vertex="1">
           <mxGeometry height="80" width="140" x="510" y="1470" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-18" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;u&gt;id_usuario&lt;/u&gt;" vertex="1">
+          <mxGeometry height="80" width="140" x="310" y="1620" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-19" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="nombre_completo" vertex="1">
+          <mxGeometry height="80" width="140" x="470" y="1700" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-20" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="usuario_contraseña" vertex="1">
+          <mxGeometry height="80" width="140" x="310" y="1760" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-21" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="Usuarios" vertex="1">
+          <mxGeometry height="60" width="140" x="100" y="1670" as="geometry" />
+        </mxCell>
+        <mxCell id="QsBLLxUm5rb8zngq4_na-22" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="contraseña" vertex="1">
+          <mxGeometry height="80" width="140" x="460" y="1850" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
