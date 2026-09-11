@@ -2462,7 +2462,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="FdRS4pp7n4WKVsk3BHdp" name="Página-4">
-    <mxGraphModel dx="1671" dy="906" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="4457" dy="2417" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -2521,10 +2521,10 @@
           <mxGeometry height="80" width="140" x="370" y="330" as="geometry" />
         </mxCell>
         <mxCell id="aiXTHQsWqvCoekcuOMf9-12" parent="QsBLLxUm5rb8zngq4_na-29" style="rhombus;whiteSpace=wrap;html=1;" value="clasifica" vertex="1">
-          <mxGeometry height="80" width="140" x="-50" y="400" as="geometry" />
+          <mxGeometry height="80" width="140" x="-30" y="370" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-30" connectable="0" parent="1" style="group" value="" vertex="1">
-          <mxGeometry height="220" width="500" x="1310" y="1140" as="geometry" />
+          <mxGeometry height="220" width="500" x="1410" y="510" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-7" parent="QsBLLxUm5rb8zngq4_na-30" style="rounded=0;whiteSpace=wrap;html=1;" value="Mesas" vertex="1">
           <mxGeometry height="60" width="140" y="60" as="geometry" />
@@ -2539,7 +2539,7 @@
           <mxGeometry height="80" width="140" x="200" y="140" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-31" connectable="0" parent="1" style="group" value="" vertex="1">
-          <mxGeometry height="400" width="510" x="1300" y="1510" as="geometry" />
+          <mxGeometry height="400" width="510" x="1400" y="880" as="geometry" />
         </mxCell>
         <mxCell id="QsBLLxUm5rb8zngq4_na-11" parent="QsBLLxUm5rb8zngq4_na-31" style="rounded=0;whiteSpace=wrap;html=1;" value="Pedidos" vertex="1">
           <mxGeometry height="60" width="140" y="150" as="geometry" />
@@ -2684,6 +2684,9 @@
         </mxCell>
         <mxCell id="aiXTHQsWqvCoekcuOMf9-7" parent="1" style="rhombus;whiteSpace=wrap;html=1;" value="clasifica" vertex="1">
           <mxGeometry height="80" width="140" x="60" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="aiXTHQsWqvCoekcuOMf9-14" parent="1" style="rhombus;whiteSpace=wrap;html=1;" value="tiene" vertex="1">
+          <mxGeometry height="80" width="140" x="1300" y="750" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
