@@ -1,0 +1,250 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIXGARU – Cierre de Cuenta | Personal de Servicio</title>
+  <!-- Preconexión y carga de Google Fonts: Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Librería html2pdf.js para exportar el ticket a PDF en el cliente -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="CSS/style.css">
+</head>
+<body>
+
+  <!-- Encabezado / Header Personal de Servicio -->
+  <header class="service-header">
+    <div class="service-header-container">
+      
+      <!-- Logotipo NIXGARU a la izquierda -->
+      <div class="brand-logo-service">
+        <div class="logo-icon-service">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+            <line x1="6" y1="1" x2="6" y2="4"></line>
+            <line x1="10" y1="1" x2="10" y2="4"></line>
+            <line x1="14" y1="1" x2="14" y2="4"></line>
+          </svg>
+        </div>
+        <div class="logo-text-group">
+          <span class="logo-brand-name">NIXGARU</span>
+          <span class="logo-subtext">PERSONAL DE SERVICIO</span>
+        </div>
+      </div>
+
+      <!-- Centro: Título de la pantalla -->
+      <div class="header-center-title">
+        <h1 class="cierre-main-title">Cierre de Cuenta – Mesa 3</h1>
+      </div>
+
+      <!-- Derecha: Perfil de usuario y botón de regreso al mapa -->
+      <div class="service-user-actions">
+        <div class="user-profile-badge">
+          <div class="user-avatar" id="avatarUsuario">CM</div>
+          <div class="user-meta">
+            <span class="user-name" id="nombreUsuario"></span>
+            <span class="user-role" id="rolUsuario"></span>
+          </div>
+        </div>
+
+        <button class="btn-back-tables" id="btnMapaMesas" title="Regresar al mapa de mesas">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          <span>Mapa de mesas</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Layout Principal de Cierre de Cuenta -->
+  <main class="cierre-layout">
+
+    <!-- COLUMNA IZQUIERDA: Vista del Ticket / Factura -->
+    <section class="cierre-ticket-panel">
+      
+      <!-- Contenedor del Ticket que se convertirá a PDF -->
+      <div class="ticket-card" id="ticketContainer">
+        
+        <!-- Cabecera del Ticket -->
+        <div class="ticket-header">
+          <h2 class="ticket-brand">NIXGARU</h2>
+          <p class="ticket-tagline">Venta de café, bebidas y productos de repostería</p>
+          <p class="ticket-location">San Salvador, El Salvador</p>
+        </div>
+
+        <!-- Metadatos de la Factura -->
+        <div class="ticket-meta">
+          <div class="ticket-meta-row">
+            <span>Fecha: 14 Sep 2026</span>
+            <span>Hora: 16:42</span>
+          </div>
+          <div class="ticket-meta-row">
+            <span>Mesa: 03 (Servicio)</span>
+            <span>Folio: #AB-2026-904</span>
+          </div>
+          <div class="ticket-meta-row">
+            <span>Atendió: Carlos Mendoza</span>
+          </div>
+        </div>
+
+        <!-- Lista de Productos Facturados -->
+        <div class="ticket-items">
+          <div class="ticket-item-row">
+            <span class="t-name"><strong>2x</strong> Café Americano</span>
+            <span class="t-price">$0.00</span>
+          </div>
+          <div class="ticket-item-row">
+            <span class="t-name"><strong>1x</strong> Brownie de Chocolate</span>
+            <span class="t-price">$0.00</span>
+          </div>
+          <div class="ticket-item-row">
+            <span class="t-name"><strong>1x</strong> Latte Vainilla</span>
+            <span class="t-price">$0.00</span>
+          </div>
+          <div class="ticket-item-row">
+            <span class="t-name"><strong>2x</strong> Croissant de Mantequilla</span>
+            <span class="t-price">$0.00</span>
+          </div>
+        </div>
+
+        <!-- Separador de Guiones -->
+        <div class="ticket-separator">------------------------------------------------</div>
+
+        <!-- Subtotales y Propina -->
+        <div class="ticket-totals-section">
+          <div class="ticket-subtotal-row">
+            <span>Subtotal</span>
+            <span>$0.00</span>
+          </div>
+          <div class="ticket-subtotal-row">
+            <span>Propina sugerida (10%)</span>
+            <span>$0.50</span>
+          </div>
+        </div>
+
+        <!-- Total Destacado -->
+        <div class="ticket-grand-total">
+          <div class="grand-total-row">
+            <span class="grand-total-label">TOTAL A PAGAR</span>
+            <span class="grand-total-amount">$0.00</span>
+          </div>
+          <span class="grand-total-currency">Dólar de los Estados Unidos (USD)</span>
+        </div>
+
+        <!-- Pie del Ticket -->
+        <div class="ticket-footer">
+          <p class="ticket-thanks">*** Gracias por su visita ***</p>
+          <p class="ticket-fiscal">Sujeto a facturación dentro del mes corriente.</p>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- COLUMNA DERECHA: Procesamiento y Método de Pago -->
+    <section class="cierre-payment-panel">
+      
+      <!-- Tarjeta Superior: Monto Total de Operación -->
+      <div class="payment-total-card">
+        <div class="payment-total-info">
+          <h3 class="payment-total-title">Monto Total de Operación</h3>
+          <p class="payment-total-subtitle">Mesa 3 · Incluye propuesta de propina</p>
+        </div>
+        <div class="payment-total-display">
+          <span class="total-big-number">$00.00</span>
+          <span class="total-big-currency">USD</span>
+        </div>
+      </div>
+
+      <!-- Selección de Método de Pago -->
+      <div class="payment-method-section">
+        <h3 class="section-title">Método de Pago</h3>
+        
+        <div class="payment-method-card active">
+          <div class="payment-method-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <circle cx="12" cy="12" r="2"></circle>
+              <path d="M6 12h.01M18 12h.01"></path>
+            </svg>
+          </div>
+          <span class="payment-method-text">Efectivo</span>
+        </div>
+      </div>
+
+      <!-- Tarjeta: Detalle de Efectivo -->
+      <div class="cash-detail-card">
+        <div class="cash-detail-header">
+          <h3 class="cash-detail-title">Detalle de Efectivo</h3>
+          <span class="exact-badge">Sugerido Exacto: $368.50</span>
+        </div>
+
+        <div class="cash-inputs-row">
+          <!-- Monto Recibido -->
+          <div class="cash-input-group">
+            <label for="inputMontoRecibido" class="cash-label">Monto Recibido</label>
+            <div class="cash-input-box active-focus">
+              <span class="currency-symbol">$</span>
+              <input type="text" id="inputMontoRecibido" class="cash-input-field" value="00.00" aria-label="Monto Recibido">
+            </div>
+          </div>
+
+          <!-- Cambio a Entregar -->
+          <div class="cash-input-group">
+            <label class="cash-label">Cambio a Entregar</label>
+            <div class="cash-change-box">
+              <span class="currency-symbol-green">$</span>
+              <span class="cash-change-value" id="cashChangeValue">00.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmación de Mesa Desocupada -->
+      <div class="table-confirm-box">
+        <label class="checkbox-container">
+          <input type="checkbox" id="checkMesaDesocupada" checked>
+          <span class="checkbox-checkmark"></span>
+          <span class="checkbox-label-text">Confirmar que la mesa ha desocupado la estación antes del cierre de cuenta.</span>
+        </label>
+      </div>
+
+      <!-- Botones de Acción Finales -->
+      <div class="cierre-actions">
+        <!-- 1. Botón Generar Ticket PDF -->
+        <button class="btn-generate-pdf" id="btnGenerarPDF">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <span>Generar Ticket PDF</span>
+        </button>
+
+        <!-- 2. Botón Procesar Pago & Liberar Mesa -->
+        <button class="btn-process-payment" id="btnProcesarPago">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+            <line x1="1" y1="10" x2="23" y2="10"></line>
+          </svg>
+          <span>Procesar Pago &amp; Liberar Mesa</span>
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Script Principal con la lógica requerida -->
+  <script src="JS/main.js"></script>
+</body>
+</html>
+
