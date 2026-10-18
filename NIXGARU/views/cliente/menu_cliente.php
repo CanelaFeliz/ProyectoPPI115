@@ -266,6 +266,23 @@ try {
 
   </div>
 
+  <!-- Footer del Cliente -->
+  <footer class="client-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <h3 class="footer-logo">NIXGARU</h3>
+        <p class="footer-slogan">"Más que café, momentos."</p>
+      </div>
+      <div class="footer-info">
+        <p><strong>Ubicación:</strong> San Salvador, El Salvador</p>
+        <p><strong>Horario:</strong> Lunes a sábado, de 7:00 a. m. a 7:00 p. m.</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 NIXGARU Cafetería. Todos los derechos reservados.</p>
+    </div>
+  </footer>
+
   <!-- Modal: Vista Detallada de Producto (Fondo Empañado) -->
   <div id="product-modal" class="modal-backdrop" aria-hidden="true">
     <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-product-title">

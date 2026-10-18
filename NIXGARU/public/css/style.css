@@ -1043,3 +1043,83 @@ button {
   }
 }
 
+/* ==========================================================================
+   Footer del Cliente
+   ========================================================================== */
+.client-footer {
+  background-color: var(--color-negro-suave);
+  color: var(--color-blanco);
+  padding: 48px 40px 24px;
+  margin-top: 60px;
+  border-top: 4px solid var(--color-terracota);
+}
+
+.footer-content {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footer-logo {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--color-blanco);
+  letter-spacing: 1px;
+}
+
+.footer-slogan {
+  font-size: 0.95rem;
+  font-style: italic;
+  color: var(--color-gris-claro);
+}
+
+.footer-info {
+  text-align: right;
+  font-size: 0.9rem;
+  color: var(--color-gris-claro);
+  line-height: 1.6;
+}
+
+.footer-info strong {
+  color: var(--color-blanco);
+  font-weight: 600;
+}
+
+.footer-bottom {
+  max-width: 1440px;
+  margin: 36px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  font-size: 0.85rem;
+  color: #888888;
+}
+
+/* Adaptabilidad Responsiva para el Footer */
+@media (max-width: 768px) {
+  .client-footer {
+    padding: 36px 24px 20px;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .footer-info {
+    text-align: center;
+    margin-top: 12px;
+  }
+}
+
+
