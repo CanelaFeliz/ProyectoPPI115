@@ -263,6 +263,222 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * ==========================================================================
+   * LÓGICA DE CONFIRMACIÓN DE PEDIDO (VISTA DEL CLIENTE - menu_cliente.php)
+   * ==========================================================================
+   */
+
+  // 1. Vaciar el carrito de compras y restablecer los totales a $0.00
+  function vaciarCarritoCliente() {
+    if (cartItemsContainer) {
+      cartItemsContainer.innerHTML = '';
+    }
+    if (cartBadge) {
+      cartBadge.textContent = '0 Items';
+    }
+    if (cartSubtotal) {
+      cartSubtotal.textContent = '$0.00';
+    }
+    if (cartTip) {
+      cartTip.textContent = '$0.00';
+    }
+    if (cartTotal) {
+      cartTotal.textContent = '$0.00';
+    }
+  }
+
+  // 2. Extraer productos del carrito con IDs, cantidades y precios
+  function obtenerProductosDelCarrito() {
+    if (!cartItemsContainer) return [];
+    const items = [];
+    const itemEls = cartItemsContainer.querySelectorAll('.cart-item');
+    itemEls.forEach(el => {
+      const codigo = el.dataset.codigo || '';
+      const name = el.querySelector('.cart-item-title')?.textContent.trim() || 'Producto';
+      const qtySpan = el.querySelector('.qty-value');
+      const qty = parseInt(qtySpan ? qtySpan.textContent : '1', 10) || 1;
+      const price = parseFloat(el.dataset.price) || 0;
+
+      if (codigo && qty > 0) {
+        items.push({
+          id: codigo,
+          codigo: codigo,
+          name: name,
+          price: price,
+          qty: qty
+        });
+      }
+    });
+    return items;
+  }
+
+  // 3. Modal visual atractivo de éxito para la confirmación del pedido
+  function mostrarModalExitoPedido(numeroMesa, callbackAceptar) {
+    let modalExito = document.getElementById('modal-pedido-exito');
+    
+    // Crear el modal dinámicamente si no existiera en el DOM
+    if (!modalExito) {
+      modalExito = document.createElement('div');
+      modalExito.id = 'modal-pedido-exito';
+      modalExito.className = 'modal-backdrop';
+      modalExito.setAttribute('aria-hidden', 'true');
+      modalExito.innerHTML = `
+        <div class="modal-dialog modal-dialog-success" role="dialog" aria-modal="true" style="max-width: 440px; text-align: center; padding: 36px 28px; background: #ffffff; border-radius: 20px; box-shadow: 0 20px 45px rgba(0,0,0,0.25);">
+          <div style="width: 72px; height: 72px; background: rgba(25, 135, 84, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #198754;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 0 0 10px 0;">¡Pedido recibido con éxito!</h3>
+          <p style="font-size: 15px; color: #6C757D; line-height: 1.5; margin: 0 0 24px 0;">
+            Su orden ha sido enviada a cocina.<br>
+            <span id="modalExitoMesaText" style="font-weight: 600; color: #198754;">Mesa ${numeroMesa}</span>
+          </p>
+          <button type="button" id="btnAceptarPedidoExito" style="background-color: #0D6EFD; color: #ffffff; font-weight: 600; font-size: 15px; padding: 12px 36px; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease;">Aceptar</button>
+        </div>
+      `;
+      document.body.appendChild(modalExito);
+    }
+
+    const mesaTextEl = modalExito.querySelector('#modalExitoMesaText');
+    if (mesaTextEl) {
+      mesaTextEl.textContent = `Mesa ${numeroMesa}`;
+    }
+
+    // Activar modal
+    modalExito.classList.add('active');
+    modalExito.setAttribute('aria-hidden', 'false');
+
+    const btnAceptar = modalExito.querySelector('#btnAceptarPedidoExito');
+    
+    const cerrarYConfirmar = () => {
+      modalExito.classList.remove('active');
+      modalExito.setAttribute('aria-hidden', 'true');
+      if (typeof callbackAceptar === 'function') {
+        callbackAceptar();
+      }
+    };
+
+    if (btnAceptar) {
+      btnAceptar.onclick = cerrarYConfirmar;
+    }
+
+    // Cerrar también si hace clic en el fondo semitransparente
+    modalExito.onclick = (e) => {
+      if (e.target === modalExito) {
+        cerrarYConfirmar();
+      }
+    };
+  }
+
+  // 3.5 Sincronización del selector dinámico de mesas en la vista de cliente
+  const selectMesaCliente = document.getElementById('selectMesaCliente');
+  if (selectMesaCliente) {
+    const urlParams = new URLSearchParams(window.location.search);
+    // Si no se pasó mesa por URL pero el usuario ya tenía una mesa guardada en localStorage, sincronizar
+    if (!urlParams.get('mesa_id') && !urlParams.get('mesa')) {
+      const storedMesa = localStorage.getItem('mesaActiva');
+      if (storedMesa && selectMesaCliente.querySelector(`option[value="${storedMesa}"]`)) {
+        selectMesaCliente.value = storedMesa;
+        const cartTableIndicator = document.getElementById('cartTableIndicator');
+        if (cartTableIndicator) cartTableIndicator.textContent = `(Mesa ${storedMesa})`;
+        const btnConfirmar = document.getElementById('btnConfirmarPedido');
+        if (btnConfirmar) btnConfirmar.dataset.mesa = storedMesa;
+      }
+    }
+
+    selectMesaCliente.addEventListener('change', (e) => {
+      const nuevaMesa = e.target.value;
+      const cartTableIndicator = document.getElementById('cartTableIndicator');
+      if (cartTableIndicator) {
+        cartTableIndicator.textContent = `(Mesa ${nuevaMesa})`;
+      }
+      const btnConfirmar = document.getElementById('btnConfirmarPedido');
+      if (btnConfirmar) {
+        btnConfirmar.dataset.mesa = nuevaMesa;
+      }
+      const modalExitoMesaText = document.getElementById('modalExitoMesaText');
+      if (modalExitoMesaText) {
+        modalExitoMesaText.textContent = `Mesa ${nuevaMesa}`;
+      }
+      localStorage.setItem('mesaActiva', nuevaMesa);
+    });
+  }
+
+  // 4. Conexión del botón "Confirmar Pedido" con la API y persistencia
+  const btnConfirmarPedido = document.getElementById('btnConfirmarPedido');
+  if (btnConfirmarPedido) {
+    btnConfirmarPedido.addEventListener('click', () => {
+      // a) Comprobar que el carrito tenga productos
+      const items = obtenerProductosDelCarrito();
+      if (items.length === 0) {
+        alert('Tu carrito está vacío. Por favor selecciona al menos un producto antes de confirmar el pedido.');
+        return;
+      }
+
+      // b) Asociar el pedido a la mesa activa (prioridad: selector rápido de mesa > dataset mesa > URL param > localStorage > 1)
+      const selectMesaEl = document.getElementById('selectMesaCliente');
+      const mesaSeleccionada = selectMesaEl ? selectMesaEl.value : null;
+      const urlParams = new URLSearchParams(window.location.search);
+      const mesaActiva = mesaSeleccionada || btnConfirmarPedido.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
+
+      // Feedback visual mientras procesa
+      const textoOriginal = btnConfirmarPedido.innerHTML;
+      btnConfirmarPedido.innerHTML = `<span>Enviando pedido a cocina...</span>`;
+      btnConfirmarPedido.disabled = true;
+
+      // c) Enviar datos del carrito a la base de datos (pedidos y detalles_pedido) vía api/guardar_orden.php
+      fetch('api/guardar_orden.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id_mesa: parseInt(mesaActiva, 10),
+          productos: items,
+          estado_mesa: 'En proceso',
+          estado_pedido: 'En preparación'
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Sincronizar en localStorage para consistencia inmediata
+          localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(items));
+          localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
+
+          // Mostrar mensaje modal de éxito atractivo
+          mostrarModalExitoPedido(mesaActiva, () => {
+            // Vaciar carrito y restablecer totales a $0.00
+            vaciarCarritoCliente();
+            if (cartSidebar && window.innerWidth <= 900) {
+              cartSidebar.classList.add('hidden');
+              if (cartBackdrop) cartBackdrop.classList.remove('active');
+            }
+          });
+        } else {
+          alert('Error al enviar el pedido: ' + (data.error || 'Intente nuevamente'));
+        }
+      })
+      .catch(err => {
+        console.error('Error al enviar pedido del cliente:', err);
+        // Fallback local
+        localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(items));
+        localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
+
+        mostrarModalExitoPedido(mesaActiva, () => {
+          vaciarCarritoCliente();
+        });
+      })
+      .finally(() => {
+        btnConfirmarPedido.innerHTML = textoOriginal;
+        btnConfirmarPedido.disabled = false;
+      });
+    });
+  }
+
+  /**
+   * ==========================================================================
    * MODAL: VISTA DETALLADA DE PRODUCTO CON INGREDIENTES DINÁMICOS
    * ==========================================================================
    */
@@ -464,6 +680,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!listaProductosCuenta) return;
 
+    // Verificar si la página actual ya cargó la orden desde el servidor PHP (fuente de la BD)
+    const serverItems = listaProductosCuenta.querySelectorAll('.cuenta-item');
+    const urlParams = new URLSearchParams(window.location.search);
+    const mesaUrl = urlParams.get('mesa_id') || urlParams.get('mesa') || '1';
+
+    // Si coincide la mesa con la URL y PHP ya renderizó elementos de la BD, preservarlos
+    if (mesaUrl === String(mesaId) && serverItems.length > 0) {
+      return;
+    }
+
     // Leer orden de localStorage
     const ordenDataRaw = localStorage.getItem('orden_mesa_' + mesaId);
     let items = [];
@@ -480,9 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (items.length === 0) {
       listaProductosCuenta.innerHTML = `
-        <div class="empty-cuenta-msg" style="text-align: center; color: #6C757D; font-size: 13px; padding: 24px 10px;">
-          <p style="margin: 0; font-weight: 500;">No hay productos registrados en esta mesa.</p>
-          <span style="font-size: 12px; opacity: 0.8;">Pulsa "Agregar Producto" para iniciar una orden.</span>
+        <div class="empty-cuenta-msg" style="text-align: center; color: #6C757D; font-size: 13.5px; padding: 36px 12px;">
+          <p style="margin: 0 0 6px 0; font-weight: 600; color: #343A40;">Mesa disponible sin consumos activos</p>
+          <span style="font-size: 12.5px; opacity: 0.85;">No hay pedidos pendientes de pago para esta mesa.</span>
         </div>
       `;
       if (cuentaSubtotal) cuentaSubtotal.textContent = '$0.00';
@@ -592,9 +818,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     actualizarResumenMesas();
 
-    // Seleccionar la mesa activa desde el parámetro GET ?mesa= de la URL o fallback a localStorage
+    // Seleccionar la mesa activa desde el parámetro GET ?mesa_id= de la URL o fallback a localStorage
     const urlParams = new URLSearchParams(window.location.search);
-    const mesaUrl = urlParams.get('mesa');
+    const mesaUrl = urlParams.get('mesa_id') || urlParams.get('mesa');
     const mesaActiva = mesaUrl || localStorage.getItem('mesaActiva') || '1';
     localStorage.setItem('mesaActiva', mesaActiva);
     sessionStorage.setItem('mesaActiva', mesaActiva);
@@ -631,7 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Event listener para clic en las tarjetas de mesa:
-  // Redirige pasando ?mesa=ID para que PHP consulte en tiempo real la BD
+  // Redirige pasando ?mesa_id=ID para que PHP consulte en tiempo real la BD
   tableCards.forEach(card => {
     card.addEventListener('click', (e) => {
       // Ignorar clics dentro del selector para permitir interacción con el dropdown
@@ -641,14 +867,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const mesaId = card.dataset.tableNumber || '1';
       const urlParams = new URLSearchParams(window.location.search);
-      const currentUrlMesa = urlParams.get('mesa') || '1';
+      const currentUrlMesa = urlParams.get('mesa_id') || urlParams.get('mesa') || '1';
 
       localStorage.setItem('mesaActiva', mesaId);
       sessionStorage.setItem('mesaActiva', mesaId);
 
-      // Si hace clic en una mesa distinta a la cargada por PHP, recargar con ?mesa=
+      // Si hace clic en una mesa distinta a la cargada por PHP, recargar con ?mesa_id=
       if (currentUrlMesa !== String(mesaId)) {
-        window.location.href = `mesas.php?mesa=${encodeURIComponent(mesaId)}`;
+        window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaId)}`;
       } else {
         const select = card.querySelector('.table-status-select');
         const estadoActual = select ? select.value : 'disponible';
@@ -658,13 +884,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Botón "Agregar Producto" en panel lateral de mesas.php:
-  // Redirige a gestion_orden.php manteniendo la mesa activa
+  // Redirige a gestion_orden.php manteniendo el ID de la mesa activa en la URL
   const btnAgregarProducto = document.getElementById('btnAgregarProducto');
   if (btnAgregarProducto) {
     btnAgregarProducto.addEventListener('click', () => {
-      const mesaActiva = localStorage.getItem('mesaActiva') || '1';
+      const urlParams = new URLSearchParams(window.location.search);
+      const mesaActiva = btnAgregarProducto.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
       localStorage.setItem('mesaActiva', mesaActiva);
-      window.location.href = 'gestion_orden.php';
+      window.location.href = `gestion_orden.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
     });
   }
 
@@ -680,18 +907,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Redirección al presionar "Mapa de mesas"
   if (btnMapaMesas) {
     btnMapaMesas.addEventListener('click', () => {
-      window.location.href = 'mesas.php';
+      const urlParams = new URLSearchParams(window.location.search);
+      const mesaActiva = urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
+      window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
     });
   }
 
   // 2. Botón "Enviar a Cocina" en gestion_orden.php:
   // - Captura productos del carrito actual
-  // - Guarda en localStorage ('orden_mesa_' + mesaActiva)
-  // - Actualiza el estado de la mesa a 'proceso'
-  // - Redirige a mesas.php
+  // - Guarda en base de datos (pedidos y detalles_pedido) vía api/guardar_orden.php
+  // - Actualiza el estado de la mesa a 'En proceso'
+  // - Redirige de regreso a mesas.php?mesa_id=X
   if (btnEnviarCocina) {
     btnEnviarCocina.addEventListener('click', () => {
-      const mesaActiva = localStorage.getItem('mesaActiva') || sessionStorage.getItem('mesaActiva') || '1';
+      const urlParams = new URLSearchParams(window.location.search);
+      const mesaActiva = btnEnviarCocina.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || sessionStorage.getItem('mesaActiva') || '1';
 
       // Capturar productos del carrito actual
       const itemsCarrito = [];
@@ -704,26 +934,65 @@ document.addEventListener('DOMContentLoaded', () => {
           const qty = parseInt(item.querySelector('.qty-circle-value')?.textContent, 10) || 1;
           const unitPrice = parseFloat(item.dataset.unitPrice) || 0;
 
-          itemsCarrito.push({
-            id: id,
-            name: name,
-            price: unitPrice,
-            qty: qty
-          });
+          if (id && qty > 0) {
+            itemsCarrito.push({
+              id: id,
+              name: name,
+              price: unitPrice,
+              qty: qty
+            });
+          }
         });
       }
 
-      // Guardar en localStorage asociados a la mesa activa
-      localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(itemsCarrito));
+      if (itemsCarrito.length === 0) {
+        alert('Por favor agrega al menos un producto a la orden antes de enviar a cocina.');
+        return;
+      }
 
-      // Actualizar estado de esa mesa a "En proceso"
-      localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
+      // Animación visual de confirmación
+      const textoOriginal = btnEnviarCocina.innerHTML;
+      btnEnviarCocina.innerHTML = `<span>¡Guardando y enviando a cocina...!</span>`;
+      btnEnviarCocina.disabled = true;
 
-      // Animación visual de confirmación y redirección
-      btnEnviarCocina.innerHTML = `<span>¡Enviando a cocina...!</span>`;
-      setTimeout(() => {
-        window.location.href = 'mesas.php';
-      }, 400);
+      // Enviar al backend PHP (MySQL) mediante AJAX Fetch
+      fetch('api/guardar_orden.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id_mesa: parseInt(mesaActiva, 10),
+          productos: itemsCarrito,
+          estado_mesa: 'En proceso',
+          estado_pedido: 'En preparación'
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Guardar en localStorage asociados a la mesa activa para sincronización visual
+          localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(itemsCarrito));
+          localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
+          localStorage.setItem('mesaActiva', mesaActiva);
+
+          setTimeout(() => {
+            window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
+          }, 350);
+        } else {
+          alert('Error al guardar la orden en la base de datos: ' + (data.error || 'Error desconocido'));
+          btnEnviarCocina.innerHTML = textoOriginal;
+          btnEnviarCocina.disabled = false;
+        }
+      })
+      .catch(err => {
+        console.error('Error al enviar la orden a api/guardar_orden.php:', err);
+        // Fallback local en caso de pérdida de red momentánea
+        localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(itemsCarrito));
+        localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
+        localStorage.setItem('mesaActiva', mesaActiva);
+        window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
+      });
     });
   }
 
@@ -762,7 +1031,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Sincronizar número de mesa activa en gestion_orden.php
-  const mesaActivaActual = localStorage.getItem('mesaActiva') || sessionStorage.getItem('mesaActiva') || '1';
+  const urlParamsGO = new URLSearchParams(window.location.search);
+  const mesaActivaActual = urlParamsGO.get('mesa_id') || urlParamsGO.get('mesa') || localStorage.getItem('mesaActiva') || sessionStorage.getItem('mesaActiva') || '1';
+  localStorage.setItem('mesaActiva', mesaActivaActual);
   const activeOrderPillText = document.querySelector('.order-pill-text');
   const activeOrderTitle = document.querySelector('.active-order-title');
   if (activeOrderPillText) {
@@ -1071,19 +1342,65 @@ document.addEventListener('DOMContentLoaded', () => {
   // 2. Botón "Procesar Pago & Liberar Mesa"
   if (btnProcesarPago) {
     btnProcesarPago.addEventListener('click', () => {
-      const mesaActiva = localStorage.getItem('mesaActiva') || '1';
-      localStorage.removeItem('orden_mesa_' + mesaActiva);
-      localStorage.setItem('estado_mesa_' + mesaActiva, 'disponible');
-      alert(`Pago procesado con éxito para la Mesa ${mesaActiva}. La mesa ha sido liberada.`);
-      window.location.href = 'mesas.php';
+      const urlParams = new URLSearchParams(window.location.search);
+      const mesaActiva = btnProcesarPago.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
+      const inputMonto = document.getElementById('inputMontoRecibido');
+      const montoRecibido = inputMonto ? parseFloat(inputMonto.value) || 0 : 0;
+      const totalOperacion = parseFloat(btnProcesarPago.dataset.total) || 0;
+
+      const checkMesaDesocupada = document.getElementById('checkMesaDesocupada');
+      if (checkMesaDesocupada && !checkMesaDesocupada.checked) {
+        alert('Por favor confirma que la mesa ha desocupado la estación antes del cierre de cuenta.');
+        return;
+      }
+
+      const textoOriginal = btnProcesarPago.innerHTML;
+      btnProcesarPago.innerHTML = `<span>Procesando pago y liberando mesa...</span>`;
+      btnProcesarPago.disabled = true;
+
+      // Llamada AJAX/Fetch al backend para actualizar MySQL (marcar pagado y liberar mesa)
+      fetch('api/cerrar_cuenta.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id_mesa: parseInt(mesaActiva, 10),
+          monto_recibido: montoRecibido > 0 ? montoRecibido : totalOperacion,
+          id_cajero: 1
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Limpiar datos locales de esta mesa
+          localStorage.removeItem('orden_mesa_' + mesaActiva);
+          localStorage.setItem('estado_mesa_' + mesaActiva, 'disponible');
+
+          alert(`¡Pago procesado con éxito para la Mesa ${mesaActiva}!\nLa orden ha sido registrada como 'Pagada' y la mesa ahora está 'Disponible'.`);
+          window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
+        } else {
+          alert('Error al procesar el pago: ' + (data.error || 'Ocurrió un error inesperado'));
+          btnProcesarPago.innerHTML = textoOriginal;
+          btnProcesarPago.disabled = false;
+        }
+      })
+      .catch(err => {
+        console.error('Error al contactar api/cerrar_cuenta.php:', err);
+        // Fallback local en caso de desconexión
+        localStorage.removeItem('orden_mesa_' + mesaActiva);
+        localStorage.setItem('estado_mesa_' + mesaActiva, 'disponible');
+        alert(`¡Pago procesado para la Mesa ${mesaActiva}!\nLa mesa ha sido liberada.`);
+        window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
+      });
     });
   }
 
   // Cálculo interactivo del cambio según el monto recibido
   if (inputMontoRecibido && cashChangeValue) {
+    const total = parseFloat(inputMontoRecibido.dataset.total) || 0;
     inputMontoRecibido.addEventListener('input', () => {
       const recibido = parseFloat(inputMontoRecibido.value) || 0;
-      const total = 0.00;
       const cambio = Math.max(0, recibido - total);
       cashChangeValue.textContent = cambio.toFixed(2);
     });
@@ -1093,7 +1410,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCerrarCuentaMesas = document.getElementById('btnCerrarCuenta');
   if (btnCerrarCuentaMesas) {
     btnCerrarCuentaMesas.addEventListener('click', () => {
-      window.location.href = 'cierre_cuenta.php';
+      const urlParams = new URLSearchParams(window.location.search);
+      const mesaActiva = btnCerrarCuentaMesas.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
+      localStorage.setItem('mesaActiva', mesaActiva);
+      window.location.href = `cierre_cuenta.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
     });
   }
 

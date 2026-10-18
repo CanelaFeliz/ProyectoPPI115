@@ -8,6 +8,12 @@
  */
 require_once 'config/database.php';
 
+// Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
+$idMesaSeleccionada = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
+if ($idMesaSeleccionada <= 0) {
+    $idMesaSeleccionada = 1;
+}
+
 try {
     // Consulta SQL mediante PDO para extraer todos los productos activos (disponibilidad = 1)
     $stmt = $pdo->prepare("
@@ -74,7 +80,7 @@ try {
       <div class="header-center-badge">
         <div class="active-order-pill">
           <span class="order-dot"></span>
-          <span class="order-pill-text">Orden Activa – Mesa 1</span>
+          <span class="order-pill-text">Orden Activa – Mesa <?php echo $idMesaSeleccionada; ?></span>
         </div>
       </div>
 
@@ -89,7 +95,7 @@ try {
         </div>
 
         <!-- Botón para regresar al mapa de mesas -->
-        <button class="btn-back-tables" id="btnMapaMesas" title="Regresar al mapa de mesas" type="button">
+        <button class="btn-back-tables" id="btnMapaMesas" title="Regresar al mapa de mesas" type="button" onclick="window.location.href='mesas.php?mesa_id=<?php echo $idMesaSeleccionada; ?>'">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="19" y1="12" x2="5" y2="12"></line>
             <polyline points="12 19 5 12 12 5"></polyline>
@@ -188,7 +194,7 @@ try {
         
         <!-- Encabezado de la Cuenta -->
         <div class="active-order-header">
-          <h2 class="active-order-title">Cuenta - Mesa 1</h2>
+          <h2 class="active-order-title" data-mesa="<?php echo $idMesaSeleccionada; ?>">Cuenta - Mesa <?php echo $idMesaSeleccionada; ?></h2>
           <span class="order-count-badge" id="orderItemsBadge">0 Items</span>
         </div>
 
@@ -215,7 +221,7 @@ try {
 
         <!-- Botones de Acción de Bloque Inferior -->
         <div class="active-order-actions">
-          <button class="btn-order-update" id="btnActualizarOrden" type="button">
+          <button class="btn-order-update" id="btnActualizarOrden" type="button" data-mesa="<?php echo $idMesaSeleccionada; ?>">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
@@ -226,7 +232,7 @@ try {
             <span>Actualizar Orden</span>
           </button>
 
-          <button class="btn-order-send-kitchen" id="btnEnviarCocina" type="button">
+          <button class="btn-order-send-kitchen" id="btnEnviarCocina" type="button" data-mesa="<?php echo $idMesaSeleccionada; ?>">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"></path>
               <line x1="6" y1="17" x2="18" y2="17"></line>

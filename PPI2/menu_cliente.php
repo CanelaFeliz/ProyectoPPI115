@@ -9,6 +9,12 @@
  */
 require_once 'config/database.php';
 
+// Detección de la mesa del cliente mediante parámetro GET (?mesa=1 o ?mesa_id=1 por defecto)
+$idMesaCliente = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
+if ($idMesaCliente <= 0) {
+    $idMesaCliente = 1;
+}
+
 try {
     // Consulta para traer los productos activos, su categoría y sus ingredientes reales
     $stmt = $pdo->prepare("
@@ -36,6 +42,15 @@ try {
     // Consulta para los botones de filtros de categorías
     $stmtCat = $pdo->query("SELECT id_categoria, nombre_categoria FROM categorias ORDER BY id_categoria ASC");
     $categorias = $stmtCat->fetchAll();
+
+    // Consulta para el selector dinámico de mesas en el carrito
+    $stmtMesas = $pdo->query("SELECT id_mesa, numero_mesa, estado FROM mesas ORDER BY CAST(numero_mesa AS UNSIGNED) ASC, id_mesa ASC");
+    $mesasDisponibles = $stmtMesas->fetchAll();
+    if (empty($mesasDisponibles)) {
+        for ($i = 1; $i <= 8; $i++) {
+            $mesasDisponibles[] = ['id_mesa' => $i, 'numero_mesa' => (string)$i, 'estado' => 'Disponible'];
+        }
+    }
 } catch (PDOException $e) {
     die("Error al consultar el menú de productos: " . $e->getMessage());
 }
@@ -177,7 +192,7 @@ try {
         <!-- Cabecera del Carrito -->
         <div class="cart-header">
           <div class="cart-title-wrapper">
-            <h2 class="cart-title">Tu carrito</h2>
+            <h2 class="cart-title">Tu carrito <span class="cart-table-indicator" id="cartTableIndicator" style="font-size: 13px; font-weight: 500; color: #6C757D;">(Mesa <?php echo $idMesaCliente; ?>)</span></h2>
             <span class="cart-badge" id="cart-badge">0 Items</span>
           </div>
           <button id="cart-close-btn" class="cart-close-btn" aria-label="Cerrar carrito" type="button">
@@ -186,6 +201,28 @@ try {
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
+        </div>
+
+        <!-- Selector Rápido de Mesa -->
+        <div class="cart-table-selection" style="padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #e9ecef;">
+          <label for="selectMesaCliente" style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: #495057; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+            <span>Mesa para tu orden:</span>
+            <span style="font-size: 11px; font-weight: normal; color: #6c757d;">Selecciona o cambia</span>
+          </label>
+          <div style="position: relative;">
+            <select id="selectMesaCliente" style="width: 100%; padding: 8px 32px 8px 12px; font-size: 14px; font-weight: 600; color: #212529; background-color: #ffffff; border: 1.5px solid #dee2e6; border-radius: 8px; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; -moz-appearance: none; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: border-color 0.2s, box-shadow 0.2s;">
+              <?php foreach ($mesasDisponibles as $m): ?>
+                <option value="<?php echo htmlspecialchars($m['numero_mesa']); ?>" <?php echo ((int)$m['numero_mesa'] === (int)$idMesaCliente) ? 'selected' : ''; ?>>
+                  Mesa <?php echo htmlspecialchars($m['numero_mesa']); ?> <?php echo (!empty($m['estado']) && $m['estado'] !== 'Disponible') ? ' (' . htmlspecialchars($m['estado']) . ')' : ''; ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+            <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6c757d;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
         </div>
 
         <!-- Lista de Artículos en el Carrito (Inyección dinámica con JS) -->
@@ -207,7 +244,7 @@ try {
             <span class="total-label">Total</span>
             <span class="total-amount" id="cart-total">$0.00</span>
           </div>
-          <button class="btn-confirm-order" id="btnConfirmarPedido" type="button">Confirmar Pedido</button>
+          <button class="btn-confirm-order" id="btnConfirmarPedido" type="button" data-mesa="<?php echo $idMesaCliente; ?>">Confirmar Pedido</button>
         </div>
 
       </div>
@@ -261,6 +298,24 @@ try {
 
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modal: Confirmación Exitosa de Pedido -->
+  <div id="modal-pedido-exito" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-success" role="dialog" aria-modal="true" style="max-width: 440px; text-align: center; padding: 36px 28px; background: #ffffff; border-radius: 20px; box-shadow: 0 20px 45px rgba(0,0,0,0.25);">
+      <div style="width: 72px; height: 72px; background: rgba(25, 135, 84, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #198754;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+      </div>
+      <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 0 0 10px 0;">¡Pedido recibido con éxito!</h3>
+      <p style="font-size: 15px; color: #6C757D; line-height: 1.5; margin: 0 0 24px 0;">
+        Su orden ha sido enviada a cocina.<br>
+        <span id="modalExitoMesaText" style="font-weight: 600; color: #198754;">Mesa <?php echo $idMesaCliente; ?></span>
+      </p>
+      <button type="button" id="btnAceptarPedidoExito" style="background-color: #0D6EFD; color: #ffffff; font-weight: 600; font-size: 15px; padding: 12px 36px; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease;">Aceptar</button>
     </div>
   </div>
 

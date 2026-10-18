@@ -8,8 +8,8 @@
  */
 require_once 'config/database.php';
 
-// 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa=1 por defecto)
-$idMesaSeleccionada = isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1;
+// 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
+$idMesaSeleccionada = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
 if ($idMesaSeleccionada <= 0) {
     $idMesaSeleccionada = 1;
 }
@@ -235,7 +235,8 @@ try {
           ?>
           <article class="table-card <?php echo $esActiva ? 'active' : ''; ?>" 
                    data-table-number="<?php echo $numMesa; ?>" 
-                   data-table-cap="<?php echo (int)$mesa['capacidad']; ?>">
+                   data-table-cap="<?php echo (int)$mesa['capacidad']; ?>"
+                   onclick="if (!event.target.closest('.table-status-select')) { window.location.href='mesas.php?mesa_id=<?php echo $numMesa; ?>'; }">
             
             <div class="table-card-header">
               <h3 class="table-name">Mesa <?php echo $numMesa; ?></h3>
@@ -368,22 +369,22 @@ try {
 
         <!-- Botones de Acción -->
         <div class="cuenta-actions">
-          <button class="btn-account-add" id="btnAgregarProducto" type="button">
+          <a href="gestion_orden.php?mesa_id=<?php echo htmlspecialchars($numeroMesaActiva); ?>" class="btn-account-add" id="btnAgregarProducto" data-mesa="<?php echo htmlspecialchars($numeroMesaActiva); ?>" style="text-decoration: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="16"></line>
               <line x1="8" y1="12" x2="16" y2="12"></line>
             </svg>
             <span>Agregar Producto</span>
-          </button>
+          </a>
 
-          <button class="btn-account-close" id="btnCerrarCuenta" type="button">
+          <a href="cierre_cuenta.php?mesa_id=<?php echo htmlspecialchars($numeroMesaActiva); ?>" class="btn-account-close" id="btnCerrarCuenta" data-mesa="<?php echo htmlspecialchars($numeroMesaActiva); ?>" style="text-decoration: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
               <line x1="1" y1="10" x2="23" y2="10"></line>
             </svg>
             <span>Cerrar Cuenta</span>
-          </button>
+          </a>
         </div>
 
       </div>
