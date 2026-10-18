@@ -8,21 +8,18 @@
  */
 require_once '../../config/database.php';
 require_once '../../models/Pedido.php';
+require_once '../../models/Mesa.php';
 
 // 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
-$idMesaSeleccionada = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
-if ($idMesaSeleccionada <= 0) {
-    $idMesaSeleccionada = 1;
-}
+$idMesaSeleccionada = isset($_GET['mesa_id']) ? $_GET['mesa_id'] : (isset($_GET['mesa']) ? $_GET['mesa'] : 1);
 
 try {
-    // 2. Consulta de información de la mesa seleccionada
-    $stmtMesa = $pdo->prepare("SELECT id_mesa, numero_mesa, capacidad, estado FROM mesas WHERE id_mesa = ? OR numero_mesa = ? LIMIT 1");
-    $stmtMesa->execute([$idMesaSeleccionada, (string)$idMesaSeleccionada]);
-    $mesaInfo = $stmtMesa->fetch();
+    // 2. Consulta de información de la mesa seleccionada mediante el modelo Mesa
+    $mesaModel = new Mesa($pdo);
+    $mesaInfo = $mesaModel->obtenerPorId($idMesaSeleccionada);
 
     $numeroMesa = $mesaInfo ? $mesaInfo['numero_mesa'] : (string)$idMesaSeleccionada;
-    $idMesaReal = $mesaInfo ? (int)$mesaInfo['id_mesa'] : $idMesaSeleccionada;
+    $idMesaReal = $mesaInfo ? (int)$mesaInfo['id_mesa'] : (int)$idMesaSeleccionada;
 
     // 3. Consulta de la orden activa mediante el modelo Pedido
     $pedidoModel = new Pedido($pdo);
@@ -231,7 +228,7 @@ require_once '../layouts/header.php';
         </button>
 
         <!-- 2. Botón Procesar Pago & Liberar Mesa -->
-        <button class="btn-process-payment" id="btnProcesarPago" type="button" data-mesa="<?php echo htmlspecialchars($numeroMesa); ?>" data-total="<?php echo number_format($total, 2, '.', ''); ?>" data-idpedido="<?php echo $idPedido; ?>">
+        <button class="btn-process-payment" id="btnProcesarPago" type="button" data-mesa="<?php echo htmlspecialchars($idMesaReal); ?>" data-numero-mesa="<?php echo htmlspecialchars($numeroMesa); ?>" data-total="<?php echo number_format($total, 2, '.', ''); ?>" data-idpedido="<?php echo $idPedido; ?>">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
             <line x1="1" y1="10" x2="23" y2="10"></line>

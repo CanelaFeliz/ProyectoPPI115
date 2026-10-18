@@ -8,20 +8,19 @@
  */
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Producto.php';
+require_once __DIR__ . '/../../models/Categoria.php';
+require_once __DIR__ . '/../../models/Mesa.php';
 
 // Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
-$idMesaSeleccionada = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
-if ($idMesaSeleccionada <= 0) {
-    $idMesaSeleccionada = 1;
-}
+$idMesaSeleccionada = isset($_GET['mesa_id']) ? $_GET['mesa_id'] : (isset($_GET['mesa']) ? $_GET['mesa'] : 1);
 
 try {
     $productoModel = new Producto($pdo);
     $productos = $productoModel->obtenerActivos();
 
-    // Consulta para los botones de filtros de categorías
-    $stmtCat = $pdo->query("SELECT id_categoria, nombre_categoria FROM categorias ORDER BY id_categoria ASC");
-    $categorias = $stmtCat->fetchAll();
+    // Consulta para los botones de filtros de categorías mediante el modelo Categoria
+    $categoriaModel = new Categoria($pdo);
+    $categorias = $categoriaModel->obtenerTodas();
 } catch (PDOException $e) {
     die("Error al consultar el catálogo de productos: " . $e->getMessage());
 }

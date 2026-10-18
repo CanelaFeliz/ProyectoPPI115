@@ -8,17 +8,44 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="CSS/style.css">
+  <link rel="stylesheet" href="../../public/css/style.css">
+  <style>
+    /* Inversión garantizada de línea gráfica en vista cliente */
+    .logo-icon {
+      background-color: var(--color-rojo-frambuesa);
+      color: var(--color-blanco) !important;
+    }
+    .brand-logo:active .logo-icon,
+    .logo-icon:active {
+      background-color: var(--color-terracota) !important;
+    }
+    .btn-cart,
+    .btn-confirm-order {
+      background-color: var(--color-rojo-frambuesa) !important;
+    }
+    .promo-banner {
+      background-color: var(--color-terracota) !important;
+    }
+    .category-pill.active {
+      background-color: var(--color-rojo-frambuesa) !important;
+      border-color: var(--color-rojo-frambuesa) !important;
+      color: var(--color-blanco) !important;
+    }
+    .product-price,
+    .total-amount {
+      color: var(--color-rojo-frambuesa) !important;
+    }
+  </style>
 </head>
 <body>
 
   <!-- Navegación Principal / Header -->
-  <header class="main-header">
+  <header class="main-header" id="inicio">
     <div class="header-container">
       
       <!-- Logotipo -->
-      <a href="#" class="brand-logo">
-        <div class="logo-icon">
+      <a href="#" class="brand-logo" id="brandLogo">
+        <div class="logo-icon" id="logoIcon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
@@ -47,7 +74,7 @@
           </svg>
         </button>
 
-        <button id="cart-toggle-btn" class="btn-cart" aria-expanded="false" aria-controls="cart-sidebar">
+        <button id="cart-toggle-btn" class="btn-cart" aria-expanded="false" aria-controls="cart-sidebar" style="background-color: var(--color-rojo-frambuesa);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1"></circle>
             <circle cx="20" cy="21" r="1"></circle>
@@ -67,7 +94,7 @@
     <main class="main-content">
 
       <!-- Banner de Promociones del día -->
-      <section class="promo-banner" id="promociones">
+      <section class="promo-banner" id="promociones" style="background-color: var(--color-terracota);">
         <div class="promo-content">
           <h1 class="promo-title">Promociones del día</h1>
           <p class="promo-description">
@@ -99,7 +126,11 @@
             <p class="product-description">Descripción del producto 1</p>
             <div class="product-footer">
               <span class="product-price">$0.00</span>
-              <button class="btn-select">Seleccionar</button>
+              <div class="card-quantity-control quantity-control">
+                <button class="qty-btn card-qty-btn card-qty-minus" aria-label="Disminuir cantidad" type="button" title="Disminuir cantidad">-</button>
+                <span class="qty-value card-qty-value">0</span>
+                <button class="qty-btn card-qty-btn card-qty-plus" aria-label="Aumentar cantidad" type="button" title="Aumentar cantidad">+</button>
+              </div>
             </div>
           </div>
         </article>
@@ -112,7 +143,11 @@
             <p class="product-description">Descripción del producto 2</p>
             <div class="product-footer">
               <span class="product-price">$10.00</span>
-              <button class="btn-select">Seleccionar</button>
+              <div class="card-quantity-control quantity-control">
+                <button class="qty-btn card-qty-btn card-qty-minus" aria-label="Disminuir cantidad" type="button" title="Disminuir cantidad">-</button>
+                <span class="qty-value card-qty-value">0</span>
+                <button class="qty-btn card-qty-btn card-qty-plus" aria-label="Aumentar cantidad" type="button" title="Aumentar cantidad">+</button>
+              </div>
             </div>
           </div>
         </article>
@@ -125,7 +160,11 @@
             <p class="product-description">Descripción del producto 3</p>
             <div class="product-footer">
               <span class="product-price">$0.00</span>
-              <button class="btn-select">Seleccionar</button>
+              <div class="card-quantity-control quantity-control">
+                <button class="qty-btn card-qty-btn card-qty-minus" aria-label="Disminuir cantidad" type="button" title="Disminuir cantidad">-</button>
+                <span class="qty-value card-qty-value">0</span>
+                <button class="qty-btn card-qty-btn card-qty-plus" aria-label="Aumentar cantidad" type="button" title="Aumentar cantidad">+</button>
+              </div>
             </div>
           </div>
         </article>
@@ -138,7 +177,11 @@
             <p class="product-description">Descripción del producto 4</p>
             <div class="product-footer">
               <span class="product-price">$0.00</span>
-              <button class="btn-select">Seleccionar</button>
+              <div class="card-quantity-control quantity-control">
+                <button class="qty-btn card-qty-btn card-qty-minus" aria-label="Disminuir cantidad" type="button" title="Disminuir cantidad">-</button>
+                <span class="qty-value card-qty-value">0</span>
+                <button class="qty-btn card-qty-btn card-qty-plus" aria-label="Aumentar cantidad" type="button" title="Aumentar cantidad">+</button>
+              </div>
             </div>
           </div>
         </article>
@@ -151,7 +194,11 @@
             <p class="product-description">Descripción del producto 5</p>
             <div class="product-footer">
               <span class="product-price">$0.00</span>
-              <button class="btn-select">Seleccionar</button>
+              <div class="card-quantity-control quantity-control">
+                <button class="qty-btn card-qty-btn card-qty-minus" aria-label="Disminuir cantidad" type="button" title="Disminuir cantidad">-</button>
+                <span class="qty-value card-qty-value">0</span>
+                <button class="qty-btn card-qty-btn card-qty-plus" aria-label="Aumentar cantidad" type="button" title="Aumentar cantidad">+</button>
+              </div>
             </div>
           </div>
         </article>
@@ -164,7 +211,11 @@
             <p class="product-description">Descripción del producto 6</p>
             <div class="product-footer">
               <span class="product-price">$0.00</span>
-              <button class="btn-select">Seleccionar</button>
+              <div class="card-quantity-control quantity-control">
+                <button class="qty-btn card-qty-btn card-qty-minus" aria-label="Disminuir cantidad" type="button" title="Disminuir cantidad">-</button>
+                <span class="qty-value card-qty-value">0</span>
+                <button class="qty-btn card-qty-btn card-qty-plus" aria-label="Aumentar cantidad" type="button" title="Aumentar cantidad">+</button>
+              </div>
             </div>
           </div>
         </article>
@@ -309,7 +360,7 @@
     </div>
   </div>
 
-  <script src="JS/main.js"></script>
+  <script src="../../public/js/main.js"></script>
 </body>
 </html>
 

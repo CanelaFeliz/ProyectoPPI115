@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const cartBackdrop = document.getElementById('cart-backdrop');
 
   /**
-   * Alternar visibilidad de la barra lateral del carrito
+   * Alternar visibilidad de la barra lateral del carrito con overlay empañado en móvil
    */
   function toggleCart() {
     if (!cartSidebar) return;
@@ -24,10 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     cartSidebar.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
 
     if (cartBackdrop) {
-      if (isExpanded && window.innerWidth <= 900) {
-        cartBackdrop.classList.add('active');
+      if (isExpanded && window.innerWidth <= 1024) {
+        cartBackdrop.classList.add('active', 'open');
+        document.body.style.overflow = 'hidden';
       } else {
-        cartBackdrop.classList.remove('active');
+        cartBackdrop.classList.remove('active', 'open');
+        document.body.style.overflow = '';
       }
     }
   }
@@ -40,7 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
       cartToggleBtn.setAttribute('aria-expanded', 'false');
     }
     if (cartBackdrop) {
-      cartBackdrop.classList.remove('active');
+      cartBackdrop.classList.remove('active', 'open');
+      document.body.style.overflow = '';
     }
   }
 
@@ -64,6 +67,19 @@ document.addEventListener('DOMContentLoaded', () => {
       closeCart();
     });
   }
+
+  // Limpiar overlay si se redimensiona a pantalla de escritorio
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 1024) {
+      if (cartBackdrop) {
+        cartBackdrop.classList.remove('active', 'open');
+      }
+      const productModal = document.getElementById('product-modal');
+      if (!productModal || !productModal.classList.contains('active')) {
+        document.body.style.overflow = '';
+      }
+    }
+  });
 
   /**
    * ==========================================================================
@@ -175,13 +191,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cartTotal) {
       cartTotal.textContent = `$${total.toFixed(2)}`;
     }
+
+    // Sincronizar contadores visuales en las tarjetas del catálogo
+    sincronizarContadoresTarjetas();
   }
 
   function agregarAlCarrito(producto, cantidad) {
     if (!cartItemsContainer || cantidad <= 0) return;
 
     // Asegurar que el carrito sea visible en desktop
-    if (cartSidebar && cartSidebar.classList.contains('hidden') && window.innerWidth > 900) {
+    if (cartSidebar && cartSidebar.classList.contains('hidden') && window.innerWidth > 1024) {
       cartSidebar.classList.remove('hidden');
     }
 
@@ -230,6 +249,91 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     actualizarTotalesCarrito();
+  }
+
+  /**
+   * Modificar cantidad incremental (+ / -) desde controles rápidos de las tarjetas
+   */
+  function modificarCantidadEnCarrito(producto, delta) {
+    if (!cartItemsContainer || !producto) return;
+
+    if (delta > 0) {
+      agregarAlCarrito(producto, delta);
+      return;
+    }
+
+    const codigo = (producto.codigo || '').trim();
+    const name = (producto.name || '').trim().toLowerCase();
+    const price = parseFloat(producto.price) || 0;
+
+    const items = Array.from(cartItemsContainer.querySelectorAll('.cart-item'));
+    const itemExistente = items.find(item => {
+      if (codigo && item.dataset.codigo === codigo) return true;
+      const titleEl = item.querySelector('.cart-item-title');
+      return titleEl && titleEl.textContent.trim().toLowerCase() === name;
+    });
+
+    if (itemExistente) {
+      const qtySpan = itemExistente.querySelector('.qty-value');
+      let currentQty = parseInt(qtySpan ? qtySpan.textContent : '1', 10) || 1;
+      currentQty += delta;
+
+      if (currentQty > 0) {
+        if (qtySpan) qtySpan.textContent = currentQty;
+        const priceSpan = itemExistente.querySelector('.cart-item-price');
+        if (priceSpan) {
+          priceSpan.textContent = `$${(price * currentQty).toFixed(2)}`;
+        }
+      } else {
+        itemExistente.remove();
+      }
+      actualizarTotalesCarrito();
+    }
+  }
+
+  /**
+   * Sincronizar los contadores visuales de las tarjetas con los ítems del carrito
+   */
+  function sincronizarContadoresTarjetas() {
+    const cards = document.querySelectorAll('.product-card, .producto-card');
+    if (!cards.length) return;
+
+    const cartMap = new Map();
+    if (cartItemsContainer) {
+      const items = cartItemsContainer.querySelectorAll('.cart-item');
+      items.forEach(item => {
+        const codigo = (item.dataset.codigo || '').trim();
+        const name = (item.querySelector('.cart-item-title')?.textContent || '').trim().toLowerCase();
+        const qty = parseInt(item.querySelector('.qty-value')?.textContent || '0', 10) || 0;
+        if (codigo) cartMap.set(`code:${codigo}`, (cartMap.get(`code:${codigo}`) || 0) + qty);
+        if (name) cartMap.set(`name:${name}`, (cartMap.get(`name:${name}`) || 0) + qty);
+      });
+    }
+
+    cards.forEach(card => {
+      const codigo = (card.dataset.codigo || '').trim();
+      const name = (card.dataset.name || card.querySelector('.product-name')?.textContent || '').trim().toLowerCase();
+      const qtySpan = card.querySelector('.card-qty-value');
+      const control = card.querySelector('.card-quantity-control');
+
+      let currentQty = 0;
+      if (codigo && cartMap.has(`code:${codigo}`)) {
+        currentQty = cartMap.get(`code:${codigo}`);
+      } else if (name && cartMap.has(`name:${name}`)) {
+        currentQty = cartMap.get(`name:${name}`);
+      }
+
+      if (qtySpan) {
+        qtySpan.textContent = currentQty;
+      }
+      if (control) {
+        if (currentQty > 0) {
+          control.classList.add('has-items');
+        } else {
+          control.classList.remove('has-items');
+        }
+      }
+    });
   }
 
   // Delegación de eventos para los botones (- / +) dentro del carrito
@@ -284,6 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cartTotal) {
       cartTotal.textContent = '$0.00';
     }
+    sincronizarContadoresTarjetas();
   }
 
   // 2. Extraer productos del carrito con IDs, cantidades y precios
@@ -434,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id_mesa: parseInt(mesaActiva, 10),
+          id_mesa: (mesaActiva && !isNaN(parseInt(mesaActiva, 10)) && !mesaActiva.toString().startsWith('M')) ? parseInt(mesaActiva, 10) : mesaActiva,
           productos: items,
           estado_mesa: 'En proceso',
           estado_pedido: 'En preparación'
@@ -451,9 +556,8 @@ document.addEventListener('DOMContentLoaded', () => {
           mostrarModalExitoPedido(mesaActiva, () => {
             // Vaciar carrito y restablecer totales a $0.00
             vaciarCarritoCliente();
-            if (cartSidebar && window.innerWidth <= 900) {
-              cartSidebar.classList.add('hidden');
-              if (cartBackdrop) cartBackdrop.classList.remove('active');
+            if (window.innerWidth <= 1024) {
+              closeCart();
             }
           });
         } else {
@@ -514,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalImageContainer = document.getElementById('modal-product-image');
     if (modalImageContainer) {
       if (productData.foto) {
-        modalImageContainer.innerHTML = `<img src="IMG/${productData.foto}" alt="${productData.name}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.style.display='none';">`;
+        modalImageContainer.innerHTML = `<img src="../../public/img/${productData.foto}" alt="${productData.name}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" onerror="this.style.display='none';">`;
       } else {
         modalImageContainer.innerHTML = '';
       }
@@ -546,10 +650,50 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.overflow = '';
   }
 
-  // Escuchar clics en todas las tarjetas de producto
+  // ==========================================================================
+  // CONTROLES RÁPIDOS EN TARJETAS DE PRODUCTO (AGREGAR / QUITAR DESDE CATÁLOGO)
+  // ==========================================================================
+  const productsGrid = document.querySelector('.products-grid');
+  if (productsGrid) {
+    productsGrid.addEventListener('click', (e) => {
+      const minusBtn = e.target.closest('.card-qty-minus');
+      const plusBtn = e.target.closest('.card-qty-plus');
+
+      if (!minusBtn && !plusBtn) return;
+
+      e.stopPropagation();
+      e.preventDefault();
+
+      const card = e.target.closest('.product-card, .producto-card');
+      if (!card) return;
+
+      const codigo = card.dataset.codigo || '';
+      const name = card.dataset.name || card.querySelector('.product-name')?.textContent?.trim() || 'Producto';
+      const rawPrice = card.dataset.price || card.querySelector('.product-price')?.textContent || '0.00';
+      const price = parseFloat(String(rawPrice).replace(/[^0-9.]/g, '')) || 0;
+      const desc = card.dataset.desc || card.querySelector('.product-description')?.textContent?.trim() || '';
+      const foto = card.dataset.foto || '';
+      const ingredients = card.dataset.ingredients || '';
+
+      const producto = { codigo, name, price, desc, foto, ingredients };
+
+      if (plusBtn) {
+        modificarCantidadEnCarrito(producto, 1);
+      } else if (minusBtn) {
+        modificarCantidadEnCarrito(producto, -1);
+      }
+    });
+  }
+
+  // Escuchar clics en todas las tarjetas de producto para abrir el modal detallado
   const productCards = document.querySelectorAll('.product-card, .producto-card');
   productCards.forEach((card) => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // Si el clic ocurrió dentro de los controles rápidos (+ / -) o en botones interactivos, evitar abrir el modal
+      if (e.target.closest('.card-quantity-control, .qty-btn, button, a')) {
+        return;
+      }
+
       const codigo = card.dataset.codigo || '';
       const name = card.dataset.name || card.querySelector('.product-name')?.textContent || 'Producto';
       const rawPrice = card.dataset.price || card.querySelector('.product-price')?.textContent || '0.00';
@@ -616,16 +760,93 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /**
-   * Navegación activa en el menú superior
-   */
+  // ==========================================================================
+  // ESTILOS Y EVENTOS DEL LOGOTIPO
+  // El cambio de color a terracota se gestiona exclusivamente mediante CSS (:active)
+  // ==========================================================================
+
+  // ==========================================================================
+  // NAVEGACIÓN Y DESPLAZAMIENTO SUAVE ("INICIO" Y "MENÚ")
+  // ==========================================================================
+  function desplazarseHaciaInicio() {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+    if (window.history.pushState) {
+      window.history.pushState(null, null, '#inicio');
+    }
+  }
+
+  function desplazarseHaciaMenu() {
+    const targetElement = document.getElementById('menu');
+    if (!targetElement) return;
+
+    const header = document.querySelector('.main-header');
+    const headerHeight = header ? header.getBoundingClientRect().height : 0;
+    // Margen de holgura visual (18px) para que las pastillas de categoría queden 100% visibles
+    const paddingOffset = 18;
+    const elementTop = targetElement.getBoundingClientRect().top + window.pageYOffset;
+    const targetScroll = elementTop - headerHeight - paddingOffset;
+
+    window.scrollTo({
+      top: Math.max(0, targetScroll),
+      behavior: 'smooth'
+    });
+
+    if (window.history.pushState) {
+      window.history.pushState(null, null, '#menu');
+    }
+  }
+
   const navLinks = document.querySelectorAll('.nav-link');
   navLinks.forEach((link) => {
     link.addEventListener('click', (e) => {
+      const href = (link.getAttribute('href') || '').trim();
+      const text = link.textContent.trim().toLowerCase();
+
+      // Anclaje garantizado hacia el punto más alto de la página
+      if (href === '#inicio' || text === 'inicio') {
+        e.preventDefault();
+        desplazarseHaciaInicio();
+        navLinks.forEach((l) => l.classList.remove('active'));
+        link.classList.add('active');
+        return;
+      }
+
+      // Anclaje con offset exacto para que las pastillas del menú no queden tapadas
+      if (href === '#menu' || text === 'menú' || text === 'menu') {
+        e.preventDefault();
+        desplazarseHaciaMenu();
+        navLinks.forEach((l) => l.classList.remove('active'));
+        link.classList.add('active');
+        return;
+      }
+
       navLinks.forEach((l) => l.classList.remove('active'));
       link.classList.add('active');
     });
   });
+
+  // Botón "Explorar menú" en el banner promocional
+  const btnExplore = document.querySelector('.btn-explore');
+  if (btnExplore) {
+    btnExplore.addEventListener('click', (e) => {
+      const href = (btnExplore.getAttribute('href') || '').trim();
+      if (href === '#menu') {
+        e.preventDefault();
+        desplazarseHaciaMenu();
+        const menuNavLink = document.querySelector('.nav-link[href="#menu"]');
+        if (menuNavLink) {
+          navLinks.forEach((l) => l.classList.remove('active'));
+          menuNavLink.classList.add('active');
+        }
+      }
+    });
+  }
+
+  // Sincronización inicial de contadores en tarjetas de catálogo al cargar la página
+  sincronizarContadoresTarjetas();
 
   /**
    * ==========================================================================
@@ -962,7 +1183,7 @@ document.addEventListener('DOMContentLoaded', () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id_mesa: parseInt(mesaActiva, 10),
+          id_mesa: (mesaActiva && !isNaN(parseInt(mesaActiva, 10)) && !mesaActiva.toString().startsWith('M')) ? parseInt(mesaActiva, 10) : mesaActiva,
           productos: itemsCarrito,
           estado_mesa: 'En proceso',
           estado_pedido: 'En preparación'
@@ -1365,7 +1586,8 @@ document.addEventListener('DOMContentLoaded', () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id_mesa: parseInt(mesaActiva, 10),
+          id_mesa: (mesaActiva && !isNaN(parseInt(mesaActiva, 10)) && !mesaActiva.toString().startsWith('M')) ? parseInt(mesaActiva, 10) : mesaActiva,
+          id_pedido: btnProcesarPago.dataset.idpedido ? parseInt(btnProcesarPago.dataset.idpedido, 10) : null,
           monto_recibido: montoRecibido > 0 ? montoRecibido : totalOperacion,
           id_cajero: 1
         })

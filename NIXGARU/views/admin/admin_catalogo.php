@@ -16,8 +16,7 @@ try {
 } catch (PDOException $e) {
     die("Error al consultar el catálogo de productos: " . $e->getMessage());
 }
-?>
-<?php
+
 $pageTitle = 'NIXGARU – Gestión de Catálogo y Menú';
 require_once '../layouts/sidebar.php';
 ?>

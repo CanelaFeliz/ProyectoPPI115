@@ -3,12 +3,15 @@
  * ==============================================================================
  * NIXGARU – Controlador de Personal de Servicio
  * controllers/ServicioController.php
+ * Procesa la recepción de comandas de mesas y el cierre financiero de cuentas
  * ==============================================================================
  */
+
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../models/Pedido.php';
 require_once __DIR__ . '/../models/Mesa.php';
+require_once __DIR__ . '/../models/Cuenta.php';
 
 class ServicioController {
     private PDO $pdo;
@@ -22,6 +25,10 @@ class ServicioController {
      * inserta los datos transaccionales de la orden y actualiza el estado de la mesa a 'En proceso'.
      */
     public function guardarOrden(): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $rawInput = file_get_contents('php://input');
         $data = json_decode($rawInput, true);
 
@@ -29,19 +36,19 @@ class ServicioController {
             $data = $_POST;
         }
 
-        $idMesa = isset($data['id_mesa']) ? (int)$data['id_mesa'] : 0;
+        $idMesa = isset($data['id_mesa']) ? $data['id_mesa'] : 0;
         $productos = isset($data['productos']) && is_array($data['productos']) ? $data['productos'] : [];
-        $idMesero = isset($data['id_mesero']) ? (int)$data['id_mesero'] : 1;
+        $idMesero = isset($_SESSION['id_usuario']) ? (int)$_SESSION['id_usuario'] : (isset($data['id_mesero']) ? (int)$data['id_mesero'] : 3);
         $estadoMesa = isset($data['estado_mesa']) ? trim($data['estado_mesa']) : 'En proceso';
         $estadoPedido = isset($data['estado_pedido']) ? trim($data['estado_pedido']) : 'En preparación';
 
-        if ($idMesa <= 0) {
-            echo json_encode(['success' => false, 'error' => 'ID de mesa no válido'], JSON_UNESCAPED_UNICODE);
+        if (empty($idMesa)) {
+            echo json_encode(['success' => false, 'error' => 'Identificador de mesa no válido o vacío'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         if (empty($productos)) {
-            echo json_encode(['success' => false, 'error' => 'No hay productos en la orden'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'No hay productos en la orden enviada'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -51,10 +58,10 @@ class ServicioController {
             $mesaModel = new Mesa($this->pdo);
             $pedidoModel = new Pedido($this->pdo);
 
-            // Asegura que la mesa exista en la BD y obtiene su id_mesa real
+            // Asegura que la mesa exista en la BD y obtiene su id_mesa numérico real
             $idMesaReal = $mesaModel->asegurarMesa($idMesa, $estadoMesa);
 
-            // Inserta la orden y sus detalles
+            // Inserta o actualiza la orden y sus detalles_pedido con código de producto alfanumérico
             $idPedido = $pedidoModel->guardarOrden($idMesaReal, $productos, $idMesero, $estadoPedido);
 
             // Actualiza el estado de la mesa
@@ -81,10 +88,14 @@ class ServicioController {
     }
 
     /**
-     * Captura el JSON enviado por el frontend, instancia Pedido y Mesa,
-     * registra el pago en cuentas, marca el pedido como 'Pagado' y la mesa como 'Disponible'.
+     * Captura el JSON enviado por el frontend, registra el cobro en la tabla `cuentas`,
+     * marca el pedido como 'Pagado' en `pedidos` y libera la mesa poniéndola en 'Disponible'.
      */
     public function cerrarCuenta(): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $rawInput = file_get_contents('php://input');
         $data = json_decode($rawInput, true);
 
@@ -92,12 +103,13 @@ class ServicioController {
             $data = $_POST;
         }
 
-        $idMesa = isset($data['id_mesa']) ? (int)$data['id_mesa'] : 0;
+        $idMesa = isset($data['id_mesa']) ? $data['id_mesa'] : 0;
+        $idPedidoDirecto = isset($data['id_pedido']) ? (int)$data['id_pedido'] : null;
         $montoRecibido = isset($data['monto_recibido']) ? (float)$data['monto_recibido'] : 0.00;
-        $idCajero = isset($data['id_cajero']) ? (int)$data['id_cajero'] : 1;
+        $idCajero = isset($_SESSION['id_usuario']) ? (int)$_SESSION['id_usuario'] : (isset($data['id_cajero']) ? (int)$data['id_cajero'] : 2);
 
-        if ($idMesa <= 0) {
-            echo json_encode(['success' => false, 'error' => 'ID de mesa no válido'], JSON_UNESCAPED_UNICODE);
+        if (empty($idMesa) && empty($idPedidoDirecto)) {
+            echo json_encode(['success' => false, 'error' => 'No se especificó la mesa ni el pedido para procesar el cobro'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -107,20 +119,34 @@ class ServicioController {
             $mesaModel = new Mesa($this->pdo);
             $pedidoModel = new Pedido($this->pdo);
 
-            // Asegura que la mesa exista en la BD y obtiene su id_mesa real
-            $idMesaReal = $mesaModel->asegurarMesa($idMesa, 'Disponible');
+            // Asegura y resuelve el ID de la mesa
+            $idMesaReal = !empty($idMesa) ? $mesaModel->asegurarMesa($idMesa, 'Disponible') : 0;
 
-            // Cierra la cuenta e inserta en la tabla cuentas
-            $resCuenta = $pedidoModel->cerrarCuenta($idMesaReal, $montoRecibido, $idCajero);
+            // Registra el pago en la tabla normalizada `cuentas` y actualiza `pedidos` a 'Pagado'
+            $resCuenta = $pedidoModel->cerrarCuenta($idMesaReal, $montoRecibido, $idCajero, $idPedidoDirecto);
 
-            // Actualiza el estado de la mesa a 'Disponible'
-            $mesaModel->actualizarEstado($idMesaReal, 'Disponible');
+            if (empty($resCuenta['id_pedido'])) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'No se encontró un pedido activo pendiente de cobro para esta mesa'
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            // Actualiza el estado de la mesa física a 'Disponible'
+            if ($idMesaReal > 0) {
+                $mesaModel->actualizarEstado($idMesaReal, 'Disponible');
+            }
 
             $this->pdo->commit();
 
             echo json_encode(array_merge([
                 'success' => true,
-                'id_mesa' => $idMesaReal
+                'id_mesa' => $idMesaReal,
+                'message' => 'Cobro procesado con éxito, registrado en cuentas y mesa liberada'
             ], $resCuenta), JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
@@ -135,7 +161,7 @@ class ServicioController {
     }
 }
 
-// Al final del archivo, usa un switch($_GET['action']) para dirigir la petición al método correcto
+// Enrutador de acciones para peticiones GET o POST
 if (isset($_GET['action'])) {
     $controller = new ServicioController($pdo);
     switch ($_GET['action']) {

@@ -10,27 +10,25 @@
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Producto.php';
 require_once __DIR__ . '/../../models/Mesa.php';
+require_once __DIR__ . '/../../models/Categoria.php';
 
 // Detección de la mesa del cliente mediante parámetro GET (?mesa=1 o ?mesa_id=1 por defecto)
-$idMesaCliente = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
-if ($idMesaCliente <= 0) {
-    $idMesaCliente = 1;
-}
+$idMesaCliente = isset($_GET['mesa_id']) ? $_GET['mesa_id'] : (isset($_GET['mesa']) ? $_GET['mesa'] : 1);
 
 try {
     $productoModel = new Producto($pdo);
     $productos = $productoModel->obtenerActivos();
 
-    // Consulta para los botones de filtros de categorías
-    $stmtCat = $pdo->query("SELECT id_categoria, nombre_categoria FROM categorias ORDER BY id_categoria ASC");
-    $categorias = $stmtCat->fetchAll();
+    // Consulta para los botones de filtros de categorías mediante el modelo Categoria
+    $categoriaModel = new Categoria($pdo);
+    $categorias = $categoriaModel->obtenerTodas();
 
     // Consulta para el selector dinámico de mesas en el carrito mediante el modelo Mesa
     $mesaModel = new Mesa($pdo);
     $mesasDisponibles = $mesaModel->obtenerTodas();
     if (empty($mesasDisponibles)) {
         for ($i = 1; $i <= 8; $i++) {
-            $mesasDisponibles[] = ['id_mesa' => $i, 'numero_mesa' => (string)$i, 'estado' => 'Disponible'];
+            $mesasDisponibles[] = ['id_mesa' => $i, 'numero_mesa' => 'M-0' . $i, 'estado' => 'Disponible'];
         }
     }
 } catch (PDOException $e) {
@@ -47,17 +45,44 @@ try {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../../public/css/style.css">
+  <link rel="stylesheet" href="../../public/css/style.css?v=<?php echo filemtime(__DIR__ . '/../../public/css/style.css'); ?>">
+  <style>
+    /* Inversión garantizada de línea gráfica en vista cliente */
+    .logo-icon {
+      background-color: var(--color-rojo-frambuesa);
+      color: var(--color-blanco) !important;
+    }
+    .brand-logo:active .logo-icon,
+    .logo-icon:active {
+      background-color: var(--color-terracota) !important;
+    }
+    .btn-cart,
+    .btn-confirm-order {
+      background-color: var(--color-rojo-frambuesa) !important;
+    }
+    .promo-banner {
+      background-color: var(--color-terracota) !important;
+    }
+    .category-pill.active {
+      background-color: var(--color-rojo-frambuesa) !important;
+      border-color: var(--color-rojo-frambuesa) !important;
+      color: var(--color-blanco) !important;
+    }
+    .product-price,
+    .total-amount {
+      color: var(--color-rojo-frambuesa) !important;
+    }
+  </style>
 </head>
 <body>
 
   <!-- Navegación Principal / Header -->
-  <header class="main-header">
+  <header class="main-header" id="inicio">
     <div class="header-container">
       
       <!-- Logotipo -->
-      <a href="menu_cliente.php" class="brand-logo">
-        <div class="logo-icon">
+      <a href="menu_cliente.php" class="brand-logo" id="brandLogo" title="NIXGARU">
+        <div class="logo-icon" id="logoIcon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
@@ -86,7 +111,7 @@ try {
           </svg>
         </button>
 
-        <button id="cart-toggle-btn" class="btn-cart" aria-expanded="false" aria-controls="cart-sidebar" type="button">
+        <button id="cart-toggle-btn" class="btn-cart" aria-expanded="false" aria-controls="cart-sidebar" type="button" style="background-color: var(--color-rojo-frambuesa);">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1"></circle>
             <circle cx="20" cy="21" r="1"></circle>
@@ -106,7 +131,7 @@ try {
     <main class="main-content">
 
       <!-- Banner de Promociones del día -->
-      <section class="promo-banner" id="promociones">
+      <section class="promo-banner" id="promociones" style="background-color: var(--color-terracota);">
         <div class="promo-content">
           <h1 class="promo-title">Promociones del día</h1>
           <p class="promo-description">
@@ -155,8 +180,12 @@ try {
               <h3 class="product-name"><?php echo htmlspecialchars($producto['nombre']); ?></h3>
               <p class="product-description"><?php echo htmlspecialchars($producto['descripcion'] ?? 'Delicioso producto recién preparado.'); ?></p>
               <div class="product-footer">
-                <span class="product-price">$<?php echo number_format((float)$producto['precio'], 2); ?></span>
-                <button class="btn-select" type="button">Seleccionar</button>
+                <span class="product-price" style="color: var(--color-rojo-frambuesa);">$<?php echo number_format((float)$producto['precio'], 2); ?></span>
+                <div class="card-quantity-control quantity-control" data-codigo="<?php echo htmlspecialchars($producto['codigo_producto']); ?>">
+                  <button class="qty-btn card-qty-btn card-qty-minus" aria-label="Disminuir cantidad" type="button" title="Disminuir cantidad">-</button>
+                  <span class="qty-value card-qty-value">0</span>
+                  <button class="qty-btn card-qty-btn card-qty-plus" aria-label="Aumentar cantidad" type="button" title="Aumentar cantidad">+</button>
+                </div>
               </div>
             </div>
 
@@ -224,9 +253,9 @@ try {
           </div>
           <div class="summary-total">
             <span class="total-label">Total</span>
-            <span class="total-amount" id="cart-total">$0.00</span>
+            <span class="total-amount" id="cart-total" style="color: var(--color-rojo-frambuesa);">$0.00</span>
           </div>
-          <button class="btn-confirm-order" id="btnConfirmarPedido" type="button" data-mesa="<?php echo $idMesaCliente; ?>">Confirmar Pedido</button>
+          <button class="btn-confirm-order" id="btnConfirmarPedido" type="button" data-mesa="<?php echo $idMesaCliente; ?>" style="background-color: var(--color-rojo-frambuesa);">Confirmar Pedido</button>
         </div>
 
       </div>

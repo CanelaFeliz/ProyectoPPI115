@@ -1,6 +1,6 @@
 <?php
-require_once '../../config/database.php';
-require_once '../../models/Pedido.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/Pedido.php';
 
 $pedidoModel = new Pedido($pdo);
 $estadisticas = $pedidoModel->obtenerEstadisticasVentas();

@@ -3,17 +3,15 @@
  * ==============================================================================
  * NIXGARU – Cafetería | Personal de Servicio
  * Pantalla: Plano de Mesas y Consulta Dinámica de Pedidos (mesas.php)
- * Conexión dinámica con PDO a la base de datos nixgaru_db
+ * Conexión dinámica con PDO a la base de datos nixgaru_db mediante modelos MVC
  * ==============================================================================
  */
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Mesa.php';
+require_once __DIR__ . '/../../models/Pedido.php';
 
 // 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
-$idMesaSeleccionada = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
-if ($idMesaSeleccionada <= 0) {
-    $idMesaSeleccionada = 1;
-}
+$idMesaSeleccionada = isset($_GET['mesa_id']) ? $_GET['mesa_id'] : (isset($_GET['mesa']) ? $_GET['mesa'] : 1);
 
 try {
     // 2. Consulta de todas las mesas registradas en la base de datos mediante el modelo Mesa
@@ -23,76 +21,47 @@ try {
     // Fallback de seguridad en caso de que la tabla aún no contenga registros
     if (empty($mesas)) {
         $mesas = [
-            ['id_mesa' => 1, 'numero_mesa' => '1', 'capacidad' => 4, 'estado' => 'Disponible'],
-            ['id_mesa' => 2, 'numero_mesa' => '2', 'capacidad' => 2, 'estado' => 'Ocupada'],
-            ['id_mesa' => 3, 'numero_mesa' => '3', 'capacidad' => 6, 'estado' => 'En proceso'],
-            ['id_mesa' => 4, 'numero_mesa' => '4', 'capacidad' => 4, 'estado' => 'Sin servicio'],
-            ['id_mesa' => 5, 'numero_mesa' => '5', 'capacidad' => 4, 'estado' => 'Disponible'],
-            ['id_mesa' => 6, 'numero_mesa' => '6', 'capacidad' => 2, 'estado' => 'Ocupada'],
-            ['id_mesa' => 7, 'numero_mesa' => '7', 'capacidad' => 6, 'estado' => 'En proceso'],
-            ['id_mesa' => 8, 'numero_mesa' => '8', 'capacidad' => 4, 'estado' => 'Sin servicio']
+            ['id_mesa' => 1, 'numero_mesa' => 'M-01', 'capacidad' => 2, 'estado' => 'Disponible'],
+            ['id_mesa' => 2, 'numero_mesa' => 'M-02', 'capacidad' => 2, 'estado' => 'Ocupada'],
+            ['id_mesa' => 3, 'numero_mesa' => 'M-03', 'capacidad' => 4, 'estado' => 'Disponible'],
+            ['id_mesa' => 4, 'numero_mesa' => 'M-04', 'capacidad' => 4, 'estado' => 'Disponible'],
+            ['id_mesa' => 5, 'numero_mesa' => 'M-05', 'capacidad' => 4, 'estado' => 'Disponible'],
+            ['id_mesa' => 6, 'numero_mesa' => 'M-06', 'capacidad' => 2, 'estado' => 'Disponible'],
+            ['id_mesa' => 7, 'numero_mesa' => 'M-07', 'capacidad' => 2, 'estado' => 'Disponible'],
+            ['id_mesa' => 8, 'numero_mesa' => 'M-08', 'capacidad' => 4, 'estado' => 'Disponible']
         ];
     }
 
-    // Identificar la información de la mesa seleccionada
+    // Identificar la información de la mesa seleccionada de manera robusta
     $mesaActivaInfo = null;
     foreach ($mesas as $m) {
-        if ((int)$m['numero_mesa'] === $idMesaSeleccionada || (int)$m['id_mesa'] === $idMesaSeleccionada) {
+        if ((string)$m['id_mesa'] === (string)$idMesaSeleccionada || 
+            (string)$m['numero_mesa'] === (string)$idMesaSeleccionada ||
+            (is_numeric($idMesaSeleccionada) && (int)$m['id_mesa'] === (int)$idMesaSeleccionada)) {
             $mesaActivaInfo = $m;
             break;
         }
     }
-    if (!$mesaActivaInfo) {
+    if (!$mesaActivaInfo && !empty($mesas)) {
         $mesaActivaInfo = $mesas[0];
-        $idMesaSeleccionada = (int)$mesaActivaInfo['numero_mesa'];
     }
-    $numeroMesaActiva = $mesaActivaInfo['numero_mesa'];
+    $idMesaActiva = $mesaActivaInfo ? $mesaActivaInfo['id_mesa'] : 1;
+    $numeroMesaActiva = $mesaActivaInfo ? $mesaActivaInfo['numero_mesa'] : 'M-01';
 
-    // 3. Consulta de consumos activos por mesa (para pintar en las tarjetas de la cuadrícula)
-    $stmtConsumos = $pdo->query("
-        SELECT 
-            p.id_mesa,
-            SUM(dp.cantidadPed * dp.precio_unitario) AS consumo_subtotal
-        FROM pedidos p
-        INNER JOIN detalles_pedido dp ON p.id_pedido = dp.id_pedido
-        WHERE (p.estado_pedido != 'Pagado' OR p.estado_pedido IS NULL)
-          AND p.id_pedido NOT IN (SELECT id_cuenta_p.id_pedido FROM cuentas id_cuenta_p WHERE id_cuenta_p.id_pedido IS NOT NULL)
-        GROUP BY p.id_mesa
-    ");
-    $consumosPorMesa = [];
-    while ($row = $stmtConsumos->fetch()) {
-        $consumosPorMesa[(int)$row['id_mesa']] = (float)$row['consumo_subtotal'];
-    }
+    // 3. Consulta de consumos activos por mesa mediante el modelo Pedido
+    $pedidoModel = new Pedido($pdo);
+    $consumosPorMesa = $pedidoModel->obtenerConsumosActivosPorMesa();
 
-    // 4. Consulta SQL con PDO para extraer los platillos reales de la mesa seleccionada que no han sido pagados
-    // Uniendo pedidos, detalles_pedido y productos
-    $stmtPedidos = $pdo->prepare("
-        SELECT 
-            pr.nombre AS nombre_producto,
-            dp.cantidadPed,
-            dp.precio_unitario,
-            (dp.cantidadPed * dp.precio_unitario) AS subtotal_linea,
-            p.id_pedido,
-            p.estado_pedido
-        FROM pedidos p
-        INNER JOIN detalles_pedido dp ON p.id_pedido = dp.id_pedido
-        INNER JOIN productos pr ON dp.codigo_producto = pr.codigo_producto
-        INNER JOIN mesas m ON p.id_mesa = m.id_mesa
-        WHERE (m.id_mesa = ? OR m.numero_mesa = ?)
-          AND (p.estado_pedido != 'Pagado' OR p.estado_pedido IS NULL)
-          AND p.id_pedido NOT IN (SELECT id_cuenta_p.id_pedido FROM cuentas id_cuenta_p WHERE id_cuenta_p.id_pedido IS NOT NULL)
-        ORDER BY dp.id_detalle ASC
-    ");
-    $stmtPedidos->execute([$idMesaSeleccionada, (string)$idMesaSeleccionada]);
-    $detallesOrden = $stmtPedidos->fetchAll();
+    // 4. Consulta de platillos reales de la mesa seleccionada que no han sido pagados
+    $detallesOrden = $pedidoModel->obtenerCuentaActivaPorMesa($idMesaActiva);
 
     // 5. Cálculo dinámico de Subtotal, Propina (10%) y Total general
-    $subtotal = 0;
+    $subtotal = 0.00;
     foreach ($detallesOrden as $item) {
         $subtotal += (float)$item['subtotal_linea'];
     }
-    $propina = $subtotal * 0.10;
-    $total = $subtotal + $propina;
+    $propina = round($subtotal * 0.10, 2);
+    $total = round($subtotal + $propina, 2);
 
     // Configuración de la píldora de estado de la mesa activa
     $estadoRaw = strtolower(trim($mesaActivaInfo['estado'] ?? 'Disponible'));
@@ -165,10 +134,10 @@ require_once '../layouts/header.php';
 
         <?php foreach ($mesas as $mesa): ?>
           <?php 
-            $numMesa = (int)$mesa['numero_mesa'];
+            $numMesaDisplay = htmlspecialchars($mesa['numero_mesa']);
             $idM = (int)$mesa['id_mesa'];
-            $esActiva = ($numMesa === $idMesaSeleccionada || $idM === $idMesaSeleccionada);
-            $consumoSub = $consumosPorMesa[$idM] ?? ($consumosPorMesa[$numMesa] ?? 0.00);
+            $esActiva = ((string)$mesa['id_mesa'] === (string)$idMesaActiva || (string)$mesa['numero_mesa'] === (string)$numeroMesaActiva);
+            $consumoSub = $consumosPorMesa[$idM] ?? 0.00;
             $consumoMesa = $consumoSub > 0 ? ($consumoSub * 1.10) : 0.00;
             
             $st = strtolower(trim($mesa['estado']));
@@ -183,12 +152,13 @@ require_once '../layouts/header.php';
             }
           ?>
           <article class="table-card <?php echo $esActiva ? 'active' : ''; ?>" 
-                   data-table-number="<?php echo $numMesa; ?>" 
+                   data-table-number="<?php echo $numMesaDisplay; ?>" 
+                   data-table-id="<?php echo $idM; ?>"
                    data-table-cap="<?php echo (int)$mesa['capacidad']; ?>"
-                   onclick="if (!event.target.closest('.table-status-select')) { window.location.href='mesas.php?mesa_id=<?php echo $numMesa; ?>'; }">
+                   onclick="if (!event.target.closest('.table-status-select')) { window.location.href='mesas.php?mesa_id=<?php echo urlencode($mesa['id_mesa']); ?>'; }">
             
             <div class="table-card-header">
-              <h3 class="table-name">Mesa <?php echo $numMesa; ?></h3>
+              <h3 class="table-name">Mesa <?php echo $numMesaDisplay; ?></h3>
               <span class="table-capacity">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -213,7 +183,7 @@ require_once '../layouts/header.php';
 
             <div class="table-card-footer">
               <div class="status-select-wrapper">
-                <select class="table-status-select status-<?php echo $estadoSlug; ?>" aria-label="Estado de la Mesa <?php echo $numMesa; ?>">
+                <select class="table-status-select status-<?php echo $estadoSlug; ?>" aria-label="Estado de la Mesa <?php echo $numMesaDisplay; ?>" data-table-id="<?php echo $idM; ?>">
                   <option value="disponible" <?php echo $estadoSlug === 'disponible' ? 'selected' : ''; ?>>Disponible</option>
                   <option value="ocupada" <?php echo $estadoSlug === 'ocupada' ? 'selected' : ''; ?>>Ocupado</option>
                   <option value="proceso" <?php echo $estadoSlug === 'proceso' ? 'selected' : ''; ?>>En proceso</option>
@@ -318,7 +288,7 @@ require_once '../layouts/header.php';
 
         <!-- Botones de Acción -->
         <div class="cuenta-actions">
-          <a href="gestion_orden.php?mesa_id=<?php echo htmlspecialchars($numeroMesaActiva); ?>" class="btn-account-add" id="btnAgregarProducto" data-mesa="<?php echo htmlspecialchars($numeroMesaActiva); ?>" style="text-decoration: none;">
+          <a href="gestion_orden.php?mesa_id=<?php echo urlencode($idMesaActiva); ?>" class="btn-account-add" id="btnAgregarProducto" data-mesa="<?php echo htmlspecialchars($idMesaActiva); ?>" data-numero-mesa="<?php echo htmlspecialchars($numeroMesaActiva); ?>" style="text-decoration: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="16"></line>
@@ -327,7 +297,7 @@ require_once '../layouts/header.php';
             <span>Agregar Producto</span>
           </a>
 
-          <a href="cierre_cuenta.php?mesa_id=<?php echo htmlspecialchars($numeroMesaActiva); ?>" class="btn-account-close" id="btnCerrarCuenta" data-mesa="<?php echo htmlspecialchars($numeroMesaActiva); ?>" style="text-decoration: none;">
+          <a href="cierre_cuenta.php?mesa_id=<?php echo urlencode($idMesaActiva); ?>" class="btn-account-close" id="btnCerrarCuenta" data-mesa="<?php echo htmlspecialchars($idMesaActiva); ?>" data-numero-mesa="<?php echo htmlspecialchars($numeroMesaActiva); ?>" style="text-decoration: none;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
               <line x1="1" y1="10" x2="23" y2="10"></line>
