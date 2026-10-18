@@ -6,7 +6,8 @@
  * Conexión dinámica con PDO a la base de datos nixgaru_db
  * ==============================================================================
  */
-require_once 'config/database.php';
+require_once '../../config/database.php';
+require_once '../../models/Pedido.php';
 
 // 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
 $idMesaSeleccionada = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
@@ -23,28 +24,9 @@ try {
     $numeroMesa = $mesaInfo ? $mesaInfo['numero_mesa'] : (string)$idMesaSeleccionada;
     $idMesaReal = $mesaInfo ? (int)$mesaInfo['id_mesa'] : $idMesaSeleccionada;
 
-    // 3. Consulta SQL con PDO para extraer los platillos reales de la mesa seleccionada que no han sido pagados
-    $stmtOrden = $pdo->prepare("
-        SELECT 
-            pr.nombre AS nombre_producto,
-            dp.cantidadPed,
-            dp.precio_unitario,
-            (dp.cantidadPed * dp.precio_unitario) AS subtotal_linea,
-            p.id_pedido,
-            p.fecha_hora,
-            p.id_mesero,
-            u.nombre_completo AS nombre_mesero
-        FROM pedidos p
-        INNER JOIN detalles_pedido dp ON p.id_pedido = dp.id_pedido
-        INNER JOIN productos pr ON dp.codigo_producto = pr.codigo_producto
-        LEFT JOIN usuarios u ON p.id_mesero = u.id_usuario
-        WHERE p.id_mesa = ?
-          AND (p.estado_pedido != 'Pagado' OR p.estado_pedido IS NULL)
-          AND p.id_pedido NOT IN (SELECT id_cuenta_p.id_pedido FROM cuentas id_cuenta_p WHERE id_cuenta_p.id_pedido IS NOT NULL)
-        ORDER BY dp.id_detalle ASC
-    ");
-    $stmtOrden->execute([$idMesaReal]);
-    $detallesOrden = $stmtOrden->fetchAll();
+    // 3. Consulta de la orden activa mediante el modelo Pedido
+    $pedidoModel = new Pedido($pdo);
+    $detallesOrden = $pedidoModel->obtenerCuentaActivaPorMesa($idMesaReal);
 
     // 4. Cálculo dinámico de Subtotal, Propina (10%) y Total general
     $subtotal = 0.00;
@@ -76,70 +58,14 @@ try {
 } catch (PDOException $e) {
     die("Error al consultar cierre de cuenta: " . $e->getMessage());
 }
+
+// Variables dinámicas para el layout del encabezado
+$nombreUsuario = $nombreAtendio;
+$rolUsuario = 'Personal de servicio';
+$pageTitle = 'NIXGARU – Cierre de Cuenta | Personal de Servicio';
+
+require_once '../layouts/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NIXGARU – Cierre de Cuenta | Personal de Servicio</title>
-  <!-- Preconexión y carga de Google Fonts: Poppins -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-  <!-- Librería html2pdf.js para exportar el ticket a PDF en el cliente -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <link rel="stylesheet" href="CSS/style.css">
-</head>
-<body>
-
-  <!-- Encabezado / Header Personal de Servicio -->
-  <header class="service-header">
-    <div class="service-header-container">
-      
-      <!-- Logotipo NIXGARU a la izquierda -->
-      <div class="brand-logo-service">
-        <div class="logo-icon-service">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-            <line x1="6" y1="1" x2="6" y2="4"></line>
-            <line x1="10" y1="1" x2="10" y2="4"></line>
-            <line x1="14" y1="1" x2="14" y2="4"></line>
-          </svg>
-        </div>
-        <div class="logo-text-group">
-          <span class="logo-brand-name">NIXGARU</span>
-          <span class="logo-subtext">PERSONAL DE SERVICIO</span>
-        </div>
-      </div>
-
-      <!-- Centro: Título de la pantalla -->
-      <div class="header-center-title">
-        <h1 class="cierre-main-title">Cierre de Cuenta – Mesa <?php echo htmlspecialchars($numeroMesa); ?></h1>
-      </div>
-
-      <!-- Derecha: Perfil de usuario y botón de regreso al mapa -->
-      <div class="service-user-actions">
-        <div class="user-profile-badge">
-          <div class="user-avatar" id="avatarUsuario">CM</div>
-          <div class="user-meta">
-            <span class="user-name" id="nombreUsuario"><?php echo htmlspecialchars($nombreAtendio); ?></span>
-            <span class="user-role" id="rolUsuario">Personal de servicio</span>
-          </div>
-        </div>
-
-        <button class="btn-back-tables" id="btnMapaMesas" title="Regresar al mapa de mesas" type="button" onclick="window.location.href='mesas.php?mesa_id=<?php echo htmlspecialchars($numeroMesa); ?>'">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          <span>Mapa de mesas</span>
-        </button>
-      </div>
-
-    </div>
-  </header>
 
   <!-- Layout Principal de Cierre de Cuenta -->
   <main class="cierre-layout">
@@ -319,6 +245,6 @@ try {
   </main>
 
   <!-- Script Principal con la lógica requerida -->
-  <script src="JS/main.js"></script>
+  <script src="../../public/js/main.js"></script>
 </body>
 </html>

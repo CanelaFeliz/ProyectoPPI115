@@ -7,7 +7,9 @@
  * Consulta cruzada con recetas e ingredientes reales
  * ==============================================================================
  */
-require_once 'config/database.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/Producto.php';
+require_once __DIR__ . '/../../models/Mesa.php';
 
 // Detección de la mesa del cliente mediante parámetro GET (?mesa=1 o ?mesa_id=1 por defecto)
 $idMesaCliente = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
@@ -16,36 +18,16 @@ if ($idMesaCliente <= 0) {
 }
 
 try {
-    // Consulta para traer los productos activos, su categoría y sus ingredientes reales
-    $stmt = $pdo->prepare("
-        SELECT 
-            p.codigo_producto,
-            p.nombre,
-            p.fotografia,
-            p.descripcion,
-            p.precio,
-            p.id_categoria,
-            p.disponibilidad,
-            c.nombre_categoria,
-            COALESCE(GROUP_CONCAT(DISTINCT i.nombre ORDER BY i.nombre ASC SEPARATOR ', '), 'Ingredientes naturales de alta calidad') AS ingredientes
-        FROM productos p
-        LEFT JOIN categorias c ON p.id_categoria = c.id_categoria
-        LEFT JOIN recetas r ON p.codigo_producto = r.codigo_producto
-        LEFT JOIN ingredientes i ON r.codigo_ingrediente = i.codigo_ingrediente
-        WHERE p.disponibilidad = 1
-        GROUP BY p.codigo_producto, p.nombre, p.fotografia, p.descripcion, p.precio, p.id_categoria, p.disponibilidad, c.nombre_categoria
-        ORDER BY p.id_categoria ASC, p.codigo_producto ASC
-    ");
-    $stmt->execute();
-    $productos = $stmt->fetchAll();
+    $productoModel = new Producto($pdo);
+    $productos = $productoModel->obtenerActivos();
 
     // Consulta para los botones de filtros de categorías
     $stmtCat = $pdo->query("SELECT id_categoria, nombre_categoria FROM categorias ORDER BY id_categoria ASC");
     $categorias = $stmtCat->fetchAll();
 
-    // Consulta para el selector dinámico de mesas en el carrito
-    $stmtMesas = $pdo->query("SELECT id_mesa, numero_mesa, estado FROM mesas ORDER BY CAST(numero_mesa AS UNSIGNED) ASC, id_mesa ASC");
-    $mesasDisponibles = $stmtMesas->fetchAll();
+    // Consulta para el selector dinámico de mesas en el carrito mediante el modelo Mesa
+    $mesaModel = new Mesa($pdo);
+    $mesasDisponibles = $mesaModel->obtenerTodas();
     if (empty($mesasDisponibles)) {
         for ($i = 1; $i <= 8; $i++) {
             $mesasDisponibles[] = ['id_mesa' => $i, 'numero_mesa' => (string)$i, 'estado' => 'Disponible'];
@@ -65,7 +47,7 @@ try {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="CSS/style.css">
+  <link rel="stylesheet" href="../../public/css/style.css">
 </head>
 <body>
 
@@ -162,7 +144,7 @@ try {
             <div class="product-image-placeholder">
               <?php if (!empty($producto['fotografia'])): ?>
                 <img 
-                  src="IMG/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
+                  src="../../public/img/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
                   alt="<?php echo htmlspecialchars($producto['nombre']); ?>"
                   onerror="this.style.display='none';"
                 >
@@ -319,6 +301,6 @@ try {
     </div>
   </div>
 
-  <script src="JS/main.js"></script>
+  <script src="../../public/js/main.js"></script>
 </body>
 </html>

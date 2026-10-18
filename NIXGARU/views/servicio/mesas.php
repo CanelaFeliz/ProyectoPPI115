@@ -6,7 +6,8 @@
  * Conexión dinámica con PDO a la base de datos nixgaru_db
  * ==============================================================================
  */
-require_once 'config/database.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/Mesa.php';
 
 // 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
 $idMesaSeleccionada = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
@@ -15,9 +16,9 @@ if ($idMesaSeleccionada <= 0) {
 }
 
 try {
-    // 2. Consulta de todas las mesas registradas en la base de datos
-    $stmtMesas = $pdo->query("SELECT id_mesa, numero_mesa, capacidad, estado FROM mesas ORDER BY id_mesa ASC");
-    $mesas = $stmtMesas->fetchAll();
+    // 2. Consulta de todas las mesas registradas en la base de datos mediante el modelo Mesa
+    $mesaModel = new Mesa($pdo);
+    $mesas = $mesaModel->obtenerTodas();
 
     // Fallback de seguridad en caso de que la tabla aún no contenga registros
     if (empty($mesas)) {
@@ -116,66 +117,14 @@ try {
 } catch (PDOException $e) {
     die("Error al consultar el plano de mesas: " . $e->getMessage());
 }
+
+// Variables dinámicas para el layout del encabezado
+$nombreUsuario = 'Carlos Méndez';
+$rolUsuario = 'Personal de servicio';
+$pageTitle = 'NIXGARU – Plano de Mesas | Personal de Servicio';
+
+require_once '../layouts/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NIXGARU – Plano de Mesas | Personal de Servicio</title>
-  <!-- Preconexión y carga de Google Fonts: Poppins -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="CSS/style.css">
-</head>
-<body>
-
-  <!-- Encabezado / Header Personal de Servicio -->
-  <header class="service-header">
-    <div class="service-header-container">
-      
-      <!-- Logotipo e Identidad de Rol -->
-      <div class="brand-logo-service">
-        <div class="logo-icon-service">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-            <line x1="6" y1="1" x2="6" y2="4"></line>
-            <line x1="10" y1="1" x2="10" y2="4"></line>
-            <line x1="14" y1="1" x2="14" y2="4"></line>
-          </svg>
-        </div>
-        <div class="logo-text-group">
-          <span class="logo-brand-name">NIXGARU</span>
-          <span class="logo-subtext">PERSONAL DE SERVICIO</span>
-        </div>
-      </div>
-
-      <!-- Área de Usuario y Salida -->
-      <div class="service-user-actions">
-        <!-- Tarjeta de Perfil con datos dinámicos mediante ID -->
-        <div class="user-profile-badge">
-          <div class="user-avatar" id="avatarUsuario">CM</div>
-          <div class="user-meta">
-            <span class="user-name" id="nombreUsuario">Carlos Méndez</span>
-            <span class="user-role" id="rolUsuario">Personal de servicio</span>
-          </div>
-        </div>
-
-        <!-- Botón de Cerrar Sesión -->
-        <button class="btn-logout" id="btnCerrarSesion" title="Cerrar Sesión" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C53145" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-          <span>Cerrar Sesión</span>
-        </button>
-      </div>
-
-    </div>
-  </header>
 
   <!-- Layout Principal: 70% Plano de Mesas / 30% Cuenta -->
   <main class="mesas-layout">
@@ -393,6 +342,6 @@ try {
   </main>
 
   <!-- Script Principal con la lógica requerida -->
-  <script src="JS/main.js"></script>
+  <script src="../../public/js/main.js"></script>
 </body>
 </html>

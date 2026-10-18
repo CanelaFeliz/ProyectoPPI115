@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
       nuevoItem.dataset.price = price;
       nuevoItem.innerHTML = `
         <div class="cart-item-img">
-          ${foto ? `<img src="IMG/${foto}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.style.display='none';">` : ''}
+          ${foto ? `<img src="../../public/img/${foto}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;" onerror="this.style.display='none';">` : ''}
         </div>
         <div class="cart-item-details">
           <h4 class="cart-item-title">${name}</h4>
@@ -427,8 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
       btnConfirmarPedido.innerHTML = `<span>Enviando pedido a cocina...</span>`;
       btnConfirmarPedido.disabled = true;
 
-      // c) Enviar datos del carrito a la base de datos (pedidos y detalles_pedido) vía api/guardar_orden.php
-      fetch('api/guardar_orden.php', {
+      // c) Enviar datos del carrito a la base de datos (pedidos y detalles_pedido) vía ServicioController.php
+      fetch('../../controllers/ServicioController.php?action=guardar_orden', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Consulta AJAX para traer los ingredientes cruzando productos, recetas e ingredientes
     if (productData.codigo) {
-      fetch(`api/obtener_ingredientes.php?codigo=${encodeURIComponent(productData.codigo)}`)
+      fetch(`../../controllers/ApiController.php?action=obtener_ingredientes&codigo=${encodeURIComponent(productData.codigo)}`)
         .then(response => response.json())
         .then(data => {
           if (data && data.ingredientes && data.ingredientes.length > 0) {
@@ -956,7 +956,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnEnviarCocina.disabled = true;
 
       // Enviar al backend PHP (MySQL) mediante AJAX Fetch
-      fetch('api/guardar_orden.php', {
+      fetch('../../controllers/ServicioController.php?action=guardar_orden', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1359,7 +1359,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btnProcesarPago.disabled = true;
 
       // Llamada AJAX/Fetch al backend para actualizar MySQL (marcar pagado y liberar mesa)
-      fetch('api/cerrar_cuenta.php', {
+      fetch('../../controllers/ServicioController.php?action=cerrar_cuenta', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1879,12 +1879,56 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 2. Simulación de Ingreso al Sistema -> Redirección a mesas.php
+  // 2. Ingreso al Sistema mediante AuthController
   if (formLogin) {
     formLogin.addEventListener('submit', (e) => {
       e.preventDefault();
-      // Redirección directa al plano de mesas del sistema POS
-      window.location.href = 'mesas.php';
+
+      const inputUsuario = document.getElementById('inputUsuario');
+      const inputPassword = document.getElementById('inputPassword');
+      const usuario = inputUsuario ? inputUsuario.value.trim() : '';
+      const password = inputPassword ? inputPassword.value : '';
+
+      if (!usuario || !password) {
+        alert('Por favor ingrese usuario y contraseña.');
+        return;
+      }
+
+      const btnSubmit = document.getElementById('btnLoginSubmit');
+      const textoOriginal = btnSubmit ? btnSubmit.textContent : '';
+      if (btnSubmit) {
+        btnSubmit.textContent = 'Verificando...';
+        btnSubmit.disabled = true;
+      }
+
+      fetch('controllers/AuthController.php?action=login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          usuario: usuario,
+          password: password
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.redirect) {
+          window.location.href = data.redirect;
+        } else {
+          alert(data.error || 'Credenciales incorrectas');
+        }
+      })
+      .catch(err => {
+        console.error('Error al iniciar sesión:', err);
+        alert('Credenciales incorrectas');
+      })
+      .finally(() => {
+        if (btnSubmit) {
+          btnSubmit.textContent = textoOriginal;
+          btnSubmit.disabled = false;
+        }
+      });
     });
   }
 });

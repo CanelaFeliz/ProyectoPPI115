@@ -6,7 +6,8 @@
  * Conexión dinámica con PDO a la base de datos nixgaru_db
  * ==============================================================================
  */
-require_once 'config/database.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/Producto.php';
 
 // Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
 $idMesaSeleccionada = isset($_GET['mesa_id']) ? (int)$_GET['mesa_id'] : (isset($_GET['mesa']) ? (int)$_GET['mesa'] : 1);
@@ -15,24 +16,8 @@ if ($idMesaSeleccionada <= 0) {
 }
 
 try {
-    // Consulta SQL mediante PDO para extraer todos los productos activos (disponibilidad = 1)
-    $stmt = $pdo->prepare("
-        SELECT 
-            p.codigo_producto,
-            p.nombre,
-            p.fotografia,
-            p.descripcion,
-            p.precio,
-            p.id_categoria,
-            p.disponibilidad,
-            c.nombre_categoria
-        FROM productos p
-        LEFT JOIN categorias c ON p.id_categoria = c.id_categoria
-        WHERE p.disponibilidad = 1
-        ORDER BY p.id_categoria ASC, p.codigo_producto ASC
-    ");
-    $stmt->execute();
-    $productos = $stmt->fetchAll();
+    $productoModel = new Producto($pdo);
+    $productos = $productoModel->obtenerActivos();
 
     // Consulta para los botones de filtros de categorías
     $stmtCat = $pdo->query("SELECT id_categoria, nombre_categoria FROM categorias ORDER BY id_categoria ASC");
@@ -40,72 +25,14 @@ try {
 } catch (PDOException $e) {
     die("Error al consultar el catálogo de productos: " . $e->getMessage());
 }
+
+// Variables dinámicas para el layout del encabezado
+$nombreUsuario = 'Carlos Méndez';
+$rolUsuario = 'Personal de servicio';
+$pageTitle = 'NIXGARU – Gestión de Orden | Personal de Servicio';
+
+require_once '../layouts/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NIXGARU – Gestión de Orden | Personal de Servicio</title>
-  <!-- Preconexión y carga de Google Fonts: Poppins -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="CSS/style.css">
-</head>
-<body>
-
-  <!-- Encabezado / Header Personal de Servicio -->
-  <header class="service-header">
-    <div class="service-header-container">
-      
-      <!-- Logotipo NIXGARU a la izquierda -->
-      <div class="brand-logo-service">
-        <div class="logo-icon-service">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-            <line x1="6" y1="1" x2="6" y2="4"></line>
-            <line x1="10" y1="1" x2="10" y2="4"></line>
-            <line x1="14" y1="1" x2="14" y2="4"></line>
-          </svg>
-        </div>
-        <div class="logo-text-group">
-          <span class="logo-brand-name">NIXGARU</span>
-          <span class="logo-subtext">PERSONAL DE SERVICIO</span>
-        </div>
-      </div>
-
-      <!-- Centro: Píldora de Orden Activa -->
-      <div class="header-center-badge">
-        <div class="active-order-pill">
-          <span class="order-dot"></span>
-          <span class="order-pill-text">Orden Activa – Mesa <?php echo $idMesaSeleccionada; ?></span>
-        </div>
-      </div>
-
-      <!-- Derecha: Perfil de usuario y botón de regreso al mapa -->
-      <div class="service-user-actions">
-        <div class="user-profile-badge">
-          <div class="user-avatar" id="avatarUsuario">CM</div>
-          <div class="user-meta">
-            <span class="user-name" id="nombreUsuario">Carlos Méndez</span>
-            <span class="user-role" id="rolUsuario">Personal de servicio</span>
-          </div>
-        </div>
-
-        <!-- Botón para regresar al mapa de mesas -->
-        <button class="btn-back-tables" id="btnMapaMesas" title="Regresar al mapa de mesas" type="button" onclick="window.location.href='mesas.php?mesa_id=<?php echo $idMesaSeleccionada; ?>'">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          <span>Mapa de mesas</span>
-        </button>
-      </div>
-
-    </div>
-  </header>
 
   <!-- Layout Principal: 70% Catálogo / 30% Cuenta Activa -->
   <main class="order-layout">
@@ -148,7 +75,7 @@ try {
             <div class="order-product-img-box">
               <?php if (!empty($producto['fotografia'])): ?>
                 <img 
-                  src="IMG/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
+                  src="../../public/img/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
                   alt="<?php echo htmlspecialchars($producto['nombre']); ?>"
                   onerror="this.style.display='none';"
                 >
@@ -247,6 +174,6 @@ try {
   </main>
 
   <!-- Script Principal con la lógica interactiva -->
-  <script src="JS/main.js"></script>
+  <script src="../../public/js/main.js"></script>
 </body>
 </html>

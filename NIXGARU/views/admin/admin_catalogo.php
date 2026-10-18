@@ -6,128 +6,21 @@
  * Conexión dinámica con PDO a base de datos nixgaru_db
  * ==============================================================================
  */
-require_once 'config/database.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/Producto.php';
 
 try {
-    // Consulta con JOIN para traer todos los productos junto con su categoría
-    $stmt = $pdo->prepare("
-        SELECT 
-            p.codigo_producto,
-            p.nombre,
-            p.descripcion,
-            p.precio,
-            p.fotografia,
-            p.disponibilidad,
-            p.id_categoria,
-            c.nombre_categoria
-        FROM productos p
-        INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-        ORDER BY p.id_categoria ASC, p.codigo_producto ASC
-    ");
-    $stmt->execute();
-    $productos = $stmt->fetchAll();
+    $productoModel = new Producto($pdo);
+    $productos = $productoModel->obtenerTodos();
     $totalProductos = count($productos);
 } catch (PDOException $e) {
     die("Error al consultar el catálogo de productos: " . $e->getMessage());
 }
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NIXGARU – Gestión de Catálogo y Menú</title>
-  <!-- Google Fonts: Poppins -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="CSS/style.css">
-</head>
-<body class="admin-body">
-
-  <div class="admin-layout">
-
-    <!-- BARRA LATERAL (SIDEBAR ADMIN OSCURA #382823) -->
-    <aside class="admin-sidebar">
-      
-      <!-- Logotipo Admin -->
-      <div class="admin-brand">
-        <div class="admin-brand-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
-            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
-            <line x1="6" y1="1" x2="6" y2="4"></line>
-            <line x1="10" y1="1" x2="10" y2="4"></line>
-            <line x1="14" y1="1" x2="14" y2="4"></line>
-          </svg>
-        </div>
-        <div class="admin-brand-info">
-          <span class="admin-brand-title">NIXGARU</span>
-          <span class="admin-brand-sub">ADMINISTRACION</span>
-        </div>
-      </div>
-
-      <!-- Menú de Navegación del Administrador -->
-      <nav class="admin-nav">
-        <!-- Catálogo y Menú (ACTIVO) -->
-        <a href="admin_catalogo.php" class="admin-nav-item active">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          <span>Catálogo y Menú</span>
-        </a>
-
-        <!-- Gestión de Mesas -->
-        <a href="admin_mesas.php" class="admin-nav-item">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3h18v18H3zM3 9h18M9 21V9"></path>
-          </svg>
-          <span>Gestión de Mesas</span>
-        </a>
-
-        <!-- Control de Inventarios -->
-        <a href="admin_inventario.php" class="admin-nav-item">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-          </svg>
-          <span>Control de Inventarios</span>
-        </a>
-
-        <!-- Cuentas de Personal -->
-        <a href="admin_personal.php" class="admin-nav-item">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <span>Cuentas de Personal</span>
-        </a>
-
-        <!-- Análisis y Reportes -->
-        <a href="admin_dashboard.php" class="admin-nav-item">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="20" x2="18" y2="10"></line>
-            <line x1="12" y1="20" x2="12" y2="4"></line>
-            <line x1="6" y1="20" x2="6" y2="14"></line>
-          </svg>
-          <span>Análisis y Reportes</span>
-        </a>
-      </nav>
-
-      <!-- Perfil de Administrador en el pie de la barra lateral -->
-      <div class="admin-sidebar-profile">
-        <div class="admin-profile-avatar">ML</div>
-        <div class="admin-profile-meta">
-          <span class="admin-profile-name">María López</span>
-          <span class="admin-profile-role">Administradora</span>
-        </div>
-      </div>
-
-    </aside>
+<?php
+$pageTitle = 'NIXGARU – Gestión de Catálogo y Menú';
+require_once '../layouts/sidebar.php';
+?>
 
     <!-- ÁREA DE CONTENIDO PRINCIPAL -->
     <main class="admin-main-content">
@@ -200,7 +93,7 @@ try {
                       <div class="product-thumb-placeholder" title="Fotografía de <?php echo htmlspecialchars($producto['nombre']); ?>">
                         <?php if (!empty($producto['fotografia'])): ?>
                           <img 
-                            src="IMG/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
+                            src="../../public/img/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
                             alt="<?php echo htmlspecialchars($producto['nombre']); ?>"
                             style="width: 100%; height: 100%; object-fit: cover;"
                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
@@ -265,6 +158,6 @@ try {
 
   </div>
 
-  <script src="JS/main.js"></script>
+  <script src="../../public/js/main.js"></script>
 </body>
 </html>
