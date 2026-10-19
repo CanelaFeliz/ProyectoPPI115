@@ -107,7 +107,7 @@ require_once '../layouts/header.php';
 ?>
 
   <!-- Layout Principal: 70% Plano de Mesas / 30% Cuenta -->
-  <main class="mesas-layout">
+  <main class="mesas-layout" id="mesasLayout">
 
     <!-- COLUMNA IZQUIERDA (70%): Plano de Mesas -->
     <section class="mesas-panel">
@@ -241,18 +241,28 @@ require_once '../layouts/header.php';
 
     </section>
 
-    <!-- COLUMNA DERECHA (30%): Cuenta de la Mesa -->
-    <aside class="cuenta-panel">
+    <!-- COLUMNA DERECHA (30% en escritorio / Modal drawer en móviles): Cuenta de la Mesa -->
+    <aside class="cuenta-panel" id="cuentaPanel" aria-label="Detalle de cuenta de la mesa">
       <div class="cuenta-card">
         
         <!-- Cabecera de la Cuenta -->
         <div class="cuenta-header">
-          <h2 class="cuenta-title" id="cuentaMesaTitulo">
-            <?php echo $idMesaActiva !== null ? (stripos((string)$numeroMesaActiva, 'mesa') === 0 ? htmlspecialchars($numeroMesaActiva) : 'Mesa ' . htmlspecialchars($numeroMesaActiva)) : 'Detalle de Cuenta'; ?>
-          </h2>
-          <span class="cuenta-status-badge <?php echo $badgeClase; ?>" id="cuentaMesaEstado" title="<?php echo htmlspecialchars($badgeTexto); ?>" style="<?php echo $idMesaActiva !== null ? 'display: inline-flex;' : 'display: none;'; ?>">
-            <span class="status-dot <?php echo $badgeDot; ?>"></span>
-          </span>
+          <div class="cuenta-header-left">
+            <h2 class="cuenta-title" id="cuentaMesaTitulo">
+              <?php echo $idMesaActiva !== null ? (stripos((string)$numeroMesaActiva, 'mesa') === 0 ? htmlspecialchars($numeroMesaActiva) : 'Mesa ' . htmlspecialchars($numeroMesaActiva)) : 'Detalle de Cuenta'; ?>
+            </h2>
+            <span class="cuenta-status-badge <?php echo $badgeClase; ?>" id="cuentaMesaEstado" title="<?php echo htmlspecialchars($badgeTexto); ?>" style="<?php echo $idMesaActiva !== null ? 'display: inline-flex;' : 'display: none;'; ?>">
+              <span class="status-dot <?php echo $badgeDot; ?>"></span>
+            </span>
+          </div>
+
+          <!-- Botón de cierre con 'X' visible únicamente en vista móvil -->
+          <button class="cuenta-close-btn" id="cuentaCloseBtn" type="button" aria-label="Cerrar detalle de cuenta" title="Cerrar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         <!-- Contenedor Dinámico de la Cuenta Activa (Productos y Totales) -->
@@ -348,8 +358,10 @@ require_once '../layouts/header.php';
           </a>
         </div>
 
-      </div>
     </aside>
+ 
+    <!-- Overlay / Fondo desenfocado para vista móvil -->
+    <div class="cuenta-backdrop" id="cuentaBackdrop" aria-hidden="true"></div>
 
   </main>
 

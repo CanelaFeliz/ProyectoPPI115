@@ -100,8 +100,8 @@ if (!isset($headerTitle)) {
           </svg>
         </div>
         <div class="logo-text-group">
-          <span class="logo-brand-name">NIXGARU</span>
-          <span class="logo-subtext">PERSONAL DE SERVICIO</span>
+          <span class="logo-brand-name">INICIO</span>
+          <span class="logo-subtext">NIXGARU</span>
         </div>
       </a>
 
@@ -110,26 +110,48 @@ if (!isset($headerTitle)) {
         <h1 class="cierre-main-title"><?php echo htmlspecialchars($headerTitle); ?></h1>
       </div>
 
-      <!-- Derecha: Perfil de usuario y botones de acción -->
+      <!-- Derecha: Perfil de usuario con menú desplegable y botones de acción -->
       <div class="service-user-actions">
-        <!-- Tarjeta de Perfil con datos dinámicos mediante ID -->
-        <div class="user-profile-badge">
-          <div class="user-avatar" id="avatarUsuario"><?php echo htmlspecialchars($avatarUsuario); ?></div>
-          <div class="user-meta">
-            <span class="user-name" id="nombreUsuario"><?php echo htmlspecialchars($nombreUsuario); ?></span>
-            <span class="user-role" id="rolUsuario"><?php echo htmlspecialchars($rolUsuario); ?></span>
+        <!-- Menú Desplegable del Perfil del Empleado -->
+        <div class="user-profile-dropdown-wrapper">
+          <div class="user-profile-badge" id="userProfileBadge" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" title="Perfil y opciones de sesión">
+            <div class="user-avatar" id="avatarUsuario"><?php echo htmlspecialchars($avatarUsuario); ?></div>
+            <div class="user-meta">
+              <span class="user-name" id="nombreUsuario"><?php echo htmlspecialchars($nombreUsuario); ?></span>
+              <span class="user-role" id="rolUsuario"><?php echo htmlspecialchars($rolUsuario); ?></span>
+            </div>
+            <!-- Ícono chevron para indicar menú desplegable -->
+            <svg class="profile-dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+
+          <!-- Dropdown oculto por defecto con opción de Cerrar Sesión -->
+          <div class="user-dropdown-menu" id="userDropdownMenu" aria-hidden="true">
+            <div class="dropdown-header-info">
+              <span class="dropdown-user-name"><?php echo htmlspecialchars($nombreUsuario); ?></span>
+              <span class="dropdown-user-role"><?php echo htmlspecialchars($rolUsuario); ?></span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item btn-logout" id="btnCerrarSesion" title="Cerrar Sesión" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C53145" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         </div>
 
         <?php if ($currentPage === 'mesas.php'): ?>
-        <!-- Botón de Cerrar Sesión -->
-        <button class="btn-logout" id="btnCerrarSesion" title="Cerrar Sesión" type="button">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C53145" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
+        <!-- Botón 'Detalle' en el lugar del botón de cerrar sesión original (Visible solo en escritorio) -->
+        <button class="btn-toggle-detail" id="btnToggleDetalle" title="Mostrar u ocultar panel de detalle" type="button" aria-controls="cuentaPanel" aria-expanded="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
           </svg>
-          <span>Cerrar Sesión</span>
+          <span>Detalle</span>
         </button>
         <?php else: ?>
         <!-- Botón para regresar al mapa de mesas -->

@@ -1136,7 +1136,159 @@ document.addEventListener('DOMContentLoaded', () => {
       const estadoActual = select ? select.value : 'disponible';
 
       seleccionarMesa(mesaNum, estadoActual, mesaIdReal);
+
+      // En vista móvil (<= 1024px), desplegar automáticamente el panel de detalle como modal superpuesto
+      if (window.innerWidth <= 1024) {
+        abrirDetalleMovil();
+      }
     });
+  });
+
+  /**
+   * ==========================================================================
+   * GESTIÓN DEL PANEL DE DETALLE RESPONSIVO Y MENÚ DE PERFIL
+   * ==========================================================================
+   */
+  // 1. Menú Desplegable del Perfil del Empleado (Header)
+  const userProfileBadge = document.getElementById('userProfileBadge');
+  const userDropdownMenu = document.getElementById('userDropdownMenu');
+  const userProfileWrapper = document.querySelector('.user-profile-dropdown-wrapper');
+
+  if (userProfileBadge && userDropdownMenu) {
+    userProfileBadge.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isExpanded = userProfileBadge.getAttribute('aria-expanded') === 'true';
+      userProfileBadge.setAttribute('aria-expanded', !isExpanded);
+      userDropdownMenu.classList.toggle('open');
+      userDropdownMenu.classList.toggle('show');
+      userDropdownMenu.setAttribute('aria-hidden', isExpanded ? 'true' : 'false');
+      if (userProfileWrapper) {
+        userProfileWrapper.classList.toggle('open');
+      }
+    });
+
+    // Soporte de accesibilidad para teclado (Enter / Espacio)
+    userProfileBadge.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        userProfileBadge.click();
+      }
+    });
+
+    // Cerrar el dropdown al hacer clic fuera del contenedor
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.user-profile-dropdown-wrapper')) {
+        userDropdownMenu.classList.remove('open', 'show');
+        userDropdownMenu.setAttribute('aria-hidden', 'true');
+        userProfileBadge.setAttribute('aria-expanded', 'false');
+        if (userProfileWrapper) userProfileWrapper.classList.remove('open');
+      }
+    });
+
+    // Cerrar el dropdown con tecla Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        userDropdownMenu.classList.remove('open', 'show');
+        userDropdownMenu.setAttribute('aria-hidden', 'true');
+        userProfileBadge.setAttribute('aria-expanded', 'false');
+        if (userProfileWrapper) userProfileWrapper.classList.remove('open');
+      }
+    });
+  }
+
+  // 2. Comportamiento del Panel de Detalle en Escritorio y Móviles (mesas.php)
+  const btnToggleDetalle = document.getElementById('btnToggleDetalle');
+  const cuentaPanel = document.querySelector('aside.cuenta-panel') || document.getElementById('cuentaPanel');
+  const mesasLayout = document.querySelector('.mesas-layout') || document.getElementById('mesasLayout');
+  const cuentaCloseBtn = document.getElementById('cuentaCloseBtn');
+  const cuentaBackdrop = document.getElementById('cuentaBackdrop');
+
+  // Alternar visibilidad del panel lateral en escritorio con el botón "Detalle"
+  if (btnToggleDetalle && cuentaPanel) {
+    btnToggleDetalle.addEventListener('click', (e) => {
+      e.preventDefault();
+      const isHidden = cuentaPanel.classList.toggle('hidden');
+      if (mesasLayout) {
+        mesasLayout.classList.toggle('detail-hidden', isHidden);
+      }
+      btnToggleDetalle.setAttribute('aria-expanded', !isHidden ? 'true' : 'false');
+      btnToggleDetalle.classList.toggle('panel-closed', isHidden);
+      btnToggleDetalle.classList.toggle('active', !isHidden);
+      cuentaPanel.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
+    });
+  }
+
+  // Funciones para abrir y cerrar el panel superpuesto en móviles
+  function abrirDetalleMovil() {
+    if (!cuentaPanel) return;
+    cuentaPanel.classList.add('open', 'active');
+    cuentaPanel.classList.remove('hidden');
+    cuentaPanel.setAttribute('aria-hidden', 'false');
+
+    if (cuentaBackdrop) {
+      cuentaBackdrop.classList.add('open', 'active');
+      cuentaBackdrop.setAttribute('aria-hidden', 'false');
+    }
+    document.body.style.overflow = 'hidden';
+  }
+
+  function cerrarDetalleMovil() {
+    if (!cuentaPanel) return;
+    cuentaPanel.classList.remove('open', 'active');
+    cuentaPanel.setAttribute('aria-hidden', 'true');
+
+    if (cuentaBackdrop) {
+      cuentaBackdrop.classList.remove('open', 'active');
+      cuentaBackdrop.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = '';
+  }
+
+  // Botón "X" dentro del panel en vista móvil
+  if (cuentaCloseBtn) {
+    cuentaCloseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      cerrarDetalleMovil();
+    });
+  }
+
+  // Clic en el fondo oscuro difuminado (Backdrop) en vista móvil
+  if (cuentaBackdrop) {
+    cuentaBackdrop.addEventListener('click', () => {
+      cerrarDetalleMovil();
+    });
+  }
+
+  // Cerrar modal móvil al presionar tecla Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && window.innerWidth <= 1024) {
+      cerrarDetalleMovil();
+    }
+  });
+
+  // Limpiar estados móviles al redimensionar a pantalla de escritorio
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 1024) {
+      if (cuentaBackdrop) {
+        cuentaBackdrop.classList.remove('open', 'active');
+        cuentaBackdrop.setAttribute('aria-hidden', 'true');
+      }
+      if (cuentaPanel) {
+        cuentaPanel.classList.remove('open', 'active');
+        // Si no fue ocultado explícitamente por el botón Detalle, mantenerlo visible en escritorio
+        if (!mesasLayout || !mesasLayout.classList.contains('detail-hidden')) {
+          cuentaPanel.classList.remove('hidden');
+          cuentaPanel.setAttribute('aria-hidden', 'false');
+        }
+      }
+      // Restaurar scroll de body si no hay otros modales abiertos
+      const productModal = document.getElementById('product-modal');
+      const cartBackdropEl = document.getElementById('cart-backdrop');
+      if ((!productModal || !productModal.classList.contains('active')) &&
+          (!cartBackdropEl || !cartBackdropEl.classList.contains('active'))) {
+        document.body.style.overflow = '';
+      }
+    }
   });
 
   // Botón "Agregar Producto" en panel lateral de mesas.php:
