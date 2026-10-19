@@ -29,6 +29,7 @@ try {
 $nombreUsuario = 'Carlos Méndez';
 $rolUsuario = 'Personal de servicio';
 $pageTitle = 'NIXGARU – Gestión de Orden | Personal de Servicio';
+$headerTitle = 'Orden Activa - Mesa ' . $idMesaSeleccionada;
 
 require_once '../layouts/header.php';
 ?>

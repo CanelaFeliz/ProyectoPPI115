@@ -1,0 +1,1476 @@
+/* ==========================================================================
+   NIXGARU - Hoja de Estilos del Módulo Administrativo
+   Archivo: public/css/admin.css
+   Módulos: Resumen Analítico, Gestión de Mesas, Control de Inventarios,
+            Gestión de Personal, Catálogo/Menú y Modales del Sistema.
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Estructura y Layout Principal (Sidebar Oscuro + Contenido Claro)
+   ========================================================================== */
+
+/* Fondo general del área administrativa */
+body.admin-body {
+  background-color: #F5F2EE;
+  color: var(--color-texto);
+  font-family: var(--fuente-principal);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Contenedor principal de dos columnas */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Barra Lateral (Sidebar Admin - #382823)
+   -------------------------------------------------------------------------- */
+.admin-sidebar {
+  width: 270px;
+  min-width: 270px;
+  background-color: #382823;
+  color: var(--color-blanco);
+  display: flex;
+  flex-direction: column;
+  padding: 32px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.05);
+  z-index: 40;
+}
+
+/* Logotipo e Identidad Institucional */
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 8px;
+  margin-bottom: 36px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.admin-brand-icon {
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(197, 46, 69, 0.35);
+}
+
+.admin-brand-icon svg {
+  stroke: var(--color-blanco);
+}
+
+.admin-brand-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-brand-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-blanco);
+  line-height: 1.1;
+}
+
+.admin-brand-sub {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #B5A59E;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+/* Navegación del Administrador */
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: var(--radio-md);
+  text-decoration: none;
+  color: #B5A59E;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-nav-item svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  flex-shrink: 0;
+  transition: stroke 0.2s ease;
+}
+
+.admin-nav-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-blanco);
+}
+
+/* Enlace activo: Fondo blanco, texto oscuro y bordes suaves */
+.admin-nav-item.active {
+  background-color: var(--color-blanco);
+  color: #382823;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.admin-nav-item.active svg {
+  stroke: #382823;
+}
+
+/* Perfil de Administrador en el Pie del Sidebar */
+.admin-sidebar-profile {
+  margin-top: auto;
+  padding: 18px 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-profile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #553E37;
+  color: var(--color-blanco);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.admin-profile-meta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-profile-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-blanco);
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.admin-profile-role {
+  font-size: 0.72rem;
+  color: #B5A59E;
+  margin-top: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Área de Contenido Principal (Main)
+   -------------------------------------------------------------------------- */
+.admin-main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Gran Tarjeta Blanca de Superficie Principal */
+.admin-content-card {
+  background-color: var(--color-blanco);
+  border-radius: var(--radio-lg);
+  border: 1px solid #ECE7E2;
+  box-shadow: var(--sombra-card);
+  padding: 36px 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 48px);
+}
+
+/* ==========================================================================
+   2. Encabezados de Pantalla y Acciones Superiores
+   ========================================================================== */
+.admin-content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.admin-title-group {
+  max-width: 750px;
+}
+
+.admin-page-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #2E2420;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.admin-page-subtitle {
+  font-size: 0.88rem;
+  color: var(--color-texto-muted);
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+/* Botones de Acción Primarios (+ Agregar Mesa, + Agregar Empleado, etc.) */
+.btn-add-table,
+.btn-admin-primary {
+  background-color: var(--color-terracota);
+  color: var(--color-blanco);
+  border: none;
+  border-radius: 12px;
+  padding: 10px 22px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(198, 111, 80, 0.28);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.btn-add-table:hover,
+.btn-admin-primary:hover {
+  background-color: #B55F42;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(198, 111, 80, 0.36);
+}
+
+.btn-add-table:active,
+.btn-admin-primary:active {
+  transform: translateY(0);
+}
+
+/* Botón de Rango de Fechas (Dashboard) */
+.btn-date-range {
+  background-color: #FAFAFA;
+  border: 1px solid #E5E0DC;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4B3F39;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-date-range:hover {
+  background-color: #F4EFEB;
+  border-color: #D6CEC8;
+}
+
+/* Buscador de Insumos / Ingredientes */
+.admin-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 290px;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #9C8F88;
+  pointer-events: none;
+}
+
+.admin-search-input {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  border: 1px solid #E5E0DC;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  background-color: #FAFAFA;
+  color: var(--color-texto);
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.admin-search-input:focus {
+  border-color: var(--color-terracota);
+  background-color: var(--color-blanco);
+  box-shadow: 0 0 0 3px rgba(198, 111, 80, 0.15);
+}
+
+.admin-search-input::placeholder {
+  color: #A3968F;
+}
+
+/* ==========================================================================
+   3. Tarjetas de Resumen y Métricas (KPIs / Stats)
+   ========================================================================== */
+
+/* Grid de Estadísticas en Mesas y Personal */
+.admin-stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.admin-stat-card {
+  background-color: var(--color-blanco);
+  border: 1px solid #ECE7E3;
+  border-radius: var(--radio-md);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #9E918A;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.stat-value-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stat-number {
+  font-size: 1.95rem;
+  font-weight: 800;
+  color: #2E2420;
+  letter-spacing: -0.02em;
+}
+
+.stat-badge-active {
+  background-color: #E8F7ED;
+  color: #15803D;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radio-pill);
+}
+
+/* Grid de KPIs Superiores en Dashboard */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.kpi-card {
+  background-color: var(--color-blanco);
+  border: 1px solid #ECE7E3;
+  border-radius: var(--radio-md);
+  padding: 24px 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.kpi-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #786C65;
+}
+
+.kpi-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: #F8F5F2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-terracota);
+}
+
+.kpi-value-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.kpi-value {
+  font-size: 2.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.text-kpi-primary {
+  color: #2E2420;
+}
+
+.text-kpi-highlight {
+  color: #2E2420;
+}
+
+.kpi-subtext {
+  font-size: 0.8rem;
+  color: #9E918A;
+  margin: 0;
+}
+
+/* ==========================================================================
+   4. Filtros de Categorías Tipo Píldora (Catálogo y Menú)
+   ========================================================================== */
+.catalog-filters-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.catalog-filter-pill {
+  border: 1px solid #E5E0DC;
+  background-color: var(--color-blanco);
+  color: #5C504A;
+  border-radius: var(--radio-pill);
+  padding: 8px 22px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.catalog-filter-pill:hover {
+  border-color: #CFC5BE;
+  background-color: #FAF8F6;
+}
+
+.catalog-filter-pill.active {
+  background-color: var(--color-terracota);
+  color: var(--color-blanco);
+  border-color: var(--color-terracota);
+  box-shadow: 0 3px 10px rgba(198, 111, 80, 0.25);
+}
+
+/* ==========================================================================
+   5. Contenedores de Tablas, Listados y Filas de Datos
+   ========================================================================== */
+.admin-table-container,
+.ranking-table-card,
+.inventory-table-card {
+  background-color: var(--color-blanco);
+  border: 1px solid #EDE8E4;
+  border-radius: var(--radio-md);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  margin-top: 8px;
+}
+
+/* Encabezados de Bloque de Tabla */
+.admin-table-header,
+.ranking-header,
+.inventory-card-header {
+  padding: 24px 28px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-bottom: 1px solid #F5F1EE;
+}
+
+.table-header-left,
+.ranking-title-group,
+.inventory-title-group {
+  max-width: 80%;
+}
+
+.table-card-title,
+.ranking-card-title,
+.inventory-card-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #2E2420;
+  margin-bottom: 4px;
+}
+
+.table-card-subtitle,
+.ranking-card-subtitle,
+.inventory-card-subtitle {
+  font-size: 0.82rem;
+  color: #948881;
+  font-weight: 400;
+}
+
+/* Badges de Conteo y Metadatos en la cabecera */
+.table-count-badge,
+.ranking-badge-top,
+.inventory-badge-updated {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8F5542;
+  background-color: #FAF0EC;
+  border-radius: var(--radio-pill);
+  padding: 4px 14px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+/* Tablas HTML */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-data-table,
+.inventory-table,
+.ranking-table,
+.catalog-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-data-table thead th,
+.inventory-table thead th,
+.ranking-table thead th,
+.catalog-table thead th {
+  padding: 16px 28px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #9C8F88;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid #ECE7E3;
+  background-color: transparent;
+  white-space: nowrap;
+}
+
+.admin-data-table tbody tr,
+.inventory-table tbody tr,
+.ranking-table tbody tr,
+.catalog-table tbody tr {
+  border-bottom: 1px solid #F2EEEA;
+  transition: background-color 0.15s ease;
+}
+
+.admin-data-table tbody tr:hover,
+.inventory-table tbody tr:not(.row-stock-alert):hover,
+.ranking-table tbody tr:hover,
+.catalog-table tbody tr:hover {
+  background-color: #FCFBFA;
+}
+
+.admin-data-table tbody td,
+.inventory-table tbody td,
+.ranking-table tbody td,
+.catalog-table tbody td {
+  padding: 18px 28px;
+  font-size: 0.9rem;
+  color: #382823;
+  vertical-align: middle;
+}
+
+/* Estilos de Celdas Específicas */
+.cell-id,
+.cell-code {
+  font-weight: 700;
+  color: #4A3E39;
+  width: 70px;
+}
+
+.cell-name,
+.ingredient-name {
+  font-weight: 700;
+  color: #2E2420;
+}
+
+.cell-user {
+  color: #71717A;
+  font-weight: 500;
+}
+
+.cell-cat-desc {
+  color: #786C65;
+  font-size: 0.85rem;
+}
+
+.catalog-price {
+  color: var(--color-terracota);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+/* Thumbnail Cuadrado de Producto (Catálogo) */
+.cell-cat-photo {
+  width: 65px;
+}
+
+.product-thumb-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background-color: #F8F6F4;
+  border: 1px solid #EBE5E0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --------------------------------------------------------------------------
+   Botones de Acción en Tablas (Editar / Eliminar)
+   -------------------------------------------------------------------------- */
+.cell-acciones {
+  white-space: nowrap;
+  width: 100px;
+}
+
+.btn-action-edit,
+.btn-action-delete {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  margin-right: 4px;
+}
+
+.btn-action-edit {
+  color: #736761;
+}
+
+.btn-action-edit:hover {
+  color: #382823;
+  background-color: #F4EFEB;
+}
+
+.btn-action-delete {
+  color: #DC2626;
+}
+
+.btn-action-delete:hover {
+  color: #B91C1C;
+  background-color: #FEE2E2;
+}
+
+/* --------------------------------------------------------------------------
+   Estilos Especiales para Inventarios (Alertas de Stock y Ajustes)
+   -------------------------------------------------------------------------- */
+/* Fila destacada con alerta de stock bajo */
+.row-stock-alert {
+  background-color: #FFF2F2 !important;
+  border-left: 4px solid var(--color-rojo-frambuesa);
+}
+
+.row-stock-alert .cell-code.text-danger {
+  color: var(--color-rojo-frambuesa);
+  font-weight: 800;
+}
+
+.badge-stock-low {
+  background-color: #FFE5E8;
+  color: var(--color-rojo-frambuesa);
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-left: 8px;
+  display: inline-block;
+}
+
+.qty-val-danger {
+  color: var(--color-rojo-frambuesa);
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.qty-val-normal {
+  color: #2E2420;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.unit-text {
+  color: #9C8F88;
+  font-size: 0.85rem;
+  margin-left: 4px;
+  font-weight: 500;
+}
+
+/* Grupo de Ajuste Manual con input numérico y botón oscuro */
+.adjust-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-adjust {
+  width: 72px;
+  padding: 7px 8px;
+  border: 1px solid #E0D9D4;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: #2E2420;
+  background-color: var(--color-blanco);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-adjust:focus {
+  border-color: var(--color-terracota);
+  box-shadow: 0 0 0 2px rgba(198, 111, 80, 0.12);
+}
+
+.btn-adjust-save {
+  background-color: #382823;
+  color: var(--color-blanco);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-adjust-save:hover {
+  background-color: #241A17;
+}
+
+/* Mensaje de no resultados */
+.no-results-msg {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--color-texto-muted);
+  font-size: 0.9rem;
+}
+
+/* Pies de Tarjeta y Enlaces de Reporte */
+.admin-table-footer,
+.ranking-footer-link,
+.inventory-footer-link {
+  padding: 16px 28px;
+  text-align: center;
+  border-top: 1px solid #F5F1EE;
+  background-color: #FAFAFA;
+  font-size: 0.85rem;
+}
+
+.admin-table-footer {
+  color: #9C8F88;
+  font-size: 0.82rem;
+}
+
+.link-detail-report {
+  color: var(--color-terracota);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: gap 0.2s ease;
+}
+
+.link-detail-report:hover {
+  gap: 12px;
+  text-decoration: underline;
+}
+
+/* --------------------------------------------------------------------------
+   Estilos de Ranking en Dashboard
+   -------------------------------------------------------------------------- */
+.col-rank {
+  width: 80px;
+}
+
+.rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.rank-gold {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.rank-silver {
+  background-color: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+}
+
+.rank-bronze {
+  background-color: #FFEDD5;
+  color: #C2410C;
+  border: 1px solid #FED7AA;
+}
+
+.rank-plain {
+  display: inline-block;
+  width: 28px;
+  text-align: center;
+  font-weight: 700;
+  color: #8F827A;
+}
+
+.rank-product-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.rank-product-name {
+  font-weight: 700;
+  color: #2E2420;
+}
+
+.rank-product-price {
+  font-size: 0.78rem;
+  color: #9C8F88;
+}
+
+.rank-qty-val {
+  font-weight: 700;
+  color: #2E2420;
+}
+
+/* ==========================================================================
+   6. Píldoras de Estado (Badges) y Roles
+   ========================================================================== */
+.admin-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 14px;
+  border-radius: var(--radio-pill);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Estado: Libre / Activo (Verde claro con texto verde oscuro) */
+.status-libre,
+.status-activo,
+.badge-status-green {
+  background-color: #E8F7ED;
+  color: #15803D;
+  border: 1px solid #C6EFCE;
+}
+
+/* Estado: Ocupada / Stock Bajo / Alerta (Rojo pálido/rosado con texto rojo) */
+.status-ocupada,
+.status-alerta,
+.badge-status-red {
+  background-color: #FEEBEB;
+  color: #DC2626;
+  border: 1px solid #FCD2D2;
+}
+
+/* Estado: Reservada (Amarillo / Ámbar suave) */
+.status-reservada,
+.badge-status-yellow {
+  background-color: #FEF6E4;
+  color: #B45309;
+  border: 1px solid #FDE6B8;
+}
+
+/* Estado: Inactivo (Gris neutro) */
+.status-inactivo,
+.badge-status-gray {
+  background-color: #F3F4F6;
+  color: #6B7280;
+  border: 1px solid #E5E7EB;
+}
+
+/* Píldora de Rol Asignado (Cuentas de Personal) */
+.role-pill {
+  background-color: #F6F3F0;
+  color: #4B3F39;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: var(--radio-pill);
+  border: 1px solid #ECE7E2;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   7. Toggle Switch de Disponibilidad (CSS Puro + Interactividad)
+   ========================================================================== */
+
+/* Variante 1: Componente con Button interactivo (Soporte actual de JS) */
+.toggle-switch-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.toggle-switch {
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radio-pill);
+  background-color: #CBD5E1;
+  position: relative;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 2px;
+  outline: none;
+  display: inline-block;
+}
+
+.toggle-knob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--color-blanco);
+  display: block;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateX(0);
+}
+
+.toggle-status-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #94A3B8;
+  transition: color 0.2s ease;
+}
+
+/* Estado Activo del Toggle Switch */
+.toggle-switch-wrapper.active .toggle-switch,
+.toggle-switch[aria-checked="true"] {
+  background-color: #22C55E;
+}
+
+.toggle-switch-wrapper.active .toggle-knob,
+.toggle-switch[aria-checked="true"] .toggle-knob {
+  transform: translateX(20px);
+}
+
+.toggle-switch-wrapper.active .toggle-status-label {
+  color: #15803D;
+  font-weight: 600;
+}
+
+/* Variante 2: CSS Puro con Input Checkbox Oculto (100% nativo) */
+.toggle-switch-pure {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-switch-pure input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.toggle-switch-slider {
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radio-pill);
+  background-color: #CBD5E1;
+  position: relative;
+  transition: background-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-block;
+}
+
+.toggle-switch-slider::before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  bottom: 2px;
+  border-radius: 50%;
+  background-color: var(--color-blanco);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toggle-switch-pure input[type="checkbox"]:checked + .toggle-switch-slider {
+  background-color: #22C55E;
+}
+
+.toggle-switch-pure input[type="checkbox"]:checked + .toggle-switch-slider::before {
+  transform: translateX(20px);
+}
+
+.toggle-switch-label-pure {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #94A3B8;
+  transition: color 0.2s ease;
+}
+
+.toggle-switch-pure input[type="checkbox"]:checked ~ .toggle-switch-label-pure {
+  color: #15803D;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   8. Formularios y Modales (Fondo Empañado y Estética NIXGARU)
+   ========================================================================== */
+
+/* Overlay con Backdrop Filter */
+.modal,
+.admin-modal {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(30, 20, 16, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeInModalBackdrop 0.2s ease-out;
+}
+
+/* Modales activos visibles */
+.modal.show,
+.modal[aria-hidden="false"],
+.admin-modal.show {
+  display: flex !important;
+}
+
+@keyframes fadeInModalBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Tarjeta del Modal */
+.modal-card {
+  background-color: var(--color-blanco);
+  border-radius: var(--radio-lg);
+  width: 100%;
+  max-width: 480px;
+  padding: 34px 38px;
+  box-shadow: var(--sombra-modal);
+  position: relative;
+  animation: scaleUpModalCard 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #EDE8E3;
+}
+
+@keyframes scaleUpModalCard {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Cabecera del Modal */
+.modal-header {
+  margin-bottom: 24px;
+}
+
+.modal-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #2E2420;
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: #8C8078;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Formulario Interior */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #382823;
+}
+
+/* Entradas de Texto y Selectores */
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ECE7E3;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background-color: #FAF8F6;
+  color: #2E2420;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.form-input::placeholder {
+  color: #B5A8A0;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: var(--color-terracota);
+  background-color: var(--color-blanco);
+  box-shadow: 0 0 0 3px rgba(198, 111, 80, 0.15);
+}
+
+/* Selector estilizado con flecha chevron personalizada */
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.select-wrapper::after {
+  content: "";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 6px;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23786C65' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  pointer-events: none;
+}
+
+/* Botones de Acción del Modal */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 8px;
+}
+
+.btn-modal-cancel {
+  background-color: var(--color-blanco);
+  border: 1px solid #DCD5CF;
+  color: #4F433E;
+  border-radius: 12px;
+  padding: 10px 22px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-modal-cancel:hover {
+  background-color: #F8F5F2;
+  border-color: #CBC2BB;
+}
+
+.btn-modal-save {
+  background-color: var(--color-terracota);
+  border: none;
+  color: var(--color-blanco);
+  border-radius: 12px;
+  padding: 10px 24px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(198, 111, 80, 0.28);
+  font-family: inherit;
+}
+
+.btn-modal-save:hover {
+  background-color: #B55F42;
+  transform: translateY(-1px);
+}
+
+.btn-modal-save:active {
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   9. Responsividad y Adaptación Móvil (@media queries)
+   ========================================================================== */
+
+/* Pantallas Medianas / Laptops pequeñas (<= 1200px) */
+@media (max-width: 1200px) {
+  .admin-content-card {
+    padding: 28px 30px;
+  }
+}
+
+/* Tablets y Dispositivos Medianos (<= 1024px) */
+@media (max-width: 1024px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+
+  .admin-sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: auto;
+    position: relative;
+    padding: 20px 24px;
+  }
+
+  .admin-brand {
+    margin-bottom: 20px;
+  }
+
+  .admin-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-nav-item {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+
+  .admin-sidebar-profile {
+    display: none; /* Se oculta o se traslada en barra superior */
+  }
+
+  .admin-main-content {
+    padding: 16px;
+  }
+
+  .admin-content-card {
+    padding: 24px;
+    border-radius: var(--radio-md);
+  }
+
+  .admin-stats-row,
+  .kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Teléfonos y Pantallas Móviles (<= 768px) */
+@media (max-width: 768px) {
+  .admin-sidebar {
+    padding: 16px;
+  }
+
+  .admin-brand {
+    margin-bottom: 16px;
+  }
+
+  .admin-brand-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .admin-brand-title {
+    font-size: 1.1rem;
+  }
+
+  .admin-nav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-nav-item {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .admin-main-content {
+    padding: 12px;
+  }
+
+  .admin-content-card {
+    padding: 20px 16px;
+    border-radius: var(--radio-sm);
+  }
+
+  .admin-content-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .admin-page-title {
+    font-size: 1.35rem;
+  }
+
+  .btn-add-table,
+  .btn-admin-primary,
+  .btn-date-range {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .admin-search-wrapper {
+    width: 100%;
+  }
+
+  .admin-table-header,
+  .ranking-header,
+  .inventory-card-header {
+    flex-direction: column;
+    padding: 18px 16px;
+  }
+
+  .table-header-left,
+  .ranking-title-group,
+  .inventory-title-group {
+    max-width: 100%;
+  }
+
+  .admin-data-table thead th,
+  .inventory-table thead th,
+  .ranking-table thead th,
+  .catalog-table thead th {
+    padding: 12px 16px;
+  }
+
+  .admin-data-table tbody td,
+  .inventory-table tbody td,
+  .ranking-table tbody td,
+  .catalog-table tbody td {
+    padding: 14px 16px;
+  }
+
+  .modal {
+    padding: 14px;
+  }
+
+  .modal-card {
+    padding: 24px 20px;
+    border-radius: var(--radio-md);
+  }
+
+  .modal-title {
+    font-size: 1.25rem;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+
+  .btn-modal-cancel,
+  .btn-modal-save {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* Pantallas Extra Pequeñas (<= 480px) */
+@media (max-width: 480px) {
+  .stat-number,
+  .kpi-value {
+    font-size: 1.65rem;
+  }
+
+  .catalog-filters-bar {
+    gap: 6px;
+  }
+
+  .catalog-filter-pill {
+    padding: 6px 14px;
+    font-size: 0.8rem;
+  }
+}
+

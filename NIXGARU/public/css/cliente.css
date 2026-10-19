@@ -1,68 +1,6 @@
 /* ==========================================================================
-   NIXGARU - Estilos Globales y Vista del Menú del Cliente
+   NIXGARU - Estilos de la Vista del Cliente
    ========================================================================== */
-
-/* Preconexión e Importación de la fuente 'Poppins' desde Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
-
-/* ==========================================================================
-   Variables CSS Globales (Paleta de Colores y Diseño Reutilizable)
-   ========================================================================== */
-:root {
-  /* Paleta oficial del proyecto */
-  --color-terracota: #C66F50;        /* Botón de carrito, píldoras activas y confirmar pedido */
-  --color-rojo-frambuesa: #C52E45;    /* Color de marca para el banner principal y llamadas de atención */
-  --color-blanco: #FFFFFF;            /* Fondos generales, tarjetas y superficies */
-  --color-negro-suave: #222629;       /* Textos, títulos y botones secundarios de acción */
-  --color-gris-claro: #C9CED1;        /* Placeholders de imágenes, bordes y espacios neutros */
-
-  /* Aliases y variables de apoyo */
-  --color-primario: var(--color-rojo-frambuesa);
-  --color-acento: var(--color-terracota);
-  --color-fondo: var(--color-blanco);
-  --color-texto: var(--color-negro-suave);
-  --color-texto-muted: #71717A;
-  --color-gris-superficie: #F4F4F5;
-  --color-borde-suave: #ECECEC;
-
-  /* Tipografía */
-  --fuente-principal: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-
-  /* Sombras y bordes redondeados */
-  --radio-lg: 28px;
-  --radio-md: 22px;
-  --radio-sm: 16px;
-  --radio-pill: 9999px;
-  --sombra-card: 0 4px 20px rgba(0, 0, 0, 0.04);
-  --sombra-card-hover: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --sombra-modal: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
-/* ==========================================================================
-   Reseteo Básico Universal
-   ========================================================================== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  background-color: var(--color-fondo);
-  color: var(--color-texto);
-  font-family: var(--fuente-principal);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-img, svg {
-  vertical-align: middle;
-}
-
-button {
-  font-family: inherit;
-}
 
 /* ==========================================================================
    Cabecera Principal de Navegación (Header)
@@ -1121,5 +1059,3 @@ button {
     margin-top: 12px;
   }
 }
-
-

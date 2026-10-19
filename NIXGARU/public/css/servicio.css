@@ -1,0 +1,1714 @@
+/* ==========================================================================
+   NIXGARU - Estilos del Módulo de Personal de Servicio
+   Archivo: public/css/servicio.css
+   Módulos: Plano de Mesas, Gestión de Orden y Cierre de Cuenta
+   ========================================================================== */
+
+/* ==========================================================================
+   1. Encabezado / Header Personal de Servicio
+   ========================================================================== */
+.service-header {
+  background-color: var(--color-blanco);
+  border-bottom: 1px solid var(--color-borde-suave);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+}
+
+.service-header-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* Logotipo e Identidad de Rol */
+.brand-logo-service {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  user-select: none;
+}
+
+.logo-icon-service {
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(197, 46, 69, 0.2);
+}
+
+.logo-icon-service svg {
+  stroke: var(--color-blanco);
+}
+
+.logo-text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-brand-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-negro-suave);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.logo-subtext {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--color-texto-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Centro: Píldora de Orden Activa */
+.header-center-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.active-order-pill {
+  background-color: #EBFDF5;
+  border: 1px solid #A7F3D0;
+  border-radius: var(--radio-pill);
+  padding: 6px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.order-pill-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #065F46;
+}
+
+/* Centro: Título de Cierre de Cuenta */
+.header-center-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cierre-main-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  margin: 0;
+}
+
+/* Acciones de Usuario a la Derecha */
+.service-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #F8F9FA;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-pill);
+  padding: 4px 14px 4px 5px;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #6E4F42;
+  color: var(--color-blanco);
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-negro-suave);
+  line-height: 1.2;
+}
+
+.user-role {
+  font-size: 0.68rem;
+  color: var(--color-texto-muted);
+  line-height: 1.1;
+}
+
+/* Botón de Cerrar Sesión */
+.btn-logout {
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-pill);
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-negro-suave);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-logout:hover {
+  border-color: var(--color-rojo-frambuesa);
+  color: var(--color-rojo-frambuesa);
+  background-color: #FEF2F2;
+}
+
+/* Botón de Regreso al Mapa de Mesas */
+.btn-back-tables {
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-pill);
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-negro-suave);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-back-tables:hover {
+  background-color: var(--color-gris-superficie);
+  border-color: var(--color-gris-claro);
+  transform: translateX(-2px);
+}
+
+/* ==========================================================================
+   2. Indicadores y Píldoras de Estado (Compartidos)
+   ========================================================================== */
+.legend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radio-pill);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Estado: Disponible (Verde) */
+.badge-disponible {
+  background-color: #EBFDF5;
+  color: #059669;
+}
+.dot-disponible {
+  background-color: #10B981;
+}
+
+/* Estado: Ocupada (Rojo / Rosado) */
+.badge-ocupada {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+.dot-ocupada {
+  background-color: #EF4444;
+}
+
+/* Estado: En Proceso (Amarillo / Ámbar) */
+.badge-proceso {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+.dot-proceso {
+  background-color: #F59E0B;
+}
+
+/* Estado: Sin Servicio (Gris Neutro) */
+.badge-sin-servicio {
+  background-color: #F3F4F6;
+  color: #6B7280;
+}
+.dot-sin-servicio {
+  background-color: #9CA3AF;
+}
+
+/* ==========================================================================
+   3. Vista: Plano de Mesas (1.png / mesas.php)
+   ========================================================================== */
+.mesas-layout {
+  max-width: 1440px;
+  margin: 28px auto;
+  padding: 0 32px 36px 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Panel Izquierdo: Plano de Mesas */
+.mesas-panel {
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-lg);
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  box-shadow: var(--sombra-card);
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.panel-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.panel-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  letter-spacing: -0.01em;
+}
+
+.panel-subtitle {
+  font-size: 0.84rem;
+  color: var(--color-texto-muted);
+}
+
+.status-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Cuadrícula de Mesas */
+.tables-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+/* Tarjeta Individual de Mesa */
+.table-card {
+  background-color: var(--color-blanco);
+  border: 1.5px solid var(--color-borde-suave);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 160px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.table-card:hover {
+  border-color: var(--color-gris-claro);
+  box-shadow: var(--sombra-card-hover);
+  transform: translateY(-2px);
+}
+
+/* Mesa Activa / Seleccionada (Borde Terracota / Café Suave destacado) */
+.table-card.active {
+  border-color: #6E4F42;
+  box-shadow: 0 0 0 1px #6E4F42, 0 6px 18px rgba(110, 79, 66, 0.1);
+}
+
+.table-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.table-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+}
+
+.table-capacity {
+  font-size: 0.78rem;
+  color: var(--color-texto-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.table-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.table-data-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.data-label {
+  color: var(--color-texto-muted);
+  font-weight: 400;
+}
+
+.data-value {
+  color: var(--color-negro-suave);
+  font-weight: 700;
+}
+
+/* Selectores de Estado en el Pie de la Tarjeta */
+.table-card-footer {
+  width: 100%;
+}
+
+.status-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.table-status-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none;
+  outline: none;
+  border-radius: 10px;
+  padding: 8px 30px 8px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 12px;
+}
+
+/* Flechas y fondos según estado de la mesa */
+.table-status-select.status-disponible {
+  background-color: #E6F9F0;
+  color: #047857;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23047857' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.table-status-select.status-ocupada {
+  background-color: #FEE2E2;
+  color: #B91C1C;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23B91C1C' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.table-status-select.status-proceso {
+  background-color: #FEF3C7;
+  color: #B45309;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23B45309' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.table-status-select.status-sin-servicio {
+  background-color: #F3F4F6;
+  color: #4B5563;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* Barra Inferior de Resumen de Salón */
+.tables-summary-bar {
+  background-color: #F7F5F2;
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--color-texto-muted);
+}
+
+.summary-counts strong {
+  color: var(--color-negro-suave);
+  font-weight: 700;
+}
+
+.summary-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-negro-suave);
+}
+
+/* ==========================================================================
+   4. Panel Lateral de Cuenta (Mesas & Orden Activa)
+   ========================================================================== */
+.cuenta-panel {
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-lg);
+  padding: 26px 22px;
+  box-shadow: var(--sombra-card);
+}
+
+.cuenta-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cuenta-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.cuenta-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+}
+
+/* Indicador de estado como único círculo junto al título en el panel lateral */
+#cuentaMesaEstado,
+.cuenta-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0;
+  box-shadow: none !important;
+}
+
+#cuentaMesaEstado .status-dot,
+.cuenta-status-badge .status-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cuenta-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-texto-muted);
+  margin-bottom: 14px;
+}
+
+.cuenta-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 120px;
+  margin-bottom: 24px;
+}
+
+.cuenta-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+
+.item-qty-badge {
+  width: 26px;
+  height: 26px;
+  background-color: #F3F4F6;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  flex-shrink: 0;
+}
+
+.item-name {
+  font-weight: 500;
+  color: var(--color-negro-suave);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-price {
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Estado Inicial Vacío de la Cuenta */
+.cuenta-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 44px 16px;
+  margin: auto 0;
+  flex: 1;
+}
+
+.empty-state-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background-color: var(--color-gris-superficie);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--color-texto-muted);
+}
+
+.empty-state-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  margin-bottom: 8px;
+}
+
+.empty-state-desc {
+  font-size: 0.85rem;
+  color: var(--color-texto-muted);
+  line-height: 1.45;
+  max-width: 250px;
+  margin: 0;
+}
+
+/* Totales de la Cuenta */
+.cuenta-totals {
+  border-top: 1px solid var(--color-borde-suave);
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.totals-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: var(--color-texto-muted);
+}
+
+.totals-line.total-highlight {
+  margin-top: 6px;
+  padding-top: 8px;
+  color: var(--color-negro-suave);
+}
+
+.total-text {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.total-amount {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: var(--color-negro-suave);
+}
+
+/* Botones de Acción en Panel Lateral */
+.cuenta-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Acción Secundaria / Construcción: Agregar Producto */
+.btn-account-add {
+  background-color: #3C2F2F;
+  color: var(--color-blanco) !important;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(60, 47, 47, 0.15);
+}
+
+.btn-account-add:hover {
+  background-color: var(--color-terracota);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(198, 111, 80, 0.25);
+}
+
+/* Acción Primaria / Finalización: Cerrar Cuenta */
+.btn-account-close {
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco) !important;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(197, 46, 69, 0.25);
+}
+
+.btn-account-close:hover {
+  background-color: #AE2439;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(197, 46, 69, 0.35);
+}
+
+/* ==========================================================================
+   5. Vista: Gestión de Orden y Catálogo (2.png / gestion_orden.php)
+   ========================================================================== */
+.order-layout {
+  max-width: 1440px;
+  margin: 28px auto;
+  padding: 0 32px 36px 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Panel Izquierdo: Catálogo de Productos */
+.catalog-panel {
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-lg);
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: var(--sombra-card);
+}
+
+/* Filtros de Categoría */
+.order-categories-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.order-category-pill {
+  border: 1px solid var(--color-borde-suave);
+  background-color: var(--color-blanco);
+  color: var(--color-negro-suave);
+  border-radius: var(--radio-pill);
+  padding: 8px 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.order-category-pill:hover {
+  border-color: var(--color-negro-suave);
+  background-color: var(--color-gris-superficie);
+}
+
+.order-category-pill.active {
+  background-color: #3C2F2F;
+  color: var(--color-blanco);
+  border-color: #3C2F2F;
+  box-shadow: 0 2px 8px rgba(60, 47, 47, 0.2);
+}
+
+/* Cuadrícula del Catálogo */
+.order-products-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* Tarjeta de Producto */
+.order-product-card {
+  border: 1.5px solid var(--color-borde-suave);
+  border-radius: 18px;
+  padding: 14px;
+  background-color: var(--color-blanco);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.order-product-card:hover {
+  border-color: var(--color-gris-claro);
+  box-shadow: var(--sombra-card-hover);
+  transform: translateY(-2px);
+}
+
+.order-product-img-box {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #D3D6D9;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-product-img-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.order-product-card:hover .order-product-img-box img {
+  transform: scale(1.04);
+}
+
+.order-product-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.order-product-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.order-product-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  line-height: 1.25;
+}
+
+.order-product-desc {
+  font-size: 0.75rem;
+  color: var(--color-texto-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.order-product-price {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-texto-muted);
+  margin-top: 2px;
+}
+
+/* Botón Circular Agregar '+' */
+.btn-add-item {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #F3F1EE;
+  border: none;
+  color: var(--color-negro-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-add-item:hover {
+  background-color: #3C2F2F;
+  color: var(--color-blanco);
+  transform: scale(1.08);
+  box-shadow: 0 4px 10px rgba(60, 47, 47, 0.2);
+}
+
+.btn-add-item:active {
+  transform: scale(0.95);
+}
+
+/* ==========================================================================
+   6. Sidebar de Cuenta Activa (Gestión de Orden)
+   ========================================================================== */
+.active-order-sidebar {
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-lg);
+  padding: 26px 22px;
+  box-shadow: var(--sombra-card);
+}
+
+.active-order-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.active-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.active-order-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+}
+
+.order-count-badge {
+  background-color: #F3F4F6;
+  border-radius: var(--radio-pill);
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-negro-suave);
+}
+
+/* Lista de Productos Seleccionados */
+.active-order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 140px;
+  margin-bottom: 24px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.active-order-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #F4F4F5;
+  gap: 12px;
+  transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+
+.active-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.active-item-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-negro-suave);
+  line-height: 1.25;
+}
+
+.active-item-price {
+  font-size: 0.82rem;
+  color: var(--color-texto-muted);
+  font-weight: 500;
+}
+
+/* Controles de Cantidad (- / +) y Botón Eliminar */
+.active-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.qty-circle-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: #F1EDE9;
+  border: none;
+  color: var(--color-negro-suave);
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.qty-circle-btn:hover {
+  background-color: #E2DDD8;
+  transform: scale(1.06);
+}
+
+.qty-circle-btn:active {
+  transform: scale(0.92);
+}
+
+.qty-circle-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+  color: var(--color-negro-suave);
+}
+
+/* Botón Basurero Rojo */
+.btn-remove-item {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background-color: transparent;
+  border: none;
+  color: #EF4444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 2px;
+}
+
+.btn-remove-item:hover {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  transform: scale(1.08);
+}
+
+/* Resumen de Costos */
+.active-order-summary {
+  border-top: 1px solid var(--color-borde-suave);
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.summary-cost-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: var(--color-texto-muted);
+}
+
+.summary-cost-line.total {
+  margin-top: 6px;
+  padding-top: 8px;
+  color: var(--color-negro-suave);
+}
+
+.summary-cost-line.total .total-label {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.summary-cost-line.total .total-val {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-negro-suave);
+}
+
+/* Botones de Acción de Orden */
+.active-order-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Acción Secundaria / Construcción: Actualizar Orden */
+.btn-order-update {
+  background-color: #3C2F2F;
+  color: var(--color-blanco);
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(60, 47, 47, 0.15);
+}
+
+.btn-order-update:hover {
+  background-color: var(--color-terracota);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(198, 111, 80, 0.25);
+}
+
+/* Acción Primaria / Finalización: Enviar a Cocina */
+.btn-order-send-kitchen {
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(197, 46, 69, 0.25);
+}
+
+.btn-order-send-kitchen:hover {
+  background-color: #AE2439;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(197, 46, 69, 0.35);
+}
+
+/* ==========================================================================
+   7. Vista: Cierre de Cuenta y Pago (3.png / cierre_cuenta.php)
+   ========================================================================== */
+.cierre-layout {
+  max-width: 1440px;
+  margin: 28px auto;
+  padding: 0 32px 36px 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 470px) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+/* Panel Izquierdo: Comprobante / Ticket de Venta */
+.cierre-ticket-panel {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.ticket-card {
+  width: 100%;
+  max-width: 460px;
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 16px;
+  padding: 34px 34px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
+  font-family: 'Courier Prime', Courier, 'Courier New', monospace;
+  color: var(--color-negro-suave);
+  line-height: 1.5;
+}
+
+.ticket-header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.ticket-brand {
+  font-family: var(--fuente-principal);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--color-negro-suave);
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+
+.ticket-tagline {
+  font-size: 0.72rem;
+  color: #6B7280;
+  margin-bottom: 2px;
+}
+
+.ticket-location {
+  font-size: 0.72rem;
+  color: #6B7280;
+}
+
+.ticket-meta {
+  border-top: 1px dashed #D1D5DB;
+  border-bottom: 1px dashed #D1D5DB;
+  padding: 12px 0;
+  margin-bottom: 18px;
+  font-size: 0.75rem;
+  color: #4B5563;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ticket-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ticket-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+}
+
+.ticket-item-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.t-name {
+  color: #1F2937;
+  flex: 1;
+}
+
+.t-price {
+  font-weight: 700;
+  color: #1F2937;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ticket-separator {
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 0.75rem;
+  letter-spacing: 1.5px;
+  margin: 10px 0;
+  overflow: hidden;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ticket-totals-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 0.8rem;
+  color: #4B5563;
+}
+
+.ticket-subtotal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ticket-grand-total {
+  border-top: 1px dashed #D1D5DB;
+  padding-top: 14px;
+  margin-bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.grand-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.grand-total-label {
+  font-family: var(--fuente-principal);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-negro-suave);
+  letter-spacing: 0.02em;
+}
+
+.grand-total-amount {
+  font-family: var(--fuente-principal);
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--color-negro-suave);
+}
+
+.grand-total-currency {
+  text-align: right;
+  font-size: 0.68rem;
+  color: #6B7280;
+}
+
+.ticket-footer {
+  text-align: center;
+  font-size: 0.72rem;
+  color: #6B7280;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.ticket-thanks {
+  font-weight: 700;
+  color: #374151;
+}
+
+.ticket-fiscal {
+  font-size: 0.65rem;
+  color: #9CA3AF;
+}
+
+/* Panel Derecho: Procesamiento de Pago */
+.cierre-payment-panel {
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-lg);
+  padding: 28px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  box-shadow: var(--sombra-card);
+}
+
+/* Tarjeta de Monto Total de Operación */
+.payment-total-card {
+  background-color: #F8F9FA;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.payment-total-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.payment-total-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+}
+
+.payment-total-subtitle {
+  font-size: 0.78rem;
+  color: var(--color-texto-muted);
+}
+
+.payment-total-display {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.total-big-number {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--color-negro-suave);
+  letter-spacing: -0.02em;
+}
+
+.total-big-currency {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-texto-muted);
+}
+
+/* Sección de Método de Pago */
+.payment-method-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+}
+
+.payment-method-card {
+  background-color: #3C2F2F;
+  color: var(--color-blanco);
+  border-radius: 14px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-shadow: 0 4px 12px rgba(60, 47, 47, 0.2);
+}
+
+.payment-method-card:hover {
+  background-color: #4D3D3D;
+  transform: translateY(-1px);
+}
+
+.payment-method-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payment-method-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Tarjeta de Detalle de Efectivo */
+.cash-detail-card {
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 16px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: var(--color-blanco);
+}
+
+.cash-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cash-detail-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+}
+
+.exact-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #059669;
+}
+
+/* Fila de Inputs: Monto Recibido y Cambio a Entregar */
+.cash-inputs-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.cash-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cash-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-texto-muted);
+}
+
+/* Caja de Input: Monto Recibido */
+.cash-input-box {
+  border: 1.5px solid var(--color-terracota);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-blanco);
+  transition: all 0.2s ease;
+}
+
+.cash-input-box:focus-within {
+  border-color: var(--color-terracota);
+  box-shadow: 0 0 0 3px rgba(198, 111, 80, 0.2);
+}
+
+.currency-symbol {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+}
+
+.cash-input-field {
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  width: 100%;
+  background: transparent;
+}
+
+/* Caja de Output: Cambio a Entregar (Resaltado en Verde) */
+.cash-change-box {
+  background-color: #ECFDF5;
+  border: 1.5px solid #10B981;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.currency-symbol-green {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #059669;
+}
+
+.cash-change-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #059669;
+}
+
+/* Confirmación de Mesa Desocupada */
+.table-confirm-box {
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 12px;
+  padding: 14px 18px;
+  background-color: var(--color-blanco);
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-negro-suave);
+  user-select: none;
+}
+
+.checkbox-container input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #6E4F42;
+  cursor: pointer;
+}
+
+.checkbox-label-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+/* Botones de Acción de Cierre */
+.cierre-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Acción Secundaria / Construcción: Generar Ticket PDF */
+.btn-generate-pdf {
+  background-color: #3C2F2F;
+  color: var(--color-blanco);
+  border: none;
+  border-radius: 14px;
+  padding: 15px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(60, 47, 47, 0.15);
+}
+
+.btn-generate-pdf:hover {
+  background-color: var(--color-terracota);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(198, 111, 80, 0.25);
+}
+
+/* Acción Primaria / Finalización: Procesar Pago & Liberar Mesa */
+.btn-process-payment {
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  border: none;
+  border-radius: 14px;
+  padding: 15px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(197, 46, 69, 0.25);
+}
+
+.btn-process-payment:hover {
+  background-color: #AE2439;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(197, 46, 69, 0.35);
+}
+
+/* ==========================================================================
+   8. Diseño Adaptativo y Responsivo (@media queries)
+   ========================================================================== */
+@media (max-width: 1200px) {
+  .tables-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .order-products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .mesas-layout,
+  .order-layout,
+  .cierre-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 0 20px 32px 20px;
+  }
+
+  .cierre-ticket-panel {
+    order: 2;
+  }
+
+  .cierre-payment-panel {
+    order: 1;
+  }
+
+  .ticket-card {
+    max-width: 100%;
+  }
+
+  .tables-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .service-header-container {
+    padding: 12px 18px;
+    flex-wrap: wrap;
+  }
+
+  .header-center-badge,
+  .header-center-title {
+    order: 3;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .tables-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cash-inputs-row {
+    grid-template-columns: 1fr;
+  }
+
+  .tables-summary-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .mesas-panel,
+  .cuenta-panel,
+  .catalog-panel,
+  .active-order-sidebar,
+  .cierre-payment-panel {
+    padding: 20px 16px;
+    border-radius: var(--radio-md);
+  }
+
+  .ticket-card {
+    padding: 24px 18px;
+  }
+
+  .user-meta {
+    display: none;
+  }
+
+  .user-profile-badge {
+    padding: 3px;
+  }
+}
+

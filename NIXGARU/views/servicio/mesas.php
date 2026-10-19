@@ -10,8 +10,9 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Mesa.php';
 require_once __DIR__ . '/../../models/Pedido.php';
 
-// 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
-$idMesaSeleccionada = isset($_GET['mesa_id']) ? $_GET['mesa_id'] : (isset($_GET['mesa']) ? $_GET['mesa'] : 1);
+// 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id= o ?mesa=)
+$idMesaParam = isset($_GET['mesa_id']) ? trim((string)$_GET['mesa_id']) : (isset($_GET['mesa']) ? trim((string)$_GET['mesa']) : null);
+$idMesaSeleccionada = (!empty($idMesaParam) && $idMesaParam !== '') ? $idMesaParam : null;
 
 try {
     // 2. Consulta de todas las mesas registradas en la base de datos mediante el modelo Mesa
@@ -32,55 +33,64 @@ try {
         ];
     }
 
-    // Identificar la información de la mesa seleccionada de manera robusta
+    // Identificar la información de la mesa seleccionada solo si se recibió un ID válido
     $mesaActivaInfo = null;
-    foreach ($mesas as $m) {
-        if ((string)$m['id_mesa'] === (string)$idMesaSeleccionada || 
-            (string)$m['numero_mesa'] === (string)$idMesaSeleccionada ||
-            (is_numeric($idMesaSeleccionada) && (int)$m['id_mesa'] === (int)$idMesaSeleccionada)) {
-            $mesaActivaInfo = $m;
-            break;
+    if ($idMesaSeleccionada !== null) {
+        foreach ($mesas as $m) {
+            if ((string)$m['id_mesa'] === (string)$idMesaSeleccionada || 
+                (string)$m['numero_mesa'] === (string)$idMesaSeleccionada ||
+                (is_numeric($idMesaSeleccionada) && (int)$m['id_mesa'] === (int)$idMesaSeleccionada)) {
+                $mesaActivaInfo = $m;
+                break;
+            }
         }
     }
-    if (!$mesaActivaInfo && !empty($mesas)) {
-        $mesaActivaInfo = $mesas[0];
-    }
-    $idMesaActiva = $mesaActivaInfo ? $mesaActivaInfo['id_mesa'] : 1;
-    $numeroMesaActiva = $mesaActivaInfo ? $mesaActivaInfo['numero_mesa'] : 'M-01';
+
+    // Si no se recibió un mesa_id válido, $idMesaActiva queda en null
+    $idMesaActiva = $mesaActivaInfo ? $mesaActivaInfo['id_mesa'] : null;
+    $numeroMesaActiva = $mesaActivaInfo ? $mesaActivaInfo['numero_mesa'] : null;
 
     // 3. Consulta de consumos activos por mesa mediante el modelo Pedido
     $pedidoModel = new Pedido($pdo);
     $consumosPorMesa = $pedidoModel->obtenerConsumosActivosPorMesa();
 
-    // 4. Consulta de platillos reales de la mesa seleccionada que no han sido pagados
-    $detallesOrden = $pedidoModel->obtenerCuentaActivaPorMesa($idMesaActiva);
-
-    // 5. Cálculo dinámico de Subtotal, Propina (10%) y Total general
+    // 4. Consulta de platillos reales y cálculo de totales solo si hay mesa activa
+    $detallesOrden = [];
     $subtotal = 0.00;
-    foreach ($detallesOrden as $item) {
-        $subtotal += (float)$item['subtotal_linea'];
-    }
-    $propina = round($subtotal * 0.10, 2);
-    $total = round($subtotal + $propina, 2);
+    $propina = 0.00;
+    $total = 0.00;
 
-    // Configuración de la píldora de estado de la mesa activa
-    $estadoRaw = strtolower(trim($mesaActivaInfo['estado'] ?? 'Disponible'));
-    if (str_contains($estadoRaw, 'ocupad')) {
-        $badgeClase = 'badge-ocupada';
-        $badgeDot = 'dot-ocupada';
-        $badgeTexto = 'Ocupada';
-    } elseif (str_contains($estadoRaw, 'proces')) {
-        $badgeClase = 'badge-proceso';
-        $badgeDot = 'dot-proceso';
-        $badgeTexto = 'En proceso';
-    } elseif (str_contains($estadoRaw, 'sin')) {
+    if ($idMesaActiva !== null) {
+        $detallesOrden = $pedidoModel->obtenerCuentaActivaPorMesa($idMesaActiva);
+        foreach ($detallesOrden as $item) {
+            $subtotal += (float)$item['subtotal_linea'];
+        }
+        $propina = round($subtotal * 0.10, 2);
+        $total = round($subtotal + $propina, 2);
+
+        // Configuración de la píldora de estado de la mesa activa
+        $estadoRaw = strtolower(trim($mesaActivaInfo['estado'] ?? 'Disponible'));
+        if (str_contains($estadoRaw, 'ocupad')) {
+            $badgeClase = 'badge-ocupada';
+            $badgeDot = 'dot-ocupada';
+            $badgeTexto = 'Ocupada';
+        } elseif (str_contains($estadoRaw, 'proces')) {
+            $badgeClase = 'badge-proceso';
+            $badgeDot = 'dot-proceso';
+            $badgeTexto = 'En proceso';
+        } elseif (str_contains($estadoRaw, 'sin')) {
+            $badgeClase = 'badge-sin-servicio';
+            $badgeDot = 'dot-sin-servicio';
+            $badgeTexto = 'Sin servicio';
+        } else {
+            $badgeClase = 'badge-disponible';
+            $badgeDot = 'dot-disponible';
+            $badgeTexto = 'Disponible';
+        }
+    } else {
         $badgeClase = 'badge-sin-servicio';
         $badgeDot = 'dot-sin-servicio';
-        $badgeTexto = 'Sin servicio';
-    } else {
-        $badgeClase = 'badge-disponible';
-        $badgeDot = 'dot-disponible';
-        $badgeTexto = 'Disponible';
+        $badgeTexto = 'Sin selección';
     }
 
 } catch (PDOException $e) {
@@ -91,6 +101,7 @@ try {
 $nombreUsuario = 'Carlos Méndez';
 $rolUsuario = 'Personal de servicio';
 $pageTitle = 'NIXGARU – Plano de Mesas | Personal de Servicio';
+$headerTitle = 'Plano de Mesas';
 
 require_once '../layouts/header.php';
 ?>
@@ -154,8 +165,7 @@ require_once '../layouts/header.php';
           <article class="table-card <?php echo $esActiva ? 'active' : ''; ?>" 
                    data-table-number="<?php echo $numMesaDisplay; ?>" 
                    data-table-id="<?php echo $idM; ?>"
-                   data-table-cap="<?php echo (int)$mesa['capacidad']; ?>"
-                   onclick="if (!event.target.closest('.table-status-select')) { window.location.href='mesas.php?mesa_id=<?php echo urlencode($mesa['id_mesa']); ?>'; }">
+                   data-table-cap="<?php echo (int)$mesa['capacidad']; ?>">
             
             <div class="table-card-header">
               <h3 class="table-name">Mesa <?php echo $numMesaDisplay; ?></h3>
@@ -237,58 +247,84 @@ require_once '../layouts/header.php';
         
         <!-- Cabecera de la Cuenta -->
         <div class="cuenta-header">
-          <h2 class="cuenta-title" id="cuentaMesaTitulo">Cuenta - Mesa <?php echo htmlspecialchars($numeroMesaActiva); ?></h2>
-          <span class="legend-badge <?php echo $badgeClase; ?>" id="cuentaMesaEstado">
+          <h2 class="cuenta-title" id="cuentaMesaTitulo">
+            <?php echo $idMesaActiva !== null ? (stripos((string)$numeroMesaActiva, 'mesa') === 0 ? htmlspecialchars($numeroMesaActiva) : 'Mesa ' . htmlspecialchars($numeroMesaActiva)) : 'Detalle de Cuenta'; ?>
+          </h2>
+          <span class="cuenta-status-badge <?php echo $badgeClase; ?>" id="cuentaMesaEstado" title="<?php echo htmlspecialchars($badgeTexto); ?>" style="<?php echo $idMesaActiva !== null ? 'display: inline-flex;' : 'display: none;'; ?>">
             <span class="status-dot <?php echo $badgeDot; ?>"></span>
-            <?php echo htmlspecialchars($badgeTexto); ?>
           </span>
         </div>
 
-        <!-- Sección de Productos -->
-        <div class="cuenta-section-label">PRODUCTOS</div>
+        <!-- Contenedor Dinámico de la Cuenta Activa (Productos y Totales) -->
+        <div id="cuentaDetalleContainer" style="<?php echo $idMesaActiva !== null ? 'display: block;' : 'display: none;'; ?>">
+          <!-- Sección de Productos -->
+          <div class="cuenta-section-label">PRODUCTOS</div>
 
-        <div class="cuenta-items-list" id="listaProductosCuenta">
-          
-          <?php if (!empty($detallesOrden)): ?>
-            <?php foreach ($detallesOrden as $producto): ?>
-              <?php 
-                $cant = (int)$producto['cantidadPed'];
-                $subtotalLinea = (float)$producto['subtotal_linea'];
-              ?>
-              <div class="cuenta-item">
-                <span class="item-qty-badge"><?php echo $cant; ?></span>
-                <span class="item-name"><?php echo htmlspecialchars($producto['nombre_producto']); ?></span>
-                <span class="item-price">$<?php echo number_format($subtotalLinea, 2); ?></span>
+          <div class="cuenta-items-list" id="listaProductosCuenta">
+            <?php if (!empty($detallesOrden)): ?>
+              <?php foreach ($detallesOrden as $producto): ?>
+                <?php 
+                  $cant = (int)$producto['cantidadPed'];
+                  $subtotalLinea = (float)$producto['subtotal_linea'];
+                ?>
+                <div class="cuenta-item">
+                  <span class="item-qty-badge"><?php echo $cant; ?></span>
+                  <span class="item-name"><?php echo htmlspecialchars($producto['nombre_producto']); ?></span>
+                  <span class="item-price">$<?php echo number_format($subtotalLinea, 2); ?></span>
+                </div>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <div class="empty-cuenta-msg" style="text-align: center; color: #6C757D; font-size: 13.5px; padding: 36px 12px;">
+                <p style="margin: 0 0 6px 0; font-weight: 600; color: #343A40;">Mesa disponible sin consumos activos</p>
+                <span style="font-size: 12.5px; opacity: 0.85;">No hay pedidos pendientes de pago para esta mesa.</span>
               </div>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <div class="empty-cuenta-msg" style="text-align: center; color: #6C757D; font-size: 13.5px; padding: 36px 12px;">
-              <p style="margin: 0 0 6px 0; font-weight: 600; color: #343A40;">Mesa disponible sin consumos activos</p>
-              <span style="font-size: 12.5px; opacity: 0.85;">No hay pedidos pendientes de pago para esta mesa.</span>
-            </div>
-          <?php endif; ?>
+            <?php endif; ?>
+          </div>
 
+          <!-- Totales de la Cuenta -->
+          <div class="cuenta-totals">
+            <div class="totals-line">
+              <span>Subtotal</span>
+              <span id="cuentaSubtotal">$<?php echo number_format($subtotal, 2); ?></span>
+            </div>
+            <div class="totals-line">
+              <span>Propina (10%)</span>
+              <span id="cuentaPropina">$<?php echo number_format($propina, 2); ?></span>
+            </div>
+            <div class="totals-line total-highlight">
+              <span class="total-text">Total</span>
+              <span class="total-amount" id="cuentaTotal">$<?php echo number_format($total, 2); ?></span>
+            </div>
+          </div>
         </div>
 
-        <!-- Totales de la Cuenta -->
-        <div class="cuenta-totals">
-          <div class="totals-line">
-            <span>Subtotal</span>
-            <span id="cuentaSubtotal">$<?php echo number_format($subtotal, 2); ?></span>
+        <!-- Estado Inicial Vacío: Ninguna mesa seleccionada -->
+        <div class="cuenta-empty-state" id="cuentaEmptyState" style="<?php echo $idMesaActiva === null ? 'display: flex;' : 'display: none;'; ?> flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 48px 16px; margin: auto 0; flex: 1;">
+          <div class="empty-state-icon" style="width: 58px; height: 58px; border-radius: 50%; background-color: var(--color-gris-superficie); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--color-texto-muted);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
           </div>
-          <div class="totals-line">
-            <span>Propina (10%)</span>
-            <span id="cuentaPropina">$<?php echo number_format($propina, 2); ?></span>
-          </div>
-          <div class="totals-line total-highlight">
-            <span class="total-text">Total</span>
-            <span class="total-amount" id="cuentaTotal">$<?php echo number_format($total, 2); ?></span>
-          </div>
+          <h3 class="empty-state-title" style="font-size: 1.05rem; font-weight: 700; color: var(--color-negro-suave); margin-bottom: 8px;">Ninguna mesa seleccionada</h3>
+          <p class="empty-state-desc" style="font-size: 0.85rem; color: var(--color-texto-muted); line-height: 1.45; max-width: 250px; margin: 0;">Por favor, seleccione una mesa del plano para iniciar o visualizar su cuenta.</p>
         </div>
 
         <!-- Botones de Acción -->
+        <?php 
+          $estaDeshabilitado = ($idMesaActiva === null);
+          $disabledStyle = $estaDeshabilitado ? 'pointer-events: none; opacity: 0.5; cursor: not-allowed; text-decoration: none;' : 'text-decoration: none;';
+          $urlAgregar = $estaDeshabilitado ? '#' : 'gestion_orden.php?mesa_id=' . urlencode($idMesaActiva);
+          $urlCerrar = $estaDeshabilitado ? '#' : 'cierre_cuenta.php?mesa_id=' . urlencode($idMesaActiva);
+        ?>
         <div class="cuenta-actions">
-          <a href="gestion_orden.php?mesa_id=<?php echo urlencode($idMesaActiva); ?>" class="btn-account-add" id="btnAgregarProducto" data-mesa="<?php echo htmlspecialchars($idMesaActiva); ?>" data-numero-mesa="<?php echo htmlspecialchars($numeroMesaActiva); ?>" style="text-decoration: none;">
+          <a href="<?php echo $urlAgregar; ?>" 
+             class="btn-account-add" 
+             id="btnAgregarProducto" 
+             data-mesa="<?php echo htmlspecialchars($idMesaActiva ?? ''); ?>" 
+             data-numero-mesa="<?php echo htmlspecialchars($numeroMesaActiva ?? ''); ?>" 
+             style="<?php echo $disabledStyle; ?>"
+             <?php echo $estaDeshabilitado ? 'tabindex="-1" aria-disabled="true"' : ''; ?>>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="8" x2="12" y2="16"></line>
@@ -297,7 +333,13 @@ require_once '../layouts/header.php';
             <span>Agregar Producto</span>
           </a>
 
-          <a href="cierre_cuenta.php?mesa_id=<?php echo urlencode($idMesaActiva); ?>" class="btn-account-close" id="btnCerrarCuenta" data-mesa="<?php echo htmlspecialchars($idMesaActiva); ?>" data-numero-mesa="<?php echo htmlspecialchars($numeroMesaActiva); ?>" style="text-decoration: none;">
+          <a href="<?php echo $urlCerrar; ?>" 
+             class="btn-account-close" 
+             id="btnCerrarCuenta" 
+             data-mesa="<?php echo htmlspecialchars($idMesaActiva ?? ''); ?>" 
+             data-numero-mesa="<?php echo htmlspecialchars($numeroMesaActiva ?? ''); ?>" 
+             style="<?php echo $disabledStyle; ?>"
+             <?php echo $estaDeshabilitado ? 'tabindex="-1" aria-disabled="true"' : ''; ?>>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
               <line x1="1" y1="10" x2="23" y2="10"></line>

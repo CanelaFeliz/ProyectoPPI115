@@ -60,6 +60,7 @@ try {
 $nombreUsuario = $nombreAtendio;
 $rolUsuario = 'Personal de servicio';
 $pageTitle = 'NIXGARU – Cierre de Cuenta | Personal de Servicio';
+$headerTitle = 'Cierre de Cuenta - Mesa ' . ($numeroMesa ?? $idMesaSeleccionada);
 
 require_once '../layouts/header.php';
 ?>

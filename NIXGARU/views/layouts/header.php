@@ -43,6 +43,24 @@ if (!isset($pageTitle)) {
             break;
     }
 }
+
+// Título centrado del encabezado por defecto si no viene predefinido desde la vista
+if (!isset($headerTitle)) {
+    switch ($currentPage) {
+        case 'mesas.php':
+            $headerTitle = 'Plano de Mesas';
+            break;
+        case 'gestion_orden.php':
+            $headerTitle = 'Orden Activa - Mesa ' . ($numeroMesa ?? $idMesaSeleccionada ?? '1');
+            break;
+        case 'cierre_cuenta.php':
+            $headerTitle = 'Cierre de Cuenta - Mesa ' . ($numeroMesa ?? $idMesaSeleccionada ?? '1');
+            break;
+        default:
+            $headerTitle = 'Personal de Servicio';
+            break;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -58,7 +76,11 @@ if (!isset($pageTitle)) {
   <!-- Librería html2pdf.js para exportar el ticket a PDF en el cliente -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <?php endif; ?>
-  <link rel="stylesheet" href="../../public/css/style.css">
+  <link rel="stylesheet" href="/NIXGARU/public/css/global.css">
+  <?php if (in_array($currentPage, ['mesas.php', 'gestion_orden.php', 'cierre_cuenta.php']) || (isset($rolUsuario) && $rolUsuario === 'Personal de servicio')): ?>
+  <!-- Estilos modulares para el módulo de personal de servicio -->
+  <link rel="stylesheet" href="/NIXGARU/public/css/servicio.css">
+  <?php endif; ?>
 </head>
 <body>
 
@@ -66,8 +88,8 @@ if (!isset($pageTitle)) {
   <header class="service-header">
     <div class="service-header-container">
       
-      <!-- Logotipo NIXGARU a la izquierda -->
-      <div class="brand-logo-service">
+      <!-- Logotipo NIXGARU a la izquierda (Enlace a mesas.php) -->
+      <a href="mesas.php" class="brand-logo-service" style="text-decoration: none; color: inherit;" title="Ir al Plano de Mesas">
         <div class="logo-icon-service">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
@@ -81,22 +103,12 @@ if (!isset($pageTitle)) {
           <span class="logo-brand-name">NIXGARU</span>
           <span class="logo-subtext">PERSONAL DE SERVICIO</span>
         </div>
-      </div>
+      </a>
 
-      <?php if ($currentPage === 'gestion_orden.php'): ?>
-      <!-- Centro: Píldora de Orden Activa -->
-      <div class="header-center-badge">
-        <div class="active-order-pill">
-          <span class="order-dot"></span>
-          <span class="order-pill-text">Orden Activa – Mesa <?php echo htmlspecialchars($idMesaSeleccionada); ?></span>
-        </div>
-      </div>
-      <?php elseif ($currentPage === 'cierre_cuenta.php'): ?>
-      <!-- Centro: Título de la pantalla -->
+      <!-- Centro: Título Centrado en todas las pantallas del módulo de servicio -->
       <div class="header-center-title">
-        <h1 class="cierre-main-title">Cierre de Cuenta – Mesa <?php echo htmlspecialchars($numeroMesa ?? $idMesaSeleccionada); ?></h1>
+        <h1 class="cierre-main-title"><?php echo htmlspecialchars($headerTitle); ?></h1>
       </div>
-      <?php endif; ?>
 
       <!-- Derecha: Perfil de usuario y botones de acción -->
       <div class="service-user-actions">

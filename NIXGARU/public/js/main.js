@@ -875,10 +875,12 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryCountsElement.innerHTML = `Resumen actual: <strong>${disponibles} Disponibles</strong> | <strong>${ocupadas} Ocupadas</strong> | <strong>${proceso} En proceso</strong> | <strong>${sinServicio} Sin servicio</strong>`;
   }
 
-  // Actualiza la píldora de estado en el panel lateral de la cuenta
+  // Actualiza el círculo indicador de estado en el panel lateral de la cuenta (únicamente el punto de color)
   function actualizarEstadoCuentaLateral(estado) {
-    if (!cuentaMesaEstado) return;
-    cuentaMesaEstado.className = 'legend-badge';
+    const elEstado = document.getElementById('cuentaMesaEstado') || cuentaMesaEstado;
+    if (!elEstado) return;
+    elEstado.className = 'cuenta-status-badge';
+    elEstado.style.display = 'inline-flex';
     
     const etiquetas = {
       'disponible':   { texto: 'Disponible', clase: 'badge-disponible', dot: 'dot-disponible' },
@@ -888,11 +890,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const cfg = etiquetas[estado] || etiquetas['disponible'];
-    cuentaMesaEstado.classList.add(cfg.clase);
-    cuentaMesaEstado.innerHTML = `<span class="status-dot ${cfg.dot}"></span>${cfg.texto}`;
+    elEstado.classList.add(cfg.clase);
+    elEstado.setAttribute('title', cfg.texto);
+    elEstado.innerHTML = `<span class="status-dot ${cfg.dot}"></span>`;
   }
 
-  // Carga la orden guardada de una mesa en el panel lateral derecho ("Cuenta - Mesa X")
+  // Carga la orden guardada de una mesa en el panel lateral derecho ("Mesa X")
   function cargarOrdenMesaEnPanelLateral(mesaId) {
     const listaProductosCuenta = document.getElementById('listaProductosCuenta');
     const cuentaSubtotal = document.getElementById('cuentaSubtotal');
@@ -904,10 +907,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Verificar si la página actual ya cargó la orden desde el servidor PHP (fuente de la BD)
     const serverItems = listaProductosCuenta.querySelectorAll('.cuenta-item');
     const urlParams = new URLSearchParams(window.location.search);
-    const mesaUrl = urlParams.get('mesa_id') || urlParams.get('mesa') || '1';
+    const mesaUrl = urlParams.get('mesa_id') || urlParams.get('mesa');
 
     // Si coincide la mesa con la URL y PHP ya renderizó elementos de la BD, preservarlos
-    if (mesaUrl === String(mesaId) && serverItems.length > 0) {
+    if (mesaUrl && String(mesaUrl) === String(mesaId) && serverItems.length > 0) {
       return;
     }
 
@@ -967,39 +970,79 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cuentaTotal) cuentaTotal.textContent = `$${total.toFixed(2)}`;
   }
 
-  // Función encargada de actualizar la mesa seleccionada y sincronizarla
-  window.seleccionarMesa = function(id, estado) {
+  // Función encargada de actualizar la mesa seleccionada y sincronizarla sin alterar selectores
+  window.seleccionarMesa = function(id, estado, idRealParam) {
     const mesaId = String(id);
+    const mesaRealId = idRealParam ? String(idRealParam) : mesaId;
 
     // 1. Guardar en localStorage la mesa activa seleccionada
-    localStorage.setItem('mesaActiva', mesaId);
-    sessionStorage.setItem('mesaActiva', mesaId);
+    localStorage.setItem('mesaActiva', mesaRealId);
+    sessionStorage.setItem('mesaActiva', mesaRealId);
 
-    // 2. Resaltar visualmente la tarjeta de la mesa activa en la cuadrícula
+    // 2. Resaltar visualmente ÚNICAMENTE la tarjeta de la mesa activa en la cuadrícula sin alterar colores de selects
     const allCards = document.querySelectorAll('.table-card');
     allCards.forEach(card => {
-      if (card.dataset.tableNumber === mesaId) {
+      const matchNum = String(card.dataset.tableNumber || '') === mesaId;
+      const matchId = String(card.dataset.tableId || '') === mesaRealId || String(card.dataset.tableId || '') === mesaId;
+      if (matchNum || matchId) {
         card.classList.add('active');
       } else {
         card.classList.remove('active');
       }
     });
 
-    // 3. Actualizar el título del panel lateral derecho
+    // 3. Actualizar el título del panel lateral derecho (exclusivamente "Mesa X", sin prefijo "Cuenta -")
     const cuentaMesaTitulo = document.getElementById('cuentaMesaTitulo');
     if (cuentaMesaTitulo) {
-      cuentaMesaTitulo.textContent = `Cuenta - Mesa ${mesaId}`;
+      const numLimpio = mesaId.replace(/^Mesa\s*/i, '').trim();
+      cuentaMesaTitulo.textContent = `Mesa ${numLimpio}`;
     }
 
-    // 4. Actualizar la píldora de estado en el panel lateral
+    // 4. Actualizar el indicador de estado en el panel lateral (solo círculo de color)
     actualizarEstadoCuentaLateral(estado);
 
-    // 5. Cargar automáticamente la orden de esa mesa desde localStorage
-    cargarOrdenMesaEnPanelLateral(mesaId);
+    // 5. Alternar visibilidad: ocultar estado vacío y mostrar contenedor de productos/totales
+    const emptyState = document.getElementById('cuentaEmptyState');
+    const detalleContainer = document.getElementById('cuentaDetalleContainer');
+    if (emptyState) emptyState.style.display = 'none';
+    if (detalleContainer) detalleContainer.style.display = 'block';
+
+    // 6. Habilitar y actualizar botones de acción del panel lateral
+    const btnAgregar = document.getElementById('btnAgregarProducto');
+    if (btnAgregar) {
+      btnAgregar.style.pointerEvents = 'auto';
+      btnAgregar.style.opacity = '1';
+      btnAgregar.style.cursor = 'pointer';
+      btnAgregar.removeAttribute('tabindex');
+      btnAgregar.removeAttribute('aria-disabled');
+      btnAgregar.dataset.mesa = mesaRealId;
+      btnAgregar.dataset.numeroMesa = mesaId;
+      btnAgregar.href = `gestion_orden.php?mesa_id=${encodeURIComponent(mesaRealId)}`;
+    }
+
+    const btnCerrar = document.getElementById('btnCerrarCuenta');
+    if (btnCerrar) {
+      btnCerrar.style.pointerEvents = 'auto';
+      btnCerrar.style.opacity = '1';
+      btnCerrar.style.cursor = 'pointer';
+      btnCerrar.removeAttribute('tabindex');
+      btnCerrar.removeAttribute('aria-disabled');
+      btnCerrar.dataset.mesa = mesaRealId;
+      btnCerrar.dataset.numeroMesa = mesaId;
+      btnCerrar.href = `cierre_cuenta.php?mesa_id=${encodeURIComponent(mesaRealId)}`;
+    }
+
+    // 7. Sincronizar URL del navegador de forma transparente sin recargar la página
+    if (window.history && window.history.replaceState) {
+      const newUrl = `mesas.php?mesa_id=${encodeURIComponent(mesaRealId)}`;
+      window.history.replaceState({ mesa_id: mesaRealId }, '', newUrl);
+    }
+
+    // 8. Cargar automáticamente la orden de esa mesa
+    cargarOrdenMesaEnPanelLateral(mesaRealId);
   };
 
-  // Inicializar plano de mesas al cargar mesas.php:
-  // Lee localStorage para pintar el estado correcto y el consumo en cada tarjeta
+  // Inicializar plano de mesas al cargar mesas.php
   function inicializarPlanoMesas() {
     const allCards = document.querySelectorAll('.table-card');
     if (!allCards || allCards.length === 0) return;
@@ -1008,17 +1051,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const mesaId = card.dataset.tableNumber;
       if (!mesaId) return;
 
-      const select = card.querySelector('.table-status-select');
-
-      // Leer estado guardado en localStorage
-      const estadoGuardado = localStorage.getItem('estado_mesa_' + mesaId);
-      if (estadoGuardado && select) {
-        select.value = estadoGuardado;
-        select.classList.remove('status-disponible', 'status-ocupada', 'status-proceso', 'status-sin-servicio');
-        select.classList.add(`status-${estadoGuardado}`);
-      }
-
-      // Leer orden guardada para calcular consumo real en la tarjeta de la mesa
+      // Leer orden guardada para calcular consumo real en la tarjeta de la mesa si existe en localStorage
       const ordenRaw = localStorage.getItem('orden_mesa_' + mesaId);
       if (ordenRaw) {
         try {
@@ -1039,18 +1072,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     actualizarResumenMesas();
 
-    // Seleccionar la mesa activa desde el parámetro GET ?mesa_id= de la URL o fallback a localStorage
+    // Seleccionar la mesa activa únicamente si viene explícitamente en el parámetro GET de la URL
     const urlParams = new URLSearchParams(window.location.search);
     const mesaUrl = urlParams.get('mesa_id') || urlParams.get('mesa');
-    const mesaActiva = mesaUrl || localStorage.getItem('mesaActiva') || '1';
-    localStorage.setItem('mesaActiva', mesaActiva);
-    sessionStorage.setItem('mesaActiva', mesaActiva);
 
-    const cardActiva = Array.from(allCards).find(c => c.dataset.tableNumber === mesaActiva) || allCards[0];
-    const selectActiva = cardActiva ? cardActiva.querySelector('.table-status-select') : null;
-    const estadoActivo = selectActiva ? selectActiva.value : (localStorage.getItem('estado_mesa_' + mesaActiva) || 'disponible');
+    if (mesaUrl) {
+      localStorage.setItem('mesaActiva', mesaUrl);
+      sessionStorage.setItem('mesaActiva', mesaUrl);
 
-    seleccionarMesa(mesaActiva, estadoActivo);
+      const cardActiva = Array.from(allCards).find(c => String(c.dataset.tableNumber) === String(mesaUrl) || String(c.dataset.tableId) === String(mesaUrl));
+      if (cardActiva) {
+        cardActiva.classList.add('active');
+        const selectActiva = cardActiva.querySelector('.table-status-select');
+        const estadoActivo = selectActiva ? selectActiva.value : 'disponible';
+        const numDisplay = cardActiva.dataset.tableNumber || mesaUrl;
+        const idReal = cardActiva.dataset.tableId || mesaUrl;
+        seleccionarMesa(numDisplay, estadoActivo, idReal);
+      }
+    } else {
+      // Estado inicial vacío: ninguna mesa seleccionada
+      allCards.forEach(c => c.classList.remove('active'));
+    }
   }
 
   // Ejecutar inicialización si estamos en la vista de mesas
@@ -1058,49 +1100,42 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarPlanoMesas();
   }
 
-  // Cambio de estado en el selector de cada mesa (guarda en localStorage)
+  // Cambio de estado en el selector de cada mesa (guarda en localStorage y actualiza clases solo al cambiar select)
   tableStatusSelects.forEach(select => {
     select.addEventListener('change', () => {
       const parentCard = select.closest('.table-card');
-      const mesaId = parentCard ? (parentCard.dataset.tableNumber || '1') : '1';
+      const mesaNum = parentCard ? (parentCard.dataset.tableNumber || '1') : '1';
+      const mesaId = parentCard ? (parentCard.dataset.tableId || mesaNum) : '1';
 
       select.classList.remove('status-disponible', 'status-ocupada', 'status-proceso', 'status-sin-servicio');
       select.classList.add(`status-${select.value}`);
       
-      // Guardar en localStorage
+      // Guardar en localStorage únicamente cuando el usuario cambia el selector
       localStorage.setItem('estado_mesa_' + mesaId, select.value);
+      localStorage.setItem('estado_mesa_' + mesaNum, select.value);
 
       if (parentCard && parentCard.classList.contains('active')) {
-        seleccionarMesa(mesaId, select.value);
+        actualizarEstadoCuentaLateral(select.value);
       }
       actualizarResumenMesas();
     });
   });
 
   // Event listener para clic en las tarjetas de mesa:
-  // Redirige pasando ?mesa_id=ID para que PHP consulte en tiempo real la BD
+  // Gestiona exclusivamente la selección visual (.active) y el panel lateral sin recargar la página ni alterar selects
   tableCards.forEach(card => {
     card.addEventListener('click', (e) => {
-      // Ignorar clics dentro del selector para permitir interacción con el dropdown
+      // Ignorar clics dentro del selector para permitir interacción directa con el dropdown de estados
       if (e.target.closest('.table-status-select') || e.target.tagName.toLowerCase() === 'select') {
         return;
       }
 
-      const mesaId = card.dataset.tableNumber || '1';
-      const urlParams = new URLSearchParams(window.location.search);
-      const currentUrlMesa = urlParams.get('mesa_id') || urlParams.get('mesa') || '1';
+      const mesaNum = card.dataset.tableNumber || '';
+      const mesaIdReal = card.dataset.tableId || mesaNum;
+      const select = card.querySelector('.table-status-select');
+      const estadoActual = select ? select.value : 'disponible';
 
-      localStorage.setItem('mesaActiva', mesaId);
-      sessionStorage.setItem('mesaActiva', mesaId);
-
-      // Si hace clic en una mesa distinta a la cargada por PHP, recargar con ?mesa_id=
-      if (currentUrlMesa !== String(mesaId)) {
-        window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaId)}`;
-      } else {
-        const select = card.querySelector('.table-status-select');
-        const estadoActual = select ? select.value : 'disponible';
-        seleccionarMesa(mesaId, estadoActual);
-      }
+      seleccionarMesa(mesaNum, estadoActual, mesaIdReal);
     });
   });
 
@@ -1108,9 +1143,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Redirige a gestion_orden.php manteniendo el ID de la mesa activa en la URL
   const btnAgregarProducto = document.getElementById('btnAgregarProducto');
   if (btnAgregarProducto) {
-    btnAgregarProducto.addEventListener('click', () => {
+    btnAgregarProducto.addEventListener('click', (e) => {
+      if (btnAgregarProducto.style.pointerEvents === 'none' || btnAgregarProducto.getAttribute('aria-disabled') === 'true' || !btnAgregarProducto.dataset.mesa) {
+        e.preventDefault();
+        return;
+      }
       const urlParams = new URLSearchParams(window.location.search);
-      const mesaActiva = btnAgregarProducto.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
+      const mesaActiva = btnAgregarProducto.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa');
+      if (!mesaActiva) {
+        e.preventDefault();
+        return;
+      }
       localStorage.setItem('mesaActiva', mesaActiva);
       window.location.href = `gestion_orden.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
     });
@@ -1522,7 +1565,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sincronizar número de mesa activa en cierre_cuenta.php
   const mesaCierre = localStorage.getItem('mesaActiva') || '1';
   const cierreTitle = document.querySelector('.cierre-main-title');
-  if (cierreTitle) {
+  if (cierreTitle && (btnProcesarPago || ticketContainer)) {
     cierreTitle.textContent = `Cierre de Cuenta – Mesa ${mesaCierre}`;
   }
 
@@ -1631,9 +1674,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Conexión del botón "Cerrar Cuenta" en mesas.php hacia cierre_cuenta.php
   const btnCerrarCuentaMesas = document.getElementById('btnCerrarCuenta');
   if (btnCerrarCuentaMesas) {
-    btnCerrarCuentaMesas.addEventListener('click', () => {
+    btnCerrarCuentaMesas.addEventListener('click', (e) => {
+      if (btnCerrarCuentaMesas.style.pointerEvents === 'none' || btnCerrarCuentaMesas.getAttribute('aria-disabled') === 'true' || !btnCerrarCuentaMesas.dataset.mesa) {
+        e.preventDefault();
+        return;
+      }
       const urlParams = new URLSearchParams(window.location.search);
-      const mesaActiva = btnCerrarCuentaMesas.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
+      const mesaActiva = btnCerrarCuentaMesas.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa');
+      if (!mesaActiva) {
+        e.preventDefault();
+        return;
+      }
       localStorage.setItem('mesaActiva', mesaActiva);
       window.location.href = `cierre_cuenta.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
     });
