@@ -1140,6 +1140,33 @@ document.addEventListener('DOMContentLoaded', () => {
       // En vista móvil (<= 1024px), desplegar automáticamente el panel de detalle como modal superpuesto
       if (window.innerWidth <= 1024) {
         abrirDetalleMovil();
+      } else {
+        // En vista de escritorio (> 1024px), si el panel lateral de la cuenta está oculto, volverlo visible de inmediato
+        const panelCuenta = document.querySelector('aside.cuenta-panel') || document.getElementById('cuentaPanel');
+        const layoutMesas = document.querySelector('.mesas-layout') || document.getElementById('mesasLayout');
+        const estaOculto = (panelCuenta && panelCuenta.classList.contains('hidden')) ||
+                           (layoutMesas && layoutMesas.classList.contains('detail-hidden'));
+
+        if (estaOculto) {
+          const btnToggle = document.getElementById('btnToggleDetalle');
+          if (btnToggle && panelCuenta && panelCuenta.classList.contains('hidden')) {
+            btnToggle.click();
+          } else {
+            // Replicación directa de apertura en caso de ausencia del botón o desincronización de clases
+            if (panelCuenta) {
+              panelCuenta.classList.remove('hidden');
+              panelCuenta.setAttribute('aria-hidden', 'false');
+            }
+            if (layoutMesas) {
+              layoutMesas.classList.remove('detail-hidden');
+            }
+            if (btnToggle) {
+              btnToggle.setAttribute('aria-expanded', 'true');
+              btnToggle.classList.remove('panel-closed');
+              btnToggle.classList.add('active');
+            }
+          }
+        }
       }
     });
   });
@@ -1848,7 +1875,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       sessionStorage.clear();
-      window.location.href = 'index.php';
+      window.location.href = '../../index.php';
     });
   });
 

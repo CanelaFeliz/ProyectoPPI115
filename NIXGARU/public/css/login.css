@@ -1,0 +1,249 @@
+/* ==========================================================================
+   NIXGARU - Estilos Exclusivos de Inicio de Sesión / Login
+   Archivo: public/css/login.css
+   ========================================================================== */
+
+/* 1. Layout y Fondo */
+.login-body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--color-negro-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 20px 16px;
+  box-sizing: border-box;
+  font-family: var(--fuente-principal);
+}
+
+.login-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 2. Tarjeta de Login (Card) */
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--color-blanco);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-card);
+  padding: 40px 34px 34px 34px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* 3. Encabezado */
+.login-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-logo-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+  box-shadow: 0 4px 14px rgba(197, 46, 69, 0.25);
+}
+
+.login-logo-circle svg {
+  stroke: var(--color-blanco) !important;
+  width: 26px;
+  height: 26px;
+}
+
+.login-title {
+  font-family: var(--fuente-principal);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-negro-suave);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 6px 0;
+}
+
+.login-subtitle {
+  font-family: var(--fuente-principal);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-texto-muted);
+  margin: 0;
+}
+
+/* 4. Formulario e Inputs */
+.login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-form-group {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-negro-suave);
+  margin-bottom: 7px;
+  text-align: left;
+}
+
+.login-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-texto-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+  z-index: 2;
+}
+
+.login-input {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-sm);
+  background-color: var(--color-blanco);
+  font-family: var(--fuente-principal);
+  font-size: 0.88rem;
+  color: var(--color-negro-suave);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-input::placeholder {
+  color: var(--color-texto-muted);
+  opacity: 0.75;
+}
+
+.login-input-password {
+  padding-right: 44px;
+}
+
+/* Enfoque (:focus) con acento terracota */
+.login-input:focus {
+  border-color: var(--color-terracota);
+  box-shadow: 0 0 0 3px rgba(198, 111, 80, 0.18);
+}
+
+.login-input-wrapper:focus-within .login-input-icon {
+  color: var(--color-terracota);
+}
+
+/* Botón alternar visibilidad de contraseña */
+.btn-toggle-eye {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-texto-muted);
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  z-index: 2;
+}
+
+.btn-toggle-eye:hover {
+  color: var(--color-negro-suave);
+  background-color: var(--color-gris-superficie);
+}
+
+/* 5. Botón y Enlaces */
+.btn-login-submit {
+  width: 100%;
+  padding: 13px 20px;
+  margin-top: 8px;
+  margin-bottom: 22px;
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  border: none;
+  border-radius: var(--radio-sm);
+  font-family: var(--fuente-principal);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(197, 46, 69, 0.25);
+  transition: background-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease, opacity 0.2s ease;
+  user-select: none;
+}
+
+.btn-login-submit:hover {
+  background-color: #AF263B;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(197, 46, 69, 0.35);
+}
+
+.btn-login-submit:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(197, 46, 69, 0.2);
+}
+
+.btn-login-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Pie de Página y Enlace */
+.login-footer {
+  text-align: center;
+}
+
+.login-footer-text {
+  font-size: 0.78rem;
+  color: var(--color-texto-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.login-link-admin {
+  color: var(--color-terracota);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.login-link-admin:hover {
+  color: var(--color-rojo-frambuesa);
+  text-decoration: underline;
+}
+
+/* 6. Adaptación Responsiva Móvil */
+@media (max-width: 480px) {
+  .login-card {
+    padding: 30px 20px 24px 20px;
+    border-radius: var(--radio-md);
+  }
+
+  .login-title {
+    font-size: 1.35rem;
+  }
+}
+

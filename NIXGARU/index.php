@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/NIXGARU/public/css/global.css">
+  <link rel="stylesheet" href="public/css/login.css">
 </head>
 <body class="login-body">
 
@@ -18,7 +19,7 @@
       <!-- Encabezado de la Tarjeta con Ícono Circular de Café -->
       <div class="login-header">
         <div class="login-logo-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
             <line x1="6" y1="1" x2="6" y2="4"></line>
@@ -89,7 +90,7 @@
           </div>
         </div>
 
-        <!-- Botón de Ingreso con Color de Acento (#0D6EFD) -->
+        <!-- Botón de Ingreso al Sistema -->
         <button type="submit" id="btnLoginSubmit" class="btn-login-submit">
           Ingresar al Sistema
         </button>
