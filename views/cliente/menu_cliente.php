@@ -198,8 +198,11 @@ try {
 
     </main>
 
+    <!-- Overlay oscuro difuminado (Backdrop) para dispositivos móviles -->
+    <div id="cart-backdrop" class="cart-backdrop" aria-hidden="true"></div>
+
     <!-- Barra Lateral del Carrito ("Tu carrito") -->
-    <aside id="cart-sidebar" class="cart-sidebar hidden" aria-hidden="true">
+    <aside id="cart-sidebar" class="cart-sidebar" aria-hidden="true">
       <div class="cart-card">
         
         <!-- Cabecera del Carrito -->
@@ -263,8 +266,8 @@ try {
       </div>
     </aside>
 
-    <!-- Overlay oscuro para dispositivos móviles cuando el carrito está abierto -->
-    <div id="cart-backdrop" class="cart-backdrop"></div>
+
+
 
   </div>
 

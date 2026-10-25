@@ -143,6 +143,7 @@
 .btn-cart {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   background-color: var(--color-rojo-frambuesa);
   color: var(--color-blanco);
@@ -151,6 +152,7 @@
   padding: 10px 22px;
   font-size: 0.9rem;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: opacity 0.2s ease, transform 0.15s ease;
 }
@@ -847,25 +849,47 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Carrito estilo drawer flotante en pantallas medianas y móviles */
-  .cart-sidebar {
+  /* Carrito estilo drawer lateral deslizante en pantallas medianas y móviles */
+  .cart-sidebar,
+  .cart-sidebar[aria-hidden="true"] {
     position: fixed;
     top: 0;
     right: 0;
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
     height: 100vh;
-    z-index: 100;
+    height: 100dvh;
+    z-index: 1000;
     margin: 0;
-    padding: 20px;
-    background: transparent;
+    padding: 24px 20px;
+    background-color: var(--color-blanco);
+    border: none;
+    border-radius: 20px 0 0 20px;
+    box-shadow: -8px 0 35px rgba(0, 0, 0, 0.25);
     overflow-y: auto;
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 0.3s ease, visibility 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cart-sidebar.open,
+  .cart-sidebar.active {
+    transform: translateX(0);
+    visibility: visible;
+    display: flex;
   }
 
   .cart-card {
     height: 100%;
     display: flex;
     flex-direction: column;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
     overflow-y: auto;
   }
 
@@ -873,6 +897,20 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--color-gris-superficie);
+    border: 1px solid var(--color-borde-suave);
+    color: var(--color-negro-suave);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .cart-close-btn:hover {
+    background-color: var(--color-borde-suave);
+    color: var(--color-negro-suave);
   }
 
   .cart-backdrop {
@@ -881,14 +919,14 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    z-index: 90;
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 950;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
     display: block;
   }
 
@@ -902,6 +940,15 @@
 
 @media (max-width: 768px) {
   .nav-links {
+    display: none;
+  }
+
+  /* Botón de Carrito Responsivo */
+  .btn-cart {
+    padding: 10px;
+  }
+
+  .btn-cart span {
     display: none;
   }
 
@@ -978,6 +1025,24 @@
 
   .btn-modal-add {
     margin: 0;
+  }
+}
+
+/* Pantallas Extra Pequeñas (<= 480px) */
+@media (max-width: 480px) {
+  .cart-sidebar,
+  .cart-sidebar[aria-hidden="true"] {
+    max-width: 100%;
+    border-radius: 0;
+    padding: 20px 16px;
+  }
+
+  .btn-cart {
+    padding: 10px;
+  }
+
+  .btn-cart span {
+    display: none;
   }
 }
 
