@@ -228,17 +228,33 @@ html.admin-sidebar-is-collapsed .admin-sidebar .admin-nav-item svg,
   }
 }
 
-/* Perfil colapsado: Solo avatar centrado */
-html.admin-sidebar-is-collapsed .admin-sidebar .admin-sidebar-profile,
-.admin-sidebar.collapsed .admin-sidebar-profile {
-  padding: 16px 0 0 0;
-  justify-content: center;
-  width: 100%;
-}
+/* Perfil colapsado en escritorio: Avatar centrado con área de destacado simétrica */
+@media (min-width: 1025px) {
+  html.admin-sidebar-is-collapsed .admin-sidebar .admin-sidebar-profile-wrapper,
+  .admin-sidebar.collapsed .admin-sidebar-profile-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 14px;
+  }
 
-html.admin-sidebar-is-collapsed .admin-sidebar .admin-profile-meta,
-.admin-sidebar.collapsed .admin-profile-meta {
-  display: none !important;
+  html.admin-sidebar-is-collapsed .admin-sidebar .admin-sidebar-profile,
+  .admin-sidebar.collapsed .admin-sidebar-profile {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    margin: 0 auto;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: none;
+  }
+
+  html.admin-sidebar-is-collapsed .admin-sidebar .admin-profile-meta,
+  .admin-sidebar.collapsed .admin-profile-meta {
+    display: none !important;
+  }
 }
 
 /* Navegación del Administrador */
@@ -1834,15 +1850,29 @@ html.admin-sidebar-is-collapsed .admin-sidebar .admin-profile-meta,
     font-weight: 700;
   }
 
+  .admin-sidebar-profile-wrapper {
+    margin-top: auto !important;
+    width: 100% !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding-top: 14px !important;
+    display: block !important;
+  }
+
+  .admin-sidebar.collapsed .admin-sidebar-profile,
   .admin-sidebar-profile {
     display: flex !important;
-    margin-top: auto;
-    padding: 18px 8px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    align-items: center;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    border-top: none !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+    height: auto !important;
+    border-radius: var(--radio-md) !important;
     gap: 12px;
   }
 
+  .admin-sidebar.collapsed .admin-profile-meta,
   .admin-profile-meta {
     display: flex !important;
     flex-direction: column;

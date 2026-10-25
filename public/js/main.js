@@ -2695,6 +2695,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
+  const abrirDropdownAdmin = (wrapper, trigger, e) => {
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+    const dropdown = wrapper.querySelector('.admin-user-dropdown');
+    if (!dropdown) return;
+    cerrarTodosLosDropdownsAdmin();
+    dropdown.classList.add('open', 'show');
+    dropdown.setAttribute('aria-hidden', 'false');
+    trigger.setAttribute('aria-expanded', 'true');
+    wrapper.classList.add('open');
+  };
+
   const toggleDropdownAdmin = (wrapper, trigger, e) => {
     if (e) {
       if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -2760,6 +2774,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (sidebarProfile) {
         const wrapper = sidebarProfile.closest('.admin-sidebar-profile-wrapper');
         if (wrapper) {
+          const s = document.querySelector('.admin-sidebar') || adminSidebar;
+          // En escritorio (> 1024px): con la barra minimizada, expandirla y mostrar opciones de sesión
+          if (!esVistaMovilAdmin() && s) {
+            const estaColapsada = s.classList.contains('collapsed') || document.documentElement.classList.contains('admin-sidebar-is-collapsed');
+            if (estaColapsada) {
+              s.classList.remove('collapsed');
+              document.documentElement.classList.remove('admin-sidebar-is-collapsed');
+              localStorage.setItem('admin_sidebar_collapsed', 'false');
+              document.cookie = "admin_sidebar_collapsed=false; path=/; max-age=31536000; SameSite=Lax";
+              abrirDropdownAdmin(wrapper, sidebarProfile, e);
+              return;
+            }
+          }
+
+          // Con la barra expandida: solo mostrar/alternar opciones de sesión sin minimizar la barra
           toggleDropdownAdmin(wrapper, sidebarProfile, e);
           return;
         }
