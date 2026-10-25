@@ -2667,7 +2667,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // En escritorio: colapsa a vista reducida de iconos (82px) o expande (270px)
       const isCollapsed = s.classList.toggle('collapsed');
+      if (isCollapsed) {
+        document.documentElement.classList.add('admin-sidebar-is-collapsed');
+      } else {
+        document.documentElement.classList.remove('admin-sidebar-is-collapsed');
+      }
       localStorage.setItem('admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+      document.cookie = "admin_sidebar_collapsed=" + (isCollapsed ? "true" : "false") + "; path=/; max-age=31536000; SameSite=Lax";
     }
   };
 
@@ -2708,9 +2714,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (adminSidebar) {
     // Restaurar estado guardado en localStorage SÓLO para escritorio (> 1024px)
-    if (!esVistaMovilAdmin() && localStorage.getItem('admin_sidebar_collapsed') === 'true') {
-      adminSidebar.classList.add('collapsed');
+    if (!esVistaMovilAdmin()) {
+      const isCollapsed = localStorage.getItem('admin_sidebar_collapsed') === 'true';
+      adminSidebar.classList.toggle('collapsed', isCollapsed);
+      document.documentElement.classList.toggle('admin-sidebar-is-collapsed', isCollapsed);
+      document.cookie = "admin_sidebar_collapsed=" + (isCollapsed ? "true" : "false") + "; path=/; max-age=31536000; SameSite=Lax";
     }
+
+    // Reactivar transiciones después del primer ciclo de renderizado para permitir animaciones suaves en toggles futuros
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        adminSidebar.classList.remove('no-transition');
+      }, 50);
+    });
 
     // Delegación centralizada de clics en el documento
     document.addEventListener('click', (e) => {
@@ -2787,14 +2803,13 @@ document.addEventListener('DOMContentLoaded', () => {
       cerrarTodosLosDropdownsAdmin();
       if (!esVistaMovilAdmin()) {
         cerrarDrawerMovil();
-        if (localStorage.getItem('admin_sidebar_collapsed') === 'true') {
-          adminSidebar.classList.add('collapsed');
-        } else {
-          adminSidebar.classList.remove('collapsed');
-        }
+        const isCollapsed = localStorage.getItem('admin_sidebar_collapsed') === 'true';
+        adminSidebar.classList.toggle('collapsed', isCollapsed);
+        document.documentElement.classList.toggle('admin-sidebar-is-collapsed', isCollapsed);
       } else {
         // En móvil no debe aplicarse el colapsado de iconos de escritorio
         adminSidebar.classList.remove('collapsed');
+        document.documentElement.classList.remove('admin-sidebar-is-collapsed');
       }
     });
   }

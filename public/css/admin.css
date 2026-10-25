@@ -123,6 +123,14 @@ body.admin-body {
 /* ==========================================================================
    Barra Lateral en Modo Reducido (Collapsed - Solo Iconos)
    ========================================================================== */
+/* Prevenir saltos de layout o animaciones no deseadas durante la carga inicial de página */
+.admin-sidebar.no-transition,
+.admin-sidebar.no-transition * {
+  transition: none !important;
+}
+
+/* Aplicación instantánea de layout colapsado en escritorio */
+html.admin-sidebar-is-collapsed .admin-sidebar,
 .admin-sidebar.collapsed {
   width: 82px;
   min-width: 82px;
@@ -131,6 +139,7 @@ body.admin-body {
 }
 
 /* Logotipo centrado sin textos en modo reducido */
+html.admin-sidebar-is-collapsed .admin-sidebar .admin-brand,
 .admin-sidebar.collapsed .admin-brand {
   padding: 0;
   margin-bottom: 30px;
@@ -138,17 +147,20 @@ body.admin-body {
   width: 100%;
 }
 
+html.admin-sidebar-is-collapsed .admin-sidebar .admin-brand-info,
 .admin-sidebar.collapsed .admin-brand-info {
   display: none !important;
 }
 
 /* Navegación colapsada: elementos compactos y centrados */
+html.admin-sidebar-is-collapsed .admin-sidebar .admin-nav,
 .admin-sidebar.collapsed .admin-nav {
   width: 100%;
   align-items: center;
   gap: 12px;
 }
 
+html.admin-sidebar-is-collapsed .admin-sidebar .admin-nav-item,
 .admin-sidebar.collapsed .admin-nav-item {
   padding: 0;
   width: 48px;
@@ -159,10 +171,12 @@ body.admin-body {
   position: relative;
 }
 
+html.admin-sidebar-is-collapsed .admin-sidebar .admin-nav-item span,
 .admin-sidebar.collapsed .admin-nav-item span {
   display: none !important;
 }
 
+html.admin-sidebar-is-collapsed .admin-sidebar .admin-nav-item svg,
 .admin-sidebar.collapsed .admin-nav-item svg {
   width: 20px;
   height: 20px;
@@ -215,12 +229,14 @@ body.admin-body {
 }
 
 /* Perfil colapsado: Solo avatar centrado */
+html.admin-sidebar-is-collapsed .admin-sidebar .admin-sidebar-profile,
 .admin-sidebar.collapsed .admin-sidebar-profile {
   padding: 16px 0 0 0;
   justify-content: center;
   width: 100%;
 }
 
+html.admin-sidebar-is-collapsed .admin-sidebar .admin-profile-meta,
 .admin-sidebar.collapsed .admin-profile-meta {
   display: none !important;
 }

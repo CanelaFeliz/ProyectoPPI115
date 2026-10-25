@@ -29,6 +29,9 @@ if (!isset($avatarUsuario)) {
     }
 }
 
+// Comprobar estado previo colapsado de la barra lateral desde cookie
+$sidebarCollapsed = isset($_COOKIE['admin_sidebar_collapsed']) && $_COOKIE['admin_sidebar_collapsed'] === 'true';
+
 // Título dinámico por defecto según la página si no fue especificado previamente
 if (!isset($pageTitle)) {
     switch ($currentPage) {
@@ -66,6 +69,18 @@ if (!isset($pageTitle)) {
   <link rel="stylesheet" href="/NIXGARU/public/css/global.css">
   <!-- Hoja de estilos exclusiva para el módulo administrativo -->
   <link rel="stylesheet" href="/NIXGARU/public/css/admin.css?v=<?php echo file_exists(__DIR__ . '/../../public/css/admin.css') ? filemtime(__DIR__ . '/../../public/css/admin.css') : time(); ?>">
+  <script>
+    // Aplicar estado colapsado inmediatamente antes del renderizado para evitar saltos de layout (FOUC)
+    (function() {
+      try {
+        var isMobile = window.innerWidth <= 1024;
+        var savedState = localStorage.getItem('admin_sidebar_collapsed');
+        if (!isMobile && (savedState === 'true' || (savedState === null && <?php echo $sidebarCollapsed ? 'true' : 'false'; ?>))) {
+          document.documentElement.classList.add('admin-sidebar-is-collapsed');
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body class="admin-body">
 
@@ -116,7 +131,21 @@ if (!isset($pageTitle)) {
     <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop"></div>
 
     <!-- BARRA LATERAL (SIDEBAR ADMIN OSCURA #222629 / DRAWER EN MÓVIL) -->
-    <aside class="admin-sidebar" id="adminSidebar">
+    <aside class="admin-sidebar no-transition <?php echo $sidebarCollapsed ? 'collapsed' : ''; ?>" id="adminSidebar">
+      <script>
+        (function() {
+          try {
+            if (window.innerWidth > 1024) {
+              var s = localStorage.getItem('admin_sidebar_collapsed');
+              if (s === 'true') {
+                document.getElementById('adminSidebar').classList.add('collapsed');
+              } else if (s === 'false') {
+                document.getElementById('adminSidebar').classList.remove('collapsed');
+              }
+            }
+          } catch(e) {}
+        })();
+      </script>
       
       <!-- Logotipo Admin - Clic en la taza para alternar entre vista detallada y reducida en escritorio, o cerrar menú en móvil -->
       <div class="admin-brand" id="adminBrand">
