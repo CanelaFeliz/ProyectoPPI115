@@ -7,8 +7,10 @@ try {
     $personal = $usuarioModel->obtenerTodos();
     if (empty($personal)) {
         $personal = [
-            ['id_usuario' => 'U01', 'nombre_completo' => 'Ana Ruiz', 'usuario' => 'aruiz', 'nombre_rol' => 'Administrador'],
-            ['id_usuario' => 'U02', 'nombre_completo' => 'Luis Gil', 'usuario' => 'lgil', 'nombre_rol' => 'Personal de servicio']
+            ['id_usuario' => 1, 'nombre_completo' => 'Gabriela Bautista', 'nombre_usuario' => 'admin1', 'nombre_rol' => 'Administrador'],
+            ['id_usuario' => 2, 'nombre_completo' => 'Cristian Vasquez', 'nombre_usuario' => 'admin2', 'nombre_rol' => 'Administrador'],
+            ['id_usuario' => 3, 'nombre_completo' => 'Roberto Gómez', 'nombre_usuario' => 'cajero', 'nombre_rol' => 'Cajero'],
+            ['id_usuario' => 4, 'nombre_completo' => 'Ana López', 'nombre_usuario' => 'mesero', 'nombre_rol' => 'Mesero']
         ];
     }
 } catch (PDOException $e) {
@@ -86,9 +88,9 @@ require_once '../layouts/sidebar.php';
               <tbody id="tablaPersonalBody">
                 <?php foreach ($personal as $emp): ?>
                   <tr>
-                    <td class="cell-id"><?php echo htmlspecialchars($emp['id_usuario']); ?></td>
+                    <td class="cell-id"><?php echo htmlspecialchars((string)$emp['id_usuario']); ?></td>
                     <td class="cell-name"><?php echo htmlspecialchars($emp['nombre_completo']); ?></td>
-                    <td class="cell-user"><?php echo htmlspecialchars($emp['usuario']); ?></td>
+                    <td class="cell-user"><?php echo htmlspecialchars($emp['nombre_usuario']); ?></td>
                     <td class="cell-role">
                       <span class="role-pill"><?php echo htmlspecialchars($emp['nombre_rol']); ?></span>
                     </td>

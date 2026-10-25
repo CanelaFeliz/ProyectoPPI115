@@ -22,14 +22,14 @@ try {
     // Fallback de seguridad en caso de que la tabla aún no contenga registros
     if (empty($mesas)) {
         $mesas = [
-            ['id_mesa' => 1, 'numero_mesa' => 'M-01', 'capacidad' => 2, 'estado' => 'Disponible'],
-            ['id_mesa' => 2, 'numero_mesa' => 'M-02', 'capacidad' => 2, 'estado' => 'Ocupada'],
-            ['id_mesa' => 3, 'numero_mesa' => 'M-03', 'capacidad' => 4, 'estado' => 'Disponible'],
-            ['id_mesa' => 4, 'numero_mesa' => 'M-04', 'capacidad' => 4, 'estado' => 'Disponible'],
-            ['id_mesa' => 5, 'numero_mesa' => 'M-05', 'capacidad' => 4, 'estado' => 'Disponible'],
-            ['id_mesa' => 6, 'numero_mesa' => 'M-06', 'capacidad' => 2, 'estado' => 'Disponible'],
-            ['id_mesa' => 7, 'numero_mesa' => 'M-07', 'capacidad' => 2, 'estado' => 'Disponible'],
-            ['id_mesa' => 8, 'numero_mesa' => 'M-08', 'capacidad' => 4, 'estado' => 'Disponible']
+            ['id_mesa' => 1, 'numero_mesa' => 1, 'capacidad' => 2, 'estado_mesa' => 'Disponible'],
+            ['id_mesa' => 2, 'numero_mesa' => 2, 'capacidad' => 2, 'estado_mesa' => 'Disponible'],
+            ['id_mesa' => 3, 'numero_mesa' => 3, 'capacidad' => 4, 'estado_mesa' => 'Disponible'],
+            ['id_mesa' => 4, 'numero_mesa' => 4, 'capacidad' => 4, 'estado_mesa' => 'Disponible'],
+            ['id_mesa' => 5, 'numero_mesa' => 5, 'capacidad' => 4, 'estado_mesa' => 'Disponible'],
+            ['id_mesa' => 6, 'numero_mesa' => 6, 'capacidad' => 2, 'estado_mesa' => 'Disponible'],
+            ['id_mesa' => 7, 'numero_mesa' => 7, 'capacidad' => 2, 'estado_mesa' => 'Disponible'],
+            ['id_mesa' => 8, 'numero_mesa' => 8, 'capacidad' => 4, 'estado_mesa' => 'Disponible']
         ];
     }
 
@@ -63,13 +63,13 @@ try {
     if ($idMesaActiva !== null) {
         $detallesOrden = $pedidoModel->obtenerCuentaActivaPorMesa($idMesaActiva);
         foreach ($detallesOrden as $item) {
-            $subtotal += (float)$item['subtotal_linea'];
+            $subtotal += (float)$item['subtotal'];
         }
         $propina = round($subtotal * 0.10, 2);
         $total = round($subtotal + $propina, 2);
 
         // Configuración de la píldora de estado de la mesa activa
-        $estadoRaw = strtolower(trim($mesaActivaInfo['estado'] ?? 'Disponible'));
+        $estadoRaw = strtolower(trim($mesaActivaInfo['estado_mesa'] ?? 'Disponible'));
         if (str_contains($estadoRaw, 'ocupad')) {
             $badgeClase = 'badge-ocupada';
             $badgeDot = 'dot-ocupada';
@@ -145,13 +145,13 @@ require_once '../layouts/header.php';
 
         <?php foreach ($mesas as $mesa): ?>
           <?php 
-            $numMesaDisplay = htmlspecialchars($mesa['numero_mesa']);
+            $numMesaDisplay = htmlspecialchars((string)$mesa['numero_mesa']);
             $idM = (int)$mesa['id_mesa'];
             $esActiva = ((string)$mesa['id_mesa'] === (string)$idMesaActiva || (string)$mesa['numero_mesa'] === (string)$numeroMesaActiva);
             $consumoSub = $consumosPorMesa[$idM] ?? 0.00;
             $consumoMesa = $consumoSub > 0 ? ($consumoSub * 1.10) : 0.00;
             
-            $st = strtolower(trim($mesa['estado']));
+            $st = strtolower(trim($mesa['estado_mesa']));
             if (str_contains($st, 'ocupad')) {
                 $estadoSlug = 'ocupada';
             } elseif (str_contains($st, 'proces')) {
@@ -165,7 +165,7 @@ require_once '../layouts/header.php';
           <article class="table-card <?php echo $esActiva ? 'active' : ''; ?>" 
                    data-table-number="<?php echo $numMesaDisplay; ?>" 
                    data-table-id="<?php echo $idM; ?>"
-                   data-table-cap="<?php echo (int)$mesa['capacidad']; ?>">
+                   data-table-cap="<?php echo (int)($mesa['capacidad'] ?? 4); ?>">
             
             <div class="table-card-header">
               <h3 class="table-name">Mesa <?php echo $numMesaDisplay; ?></h3>
@@ -176,7 +176,7 @@ require_once '../layouts/header.php';
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                   <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                 </svg>
-                Cap. <?php echo (int)$mesa['capacidad']; ?>
+                Cap. <?php echo (int)($mesa['capacidad'] ?? 4); ?>
               </span>
             </div>
 
@@ -214,7 +214,7 @@ require_once '../layouts/header.php';
         $cantProceso = 0;
         $cantSinServicio = 0;
         foreach ($mesas as $m) {
-            $st = strtolower(trim($m['estado']));
+            $st = strtolower(trim($m['estado_mesa']));
             if (str_contains($st, 'ocupad')) $cantOcupadas++;
             elseif (str_contains($st, 'proces')) $cantProceso++;
             elseif (str_contains($st, 'sin')) $cantSinServicio++;
@@ -274,8 +274,8 @@ require_once '../layouts/header.php';
             <?php if (!empty($detallesOrden)): ?>
               <?php foreach ($detallesOrden as $producto): ?>
                 <?php 
-                  $cant = (int)$producto['cantidadPed'];
-                  $subtotalLinea = (float)$producto['subtotal_linea'];
+                  $cant = (int)$producto['cantidad'];
+                  $subtotalLinea = (float)$producto['subtotal'];
                 ?>
                 <div class="cuenta-item">
                   <span class="item-qty-badge"><?php echo $cant; ?></span>

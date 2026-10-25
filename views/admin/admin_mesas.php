@@ -6,7 +6,7 @@ try {
     $mesaModel = new Mesa($pdo);
     $mesas = $mesaModel->obtenerTodas();
     $totalMesas = count($mesas);
-    $capacidadTotal = array_sum(array_column($mesas, 'capacidad'));
+    $capacidadTotal = !empty($mesas) ? array_sum(array_column($mesas, 'capacidad')) : 0;
 } catch (PDOException $e) {
     die("Error al consultar las mesas: " . $e->getMessage());
 }
@@ -82,7 +82,7 @@ require_once '../layouts/sidebar.php';
                 
                 <?php foreach ($mesas as $mesa): ?>
                   <?php
-                    $estadoSlug = strtolower(trim($mesa['estado']));
+                    $estadoSlug = strtolower(trim($mesa['estado_mesa']));
                     $pillClass = match(true) {
                         str_contains($estadoSlug, 'ocupad') => 'status-ocupada',
                         str_contains($estadoSlug, 'proces') => 'status-reservada',
@@ -92,9 +92,9 @@ require_once '../layouts/sidebar.php';
                   ?>
                   <tr>
                     <td class="cell-id"><?php echo str_pad((string)$mesa['id_mesa'], 2, '0', STR_PAD_LEFT); ?></td>
-                    <td class="cell-name">Mesa <?php echo htmlspecialchars($mesa['numero_mesa']); ?> <span style="font-size:12px; color:#6C757D; font-weight:normal;">(Cap. <?php echo (int)$mesa['capacidad']; ?>)</span></td>
+                    <td class="cell-name">Mesa <?php echo htmlspecialchars((string)$mesa['numero_mesa']); ?> <span style="font-size:12px; color:#6C757D; font-weight:normal;">(Cap. <?php echo (int)($mesa['capacidad'] ?? 4); ?>)</span></td>
                     <td class="cell-estado">
-                      <span class="admin-status-pill <?php echo $pillClass; ?>"><?php echo strtoupper(htmlspecialchars($mesa['estado'])); ?></span>
+                      <span class="admin-status-pill <?php echo $pillClass; ?>"><?php echo strtoupper(htmlspecialchars($mesa['estado_mesa'])); ?></span>
                     </td>
                     <td class="cell-acciones">
                       <button class="btn-action-edit" title="Editar mesa" type="button" data-id="<?php echo $mesa['id_mesa']; ?>">

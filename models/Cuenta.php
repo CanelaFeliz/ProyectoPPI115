@@ -1,9 +1,10 @@
 <?php
 /**
  * ==============================================================================
- * NIXGARU – Modelo: Cuenta
+ * NIXGARU – Modelo: Cuenta (Wrapper de compatibilidad sobre `Pedidos`)
  * models/Cuenta.php
- * Gestiona los registros financieros y cobros de órdenes en la tabla `cuentas`
+ * En nixgaru_db, los datos financieros del cierre se almacenan directamente
+ * en la tabla `Pedidos` (porcentaje_propina, total_pagar, metodo_pago, estado_pedido)
  * ==============================================================================
  */
 
@@ -15,168 +16,113 @@ class Cuenta {
     }
 
     /**
-     * Inserta un nuevo registro de cobro/facturación en la tabla cuentas
-     *
-     * @param int $idPedido ID del pedido asociado
-     * @param float $subtotal Monto base de consumo sin propina
-     * @param float $propina Monto de propina calculada o voluntaria
-     * @param float $total Monto total facturado (subtotal + propina)
-     * @param float $efectivoRecibido Dinero recibido del cliente
-     * @param float $cambio Cambio devuelto al cliente
-     * @param int $idCajero ID del usuario con rol de cajero/administrador que procesa el pago
-     * @return int ID de la cuenta creada
+     * Registra el cierre financiero de un pedido directamente en la tabla `Pedidos`
      */
     public function registrar(
         int $idPedido, 
         float $subtotal, 
         float $propina, 
-        float $total, 
-        float $efectivoRecibido, 
-        float $cambio, 
-        int $idCajero
+        float $totalPagar, 
+        float $efectivoRecibido = 0.00, 
+        float $cambio = 0.00, 
+        int $idUsuario = 3,
+        string $metodoPago = 'Efectivo'
     ): int {
+        $porcentajePropina = $subtotal > 0 ? round(($propina / $subtotal) * 100, 2) : 10.00;
+
         $stmt = $this->pdo->prepare("
-            INSERT INTO cuentas (
-                id_pedido, 
-                subtotal, 
-                propina, 
-                total, 
-                efectivo_recibido, 
-                cambio, 
-                fecha_hora_pago, 
-                id_cajero
-            ) VALUES (
-                :id_pedido, 
-                :subtotal, 
-                :propina, 
-                :total, 
-                :efectivo_recibido, 
-                :cambio, 
-                NOW(), 
-                :id_cajero
-            )
+            UPDATE Pedidos 
+            SET estado_pedido = 'Pagado',
+                porcentaje_propina = :porcentaje_propina,
+                total_pagar = :total_pagar,
+                metodo_pago = :metodo_pago
+            WHERE id_pedido = :id_pedido
         ");
-
+        $stmt->bindValue(':porcentaje_propina', number_format($porcentajePropina, 2, '.', ''), PDO::PARAM_STR);
+        $stmt->bindValue(':total_pagar', number_format($totalPagar, 2, '.', ''), PDO::PARAM_STR);
+        $stmt->bindValue(':metodo_pago', trim($metodoPago), PDO::PARAM_STR);
         $stmt->bindValue(':id_pedido', $idPedido, PDO::PARAM_INT);
-        $stmt->bindValue(':subtotal', number_format($subtotal, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':propina', number_format($propina, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':total', number_format($total, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':efectivo_recibido', number_format($efectivoRecibido, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':cambio', number_format($cambio, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':id_cajero', $idCajero, PDO::PARAM_INT);
-
         $stmt->execute();
-        return (int)$this->pdo->lastInsertId();
+
+        return $idPedido;
     }
 
     /**
-     * Obtiene los datos de una cuenta por su ID con información del cajero
-     *
-     * @param int $idCuenta
-     * @return array|false
+     * Obtiene un pedido pagado por su id_pedido
      */
-    public function obtenerPorId(int $idCuenta) {
+    public function obtenerPorId(int $idPedido) {
         $stmt = $this->pdo->prepare("
             SELECT 
-                c.id_cuenta,
-                c.id_pedido,
-                c.subtotal,
-                c.propina,
-                c.total,
-                c.efectivo_recibido,
-                c.cambio,
-                c.fecha_hora_pago,
-                c.id_cajero,
-                u.nombre_completo AS nombre_cajero,
-                p.id_mesa
-            FROM cuentas c
-            INNER JOIN usuarios u ON c.id_cajero = u.id_usuario
-            INNER JOIN pedidos p ON c.id_pedido = p.id_pedido
-            WHERE c.id_cuenta = :id_cuenta
+                p.id_pedido,
+                p.fecha_hora,
+                p.estado_pedido,
+                p.porcentaje_propina,
+                p.total_pagar,
+                p.metodo_pago,
+                p.id_mesa,
+                p.id_usuario,
+                u.nombre_completo,
+                m.numero_mesa
+            FROM Pedidos p
+            INNER JOIN Usuarios u ON p.id_usuario = u.id_usuario
+            INNER JOIN Mesas m ON p.id_mesa = m.id_mesa
+            WHERE p.id_pedido = :id_pedido
             LIMIT 1
         ");
-        $stmt->bindValue(':id_cuenta', $idCuenta, PDO::PARAM_INT);
+        $stmt->bindValue(':id_pedido', $idPedido, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch();
     }
 
     /**
-     * Obtiene la cuenta asociada a un pedido específico
-     *
-     * @param int $idPedido
-     * @return array|false
+     * Alias para obtener por id_pedido
      */
     public function obtenerPorPedido(int $idPedido) {
-        $stmt = $this->pdo->prepare("
-            SELECT 
-                c.id_cuenta,
-                c.id_pedido,
-                c.subtotal,
-                c.propina,
-                c.total,
-                c.efectivo_recibido,
-                c.cambio,
-                c.fecha_hora_pago,
-                c.id_cajero,
-                u.nombre_completo AS nombre_cajero
-            FROM cuentas c
-            INNER JOIN usuarios u ON c.id_cajero = u.id_usuario
-            WHERE c.id_pedido = :id_pedido
-            ORDER BY c.id_cuenta DESC
-            LIMIT 1
-        ");
-        $stmt->bindValue(':id_pedido', $idPedido, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetch();
+        return $this->obtenerPorId($idPedido);
     }
 
     /**
-     * Calcula métricas financieras consolidadas (KPIs)
-     *
-     * @return array ['cantidad_ventas' => int, 'total_vendido' => float]
+     * Calcula métricas financieras consolidadas desde la tabla `Pedidos`
      */
     public function obtenerEstadisticas(): array {
         $stmt = $this->pdo->prepare("
             SELECT 
-                COUNT(id_cuenta) AS cantidad_ventas,
-                COALESCE(SUM(total), 0) AS total_vendido
-            FROM cuentas
+                COUNT(id_pedido) AS cantidad_ventas,
+                COALESCE(SUM(total_pagar), 0) AS total_vendido
+            FROM Pedidos
+            WHERE estado_pedido = 'Pagado'
         ");
         $stmt->execute();
         $stats = $stmt->fetch();
 
         return [
             'cantidad_ventas' => (int)($stats['cantidad_ventas'] ?? 0),
-            'total_vendido' => (float)($stats['total_vendido'] ?? 0.00)
+            'total_vendido'   => (float)($stats['total_vendido'] ?? 0.00)
         ];
     }
 
     /**
-     * Obtiene el historial reciente de cuentas finalizadas
-     *
-     * @param int $limite
-     * @return array
+     * Obtiene el historial reciente de pedidos pagados desde `Pedidos`
      */
     public function obtenerHistorial(int $limite = 50): array {
         $limite = max(1, (int)$limite);
         $stmt = $this->pdo->prepare("
             SELECT 
-                c.id_cuenta,
-                c.id_pedido,
-                c.subtotal,
-                c.propina,
-                c.total,
-                c.efectivo_recibido,
-                c.cambio,
-                c.fecha_hora_pago,
-                c.id_cajero,
-                u.nombre_completo AS nombre_cajero,
+                p.id_pedido,
+                p.fecha_hora,
+                p.estado_pedido,
+                p.porcentaje_propina,
+                p.total_pagar,
+                p.metodo_pago,
+                p.id_mesa,
+                p.id_usuario,
+                u.nombre_completo,
                 m.numero_mesa
-            FROM cuentas c
-            INNER JOIN usuarios u ON c.id_cajero = u.id_usuario
-            INNER JOIN pedidos p ON c.id_pedido = p.id_pedido
-            INNER JOIN mesas m ON p.id_mesa = m.id_mesa
-            ORDER BY c.fecha_hora_pago DESC
+            FROM Pedidos p
+            INNER JOIN Usuarios u ON p.id_usuario = u.id_usuario
+            INNER JOIN Mesas m ON p.id_mesa = m.id_mesa
+            WHERE p.estado_pedido = 'Pagado'
+            ORDER BY p.fecha_hora DESC
             LIMIT :limite
         ");
         $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);
@@ -184,4 +130,3 @@ class Cuenta {
         return $stmt->fetchAll();
     }
 }
-

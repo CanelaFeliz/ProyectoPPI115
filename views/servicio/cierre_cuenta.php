@@ -29,18 +29,18 @@ try {
     $subtotal = 0.00;
     $idPedido = 0;
     $fechaHoraPedido = null;
-    $nombreAtendio = 'Carlos Méndez';
+    $nombreAtendio = 'Ana López';
 
     foreach ($detallesOrden as $item) {
-        $subtotal += (float)$item['subtotal_linea'];
+        $subtotal += (float)$item['subtotal'];
         if (!$idPedido && !empty($item['id_pedido'])) {
             $idPedido = (int)$item['id_pedido'];
         }
         if (!$fechaHoraPedido && !empty($item['fecha_hora'])) {
             $fechaHoraPedido = $item['fecha_hora'];
         }
-        if (!empty($item['nombre_mesero'])) {
-            $nombreAtendio = $item['nombre_mesero'];
+        if (!empty($item['nombre_completo'])) {
+            $nombreAtendio = $item['nombre_completo'];
         }
     }
 
@@ -101,8 +101,8 @@ require_once '../layouts/header.php';
           <?php if (!empty($detallesOrden)): ?>
             <?php foreach ($detallesOrden as $prod): ?>
               <div class="ticket-item-row">
-                <span class="t-name"><strong><?php echo (int)$prod['cantidadPed']; ?>x</strong> <?php echo htmlspecialchars($prod['nombre_producto']); ?></span>
-                <span class="t-price">$<?php echo number_format((float)$prod['subtotal_linea'], 2); ?></span>
+                <span class="t-name"><strong><?php echo (int)$prod['cantidad']; ?>x</strong> <?php echo htmlspecialchars($prod['nombre_producto']); ?></span>
+                <span class="t-price">$<?php echo number_format((float)$prod['subtotal'], 2); ?></span>
               </div>
             <?php endforeach; ?>
           <?php else: ?>

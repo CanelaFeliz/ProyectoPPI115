@@ -1,9 +1,10 @@
 <?php
 /**
  * ==============================================================================
- * NIXGARU – Modelo: Inventario / Ingrediente
+ * NIXGARU – Modelo: Inventario
  * models/Inventario.php
- * Gestiona el inventario de insumos en la tabla `ingredientes`
+ * Gestiona el inventario de insumos en la tabla `Inventarios` y su relación
+ * técnica con `Recetas` y `Productos`
  * ==============================================================================
  */
 
@@ -15,204 +16,180 @@ class Inventario {
     }
 
     /**
-     * Obtiene la lista completa de ingredientes, stock actual y estados
+     * Obtiene la lista completa de ingredientes y cantidades estimadas desde `Inventarios`
      *
      * @return array
      */
     public function obtenerTodos(): array {
         $stmt = $this->pdo->prepare("
             SELECT 
-                codigo_ingrediente,
-                nombre,
-                unidad,
-                cantidad,
-                stock_minimo,
-                estado
-            FROM ingredientes
-            ORDER BY codigo_ingrediente ASC
+                id_ingrediente,
+                nombre_ingrediente,
+                cantidad_estimada
+            FROM Inventarios
+            ORDER BY id_ingrediente ASC
         ");
         $stmt->execute();
         return $stmt->fetchAll();
     }
 
     /**
-     * Obtiene la información de un ingrediente específico por su código alfanumérico
+     * Obtiene la información de un ingrediente específico por su id_ingrediente
      *
-     * @param string $codigoIngrediente Código alfanumérico (ej. 'I01', 'I03')
+     * @param int|string $idIngrediente
      * @return array|false
      */
-    public function obtenerPorCodigo(string $codigoIngrediente) {
+    public function obtenerPorId($idIngrediente) {
+        $idInt = is_numeric($idIngrediente) ? (int)$idIngrediente : (int)preg_replace('/\D/', '', (string)$idIngrediente);
+
         $stmt = $this->pdo->prepare("
             SELECT 
-                codigo_ingrediente,
-                nombre,
-                unidad,
-                cantidad,
-                stock_minimo,
-                estado
-            FROM ingredientes
-            WHERE codigo_ingrediente = :codigo
+                id_ingrediente,
+                nombre_ingrediente,
+                cantidad_estimada
+            FROM Inventarios
+            WHERE id_ingrediente = :id_ingrediente
             LIMIT 1
         ");
-        $stmt->bindValue(':codigo', trim($codigoIngrediente), PDO::PARAM_STR);
+        $stmt->bindValue(':id_ingrediente', $idInt, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch();
     }
 
     /**
-     * Obtiene los nombres de los ingredientes de la receta de un producto
-     * mediante la tabla intermedia `recetas`
+     * Alias de obtenerPorId para compatibilidad
      *
-     * @param string $codigoProducto Código alfanumérico del producto (ej. 'P001')
+     * @param int|string $idIngrediente
+     * @return array|false
+     */
+    public function obtenerPorCodigo($idIngrediente) {
+        return $this->obtenerPorId($idIngrediente);
+    }
+
+    /**
+     * Obtiene los nombres de los ingredientes de la receta de un producto
+     * uniendo `Inventarios` y `Recetas` mediante id_ingrediente e id_producto
+     *
+     * @param int|string $idProducto
      * @return array Lista de nombres de ingredientes
      */
-    public function obtenerPorProducto(string $codigoProducto): array {
+    public function obtenerPorProducto($idProducto): array {
+        $idInt = is_numeric($idProducto) ? (int)$idProducto : (int)preg_replace('/\D/', '', (string)$idProducto);
+
         $stmt = $this->pdo->prepare("
-            SELECT i.nombre 
-            FROM ingredientes i 
-            INNER JOIN recetas r ON i.codigo_ingrediente = r.codigo_ingrediente 
-            WHERE r.codigo_producto = :codigo_producto
-            ORDER BY i.nombre ASC
+            SELECT i.nombre_ingrediente 
+            FROM Inventarios i 
+            INNER JOIN Recetas r ON i.id_ingrediente = r.id_ingrediente 
+            WHERE r.id_producto = :id_producto
+            ORDER BY i.nombre_ingrediente ASC
         ");
-        $stmt->bindValue(':codigo_producto', trim($codigoProducto), PDO::PARAM_STR);
+        $stmt->bindValue(':id_producto', $idInt, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
     /**
-     * Actualiza la cantidad de stock de un ingrediente y recalcula automáticamente su estado
+     * Obtiene el detalle completo de la receta de un producto (insumos y cantidad_necesaria)
      *
-     * @param string $codigoIngrediente Código alfanumérico
-     * @param float $nuevaCantidad Nueva cantidad de existencia
+     * @param int $idProducto
+     * @return array
+     */
+    public function obtenerRecetaDetalladaPorProducto(int $idProducto): array {
+        $stmt = $this->pdo->prepare("
+            SELECT 
+                r.id_receta,
+                r.cantidad_necesaria,
+                r.id_producto,
+                r.id_ingrediente,
+                i.nombre_ingrediente,
+                i.cantidad_estimada
+            FROM Recetas r
+            INNER JOIN Inventarios i ON r.id_ingrediente = r.id_ingrediente
+            WHERE r.id_producto = :id_producto
+            ORDER BY i.id_ingrediente ASC
+        ");
+        $stmt->bindValue(':id_producto', $idProducto, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Actualiza la cantidad estimada de un ingrediente en la tabla `Inventarios`
+     *
+     * @param int|string $idIngrediente
+     * @param float $nuevaCantidad
      * @return bool
      */
-    public function actualizarStock(string $codigoIngrediente, float $nuevaCantidad): bool {
+    public function actualizarStock($idIngrediente, float $nuevaCantidad): bool {
+        $idInt = is_numeric($idIngrediente) ? (int)$idIngrediente : (int)preg_replace('/\D/', '', (string)$idIngrediente);
+
         $stmt = $this->pdo->prepare("
-            UPDATE ingredientes 
-            SET cantidad = :cantidad,
-                estado = CASE 
-                    WHEN :cantidad_eval <= 0 THEN 'Agotado'
-                    WHEN :cantidad_eval <= stock_minimo THEN 'Bajo'
-                    ELSE 'Suficiente'
-                END
-            WHERE codigo_ingrediente = :codigo
+            UPDATE Inventarios 
+            SET cantidad_estimada = :cantidad_estimada
+            WHERE id_ingrediente = :id_ingrediente
         ");
-        $stmt->bindValue(':cantidad', number_format($nuevaCantidad, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':cantidad_eval', $nuevaCantidad);
-        $stmt->bindValue(':codigo', trim($codigoIngrediente), PDO::PARAM_STR);
+        $stmt->bindValue(':cantidad_estimada', number_format($nuevaCantidad, 2, '.', ''), PDO::PARAM_STR);
+        $stmt->bindValue(':id_ingrediente', $idInt, PDO::PARAM_INT);
         return $stmt->execute();
     }
 
     /**
-     * Registra un nuevo ingrediente en el catálogo de inventario
+     * Registra un nuevo ingrediente en la tabla `Inventarios`
      *
-     * @param string $codigo Alfanumérico VARCHAR(10)
-     * @param string $nombre Nombre del ingrediente
-     * @param string $unidad Unidad de medida ('lb', 'L', 'unidad', etc.)
-     * @param float $cantidad Cantidad inicial
-     * @param float $stockMinimo Nivel mínimo antes de generar alerta
-     * @param string $estado 'Suficiente', 'Bajo' o 'Agotado'
-     * @return bool
+     * @param string $nombreIngrediente
+     * @param float $cantidadEstimada
+     * @return int ID del ingrediente insertado
      */
-    public function crear(
-        string $codigo, 
-        string $nombre, 
-        string $unidad, 
-        float $cantidad, 
-        float $stockMinimo, 
-        string $estado = 'Suficiente'
-    ): bool {
-        // Determinación de estado si no se especifica
-        if ($cantidad <= 0) {
-            $estado = 'Agotado';
-        } elseif ($cantidad <= $stockMinimo) {
-            $estado = 'Bajo';
-        }
-
+    public function crear(string $nombreIngrediente, float $cantidadEstimada = 0.00): int {
         $stmt = $this->pdo->prepare("
-            INSERT INTO ingredientes (
-                codigo_ingrediente, 
-                nombre, 
-                unidad, 
-                cantidad, 
-                stock_minimo, 
-                estado
+            INSERT INTO Inventarios (
+                nombre_ingrediente, 
+                cantidad_estimada
             ) VALUES (
-                :codigo, 
-                :nombre, 
-                :unidad, 
-                :cantidad, 
-                :stock_minimo, 
-                :estado
+                :nombre_ingrediente, 
+                :cantidad_estimada
             )
         ");
-        $stmt->bindValue(':codigo', trim($codigo), PDO::PARAM_STR);
-        $stmt->bindValue(':nombre', trim($nombre), PDO::PARAM_STR);
-        $stmt->bindValue(':unidad', trim($unidad), PDO::PARAM_STR);
-        $stmt->bindValue(':cantidad', number_format($cantidad, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':stock_minimo', number_format($stockMinimo, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':estado', trim($estado), PDO::PARAM_STR);
+        $stmt->bindValue(':nombre_ingrediente', trim($nombreIngrediente), PDO::PARAM_STR);
+        $stmt->bindValue(':cantidad_estimada', number_format($cantidadEstimada, 2, '.', ''), PDO::PARAM_STR);
+        $stmt->execute();
 
-        return $stmt->execute();
+        return (int)$this->pdo->lastInsertId();
     }
 
     /**
-     * Actualiza la información completa de un ingrediente
+     * Actualiza la información de un ingrediente existente en `Inventarios`
      *
-     * @param string $codigo
-     * @param string $nombre
-     * @param string $unidad
-     * @param float $cantidad
-     * @param float $stockMinimo
-     * @param string|null $estado
+     * @param int $idIngrediente
+     * @param string $nombreIngrediente
+     * @param float $cantidadEstimada
      * @return bool
      */
-    public function actualizar(
-        string $codigo, 
-        string $nombre, 
-        string $unidad, 
-        float $cantidad, 
-        float $stockMinimo, 
-        ?string $estado = null
-    ): bool {
-        if ($estado === null || $estado === '') {
-            if ($cantidad <= 0) {
-                $estado = 'Agotado';
-            } elseif ($cantidad <= $stockMinimo) {
-                $estado = 'Bajo';
-            } else {
-                $estado = 'Suficiente';
-            }
-        }
-
+    public function actualizar(int $idIngrediente, string $nombreIngrediente, float $cantidadEstimada): bool {
         $stmt = $this->pdo->prepare("
-            UPDATE ingredientes 
-            SET nombre = :nombre,
-                unidad = :unidad,
-                cantidad = :cantidad,
-                stock_minimo = :stock_minimo,
-                estado = :estado
-            WHERE codigo_ingrediente = :codigo
+            UPDATE Inventarios 
+            SET nombre_ingrediente = :nombre_ingrediente,
+                cantidad_estimada = :cantidad_estimada
+            WHERE id_ingrediente = :id_ingrediente
         ");
-        $stmt->bindValue(':codigo', trim($codigo), PDO::PARAM_STR);
-        $stmt->bindValue(':nombre', trim($nombre), PDO::PARAM_STR);
-        $stmt->bindValue(':unidad', trim($unidad), PDO::PARAM_STR);
-        $stmt->bindValue(':cantidad', number_format($cantidad, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':stock_minimo', number_format($stockMinimo, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':estado', trim($estado), PDO::PARAM_STR);
+        $stmt->bindValue(':nombre_ingrediente', trim($nombreIngrediente), PDO::PARAM_STR);
+        $stmt->bindValue(':cantidad_estimada', number_format($cantidadEstimada, 2, '.', ''), PDO::PARAM_STR);
+        $stmt->bindValue(':id_ingrediente', $idIngrediente, PDO::PARAM_INT);
 
         return $stmt->execute();
     }
 
     /**
-     * Elimina un ingrediente por su código
+     * Elimina un ingrediente por su id_ingrediente
      *
-     * @param string $codigo
+     * @param int|string $idIngrediente
      * @return bool
      */
-    public function eliminar(string $codigo): bool {
-        $stmt = $this->pdo->prepare("DELETE FROM ingredientes WHERE codigo_ingrediente = :codigo");
-        $stmt->bindValue(':codigo', trim($codigo), PDO::PARAM_STR);
+    public function eliminar($idIngrediente): bool {
+        $idInt = is_numeric($idIngrediente) ? (int)$idIngrediente : (int)preg_replace('/\D/', '', (string)$idIngrediente);
+
+        $stmt = $this->pdo->prepare("DELETE FROM Inventarios WHERE id_ingrediente = :id_ingrediente");
+        $stmt->bindValue(':id_ingrediente', $idInt, PDO::PARAM_INT);
         return $stmt->execute();
     }
 }

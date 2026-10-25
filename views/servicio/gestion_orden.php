@@ -64,19 +64,19 @@ require_once '../layouts/header.php';
             };
           ?>
           <article class="order-product-card" 
-                   data-id="<?php echo htmlspecialchars($producto['codigo_producto']); ?>"
-                   data-codigo="<?php echo htmlspecialchars($producto['codigo_producto']); ?>" 
-                   data-nombre="<?php echo htmlspecialchars($producto['nombre']); ?>" 
-                   data-name="<?php echo htmlspecialchars($producto['nombre']); ?>" 
-                   data-precio="<?php echo htmlspecialchars($producto['precio']); ?>"
-                   data-price="<?php echo htmlspecialchars($producto['precio']); ?>"
+                   data-id="<?php echo (int)$producto['id_producto']; ?>"
+                   data-codigo="<?php echo (int)$producto['id_producto']; ?>" 
+                   data-nombre="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" 
+                   data-name="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" 
+                   data-precio="<?php echo htmlspecialchars((string)$producto['precio']); ?>"
+                   data-price="<?php echo htmlspecialchars((string)$producto['precio']); ?>"
                    data-category="<?php echo $catSlug; ?>">
             
             <div class="order-product-img-box">
               <?php if (!empty($producto['fotografia'])): ?>
                 <img 
                   src="../../public/img/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
-                  alt="<?php echo htmlspecialchars($producto['nombre']); ?>"
+                  alt="<?php echo htmlspecialchars($producto['nombre_producto']); ?>"
                   onerror="this.style.display='none';"
                 >
               <?php endif; ?>
@@ -84,7 +84,7 @@ require_once '../layouts/header.php';
 
             <div class="order-product-footer">
               <div class="order-product-meta">
-                <h3 class="order-product-name"><?php echo htmlspecialchars($producto['nombre']); ?></h3>
+                <h3 class="order-product-name"><?php echo htmlspecialchars($producto['nombre_producto']); ?></h3>
                 <?php if (!empty($producto['descripcion'])): ?>
                   <p class="order-product-desc"><?php echo htmlspecialchars($producto['descripcion']); ?></p>
                 <?php endif; ?>
@@ -95,11 +95,11 @@ require_once '../layouts/header.php';
               <button 
                 class="btn-add-item" 
                 type="button"
-                aria-label="Agregar <?php echo htmlspecialchars($producto['nombre']); ?>"
-                data-id="<?php echo htmlspecialchars($producto['codigo_producto']); ?>"
-                data-codigo="<?php echo htmlspecialchars($producto['codigo_producto']); ?>" 
-                data-nombre="<?php echo htmlspecialchars($producto['nombre']); ?>" 
-                data-precio="<?php echo htmlspecialchars($producto['precio']); ?>"
+                aria-label="Agregar <?php echo htmlspecialchars($producto['nombre_producto']); ?>"
+                data-id="<?php echo (int)$producto['id_producto']; ?>"
+                data-codigo="<?php echo (int)$producto['id_producto']; ?>" 
+                data-nombre="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" 
+                data-precio="<?php echo htmlspecialchars((string)$producto['precio']); ?>"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19"></line>

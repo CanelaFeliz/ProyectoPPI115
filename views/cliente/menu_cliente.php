@@ -28,7 +28,7 @@ try {
     $mesasDisponibles = $mesaModel->obtenerTodas();
     if (empty($mesasDisponibles)) {
         for ($i = 1; $i <= 8; $i++) {
-            $mesasDisponibles[] = ['id_mesa' => $i, 'numero_mesa' => 'M-0' . $i, 'estado' => 'Disponible'];
+            $mesasDisponibles[] = ['id_mesa' => $i, 'numero_mesa' => $i, 'capacidad' => 4, 'estado_mesa' => 'Disponible'];
         }
     }
 } catch (PDOException $e) {
@@ -159,10 +159,11 @@ try {
         
         <?php foreach ($productos as $producto): ?>
           <div class="product-card producto-card" 
-               data-category="<?php echo $producto['id_categoria']; ?>"
-               data-codigo="<?php echo htmlspecialchars($producto['codigo_producto']); ?>"
-               data-name="<?php echo htmlspecialchars($producto['nombre']); ?>" 
-               data-price="<?php echo htmlspecialchars($producto['precio']); ?>" 
+               data-category="<?php echo (int)$producto['id_categoria']; ?>"
+               data-id="<?php echo (int)$producto['id_producto']; ?>"
+               data-codigo="<?php echo (int)$producto['id_producto']; ?>"
+               data-name="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" 
+               data-price="<?php echo htmlspecialchars((string)$producto['precio']); ?>" 
                data-desc="<?php echo htmlspecialchars($producto['descripcion'] ?? ''); ?>"
                data-foto="<?php echo htmlspecialchars($producto['fotografia'] ?? ''); ?>"
                data-ingredients="<?php echo htmlspecialchars($producto['ingredientes']); ?>">
@@ -171,18 +172,18 @@ try {
               <?php if (!empty($producto['fotografia'])): ?>
                 <img 
                   src="../../public/img/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
-                  alt="<?php echo htmlspecialchars($producto['nombre']); ?>"
+                  alt="<?php echo htmlspecialchars($producto['nombre_producto']); ?>"
                   onerror="this.style.display='none';"
                 >
               <?php endif; ?>
             </div>
 
             <div class="product-info">
-              <h3 class="product-name"><?php echo htmlspecialchars($producto['nombre']); ?></h3>
+              <h3 class="product-name"><?php echo htmlspecialchars($producto['nombre_producto']); ?></h3>
               <p class="product-description"><?php echo htmlspecialchars($producto['descripcion'] ?? 'Delicioso producto recién preparado.'); ?></p>
               <div class="product-footer">
                 <span class="product-price" style="color: var(--color-rojo-frambuesa);">$<?php echo number_format((float)$producto['precio'], 2); ?></span>
-                <div class="card-quantity-control quantity-control" data-codigo="<?php echo htmlspecialchars($producto['codigo_producto']); ?>">
+                <div class="card-quantity-control quantity-control" data-id="<?php echo (int)$producto['id_producto']; ?>" data-codigo="<?php echo (int)$producto['id_producto']; ?>">
                   <button class="qty-btn card-qty-btn card-qty-minus" aria-label="Disminuir cantidad" type="button" title="Disminuir cantidad">-</button>
                   <span class="qty-value card-qty-value">0</span>
                   <button class="qty-btn card-qty-btn card-qty-plus" aria-label="Aumentar cantidad" type="button" title="Aumentar cantidad">+</button>
@@ -224,8 +225,8 @@ try {
           <div style="position: relative;">
             <select id="selectMesaCliente" style="width: 100%; padding: 8px 32px 8px 12px; font-size: 14px; font-weight: 600; color: #212529; background-color: #ffffff; border: 1.5px solid #dee2e6; border-radius: 8px; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; -moz-appearance: none; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: border-color 0.2s, box-shadow 0.2s;">
               <?php foreach ($mesasDisponibles as $m): ?>
-                <option value="<?php echo htmlspecialchars($m['numero_mesa']); ?>" <?php echo ((int)$m['numero_mesa'] === (int)$idMesaCliente) ? 'selected' : ''; ?>>
-                  Mesa <?php echo htmlspecialchars($m['numero_mesa']); ?> <?php echo (!empty($m['estado']) && $m['estado'] !== 'Disponible') ? ' (' . htmlspecialchars($m['estado']) . ')' : ''; ?>
+                <option value="<?php echo htmlspecialchars((string)$m['numero_mesa']); ?>" <?php echo ((int)$m['numero_mesa'] === (int)$idMesaCliente) ? 'selected' : ''; ?>>
+                  Mesa <?php echo htmlspecialchars((string)$m['numero_mesa']); ?> <?php echo (!empty($m['estado_mesa']) && $m['estado_mesa'] !== 'Disponible') ? ' (' . htmlspecialchars($m['estado_mesa']) . ')' : ''; ?>
                 </option>
               <?php endforeach; ?>
             </select>

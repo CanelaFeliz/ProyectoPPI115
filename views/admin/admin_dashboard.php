@@ -111,7 +111,7 @@ require_once '../layouts/sidebar.php';
                       </td>
                       <td class="cell-product">
                         <div class="rank-product-info">
-                          <span class="rank-product-name"><?php echo htmlspecialchars($prod['nombre']); ?></span>
+                          <span class="rank-product-name"><?php echo htmlspecialchars($prod['nombre_producto']); ?></span>
                           <span class="rank-product-price">$<?php echo number_format((float)$prod['precio'], 2); ?> USD</span>
                         </div>
                       </td>

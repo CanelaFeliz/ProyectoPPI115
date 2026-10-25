@@ -3,7 +3,8 @@
  * ==============================================================================
  * NIXGARU – Modelo: Producto
  * models/Producto.php
- * Gestiona el catálogo de productos y platillos con llaves primarias alfanuméricas
+ * Gestiona el catálogo de productos en la tabla `Productos` y sus relaciones
+ * con `Categorias`, `Recetas` e `Inventarios`
  * ==============================================================================
  */
 
@@ -23,218 +24,250 @@ class Producto {
     public function obtenerTodos(): array {
         $stmt = $this->pdo->prepare("
             SELECT 
-                p.codigo_producto,
-                p.nombre,
+                p.id_producto,
+                p.nombre_producto,
                 p.descripcion,
-                p.precio,
                 p.fotografia,
-                p.disponibilidad,
+                p.precio,
+                p.estado_disponibilidad,
                 p.id_categoria,
                 c.nombre_categoria
-            FROM productos p
-            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-            ORDER BY p.id_categoria ASC, p.codigo_producto ASC
+            FROM Productos p
+            INNER JOIN Categorias c ON p.id_categoria = c.id_categoria
+            ORDER BY p.id_categoria ASC, p.id_producto ASC
         ");
         $stmt->execute();
         return $stmt->fetchAll();
     }
 
     /**
-     * Trae los productos activos con disponibilidad = 1 junto con su categoría e ingredientes
-     * Consulta utilizada en la carta del cliente y en la pantalla de comandas de meseros
+     * Trae los productos activos (estado_disponibilidad = 'Disponible') junto con su categoría
+     * y los ingredientes asociados a través de `Recetas` e `Inventarios`
      *
      * @return array
      */
     public function obtenerActivos(): array {
         $stmt = $this->pdo->prepare("
             SELECT 
-                p.codigo_producto,
-                p.nombre,
-                p.fotografia,
+                p.id_producto,
+                p.nombre_producto,
                 p.descripcion,
+                p.fotografia,
                 p.precio,
+                p.estado_disponibilidad,
                 p.id_categoria,
-                p.disponibilidad,
                 c.nombre_categoria,
-                COALESCE(GROUP_CONCAT(DISTINCT i.nombre ORDER BY i.nombre ASC SEPARATOR ', '), 'Ingredientes naturales de alta calidad') AS ingredientes
-            FROM productos p
-            LEFT JOIN categorias c ON p.id_categoria = c.id_categoria
-            LEFT JOIN recetas r ON p.codigo_producto = r.codigo_producto
-            LEFT JOIN ingredientes i ON r.codigo_ingrediente = i.codigo_ingrediente
-            WHERE p.disponibilidad = 1
-            GROUP BY p.codigo_producto, p.nombre, p.fotografia, p.descripcion, p.precio, p.id_categoria, p.disponibilidad, c.nombre_categoria
-            ORDER BY p.id_categoria ASC, p.codigo_producto ASC
+                COALESCE(
+                    GROUP_CONCAT(DISTINCT i.nombre_ingrediente ORDER BY i.nombre_ingrediente ASC SEPARATOR ', '),
+                    'Ingredientes naturales de alta calidad'
+                ) AS ingredientes
+            FROM Productos p
+            LEFT JOIN Categorias c ON p.id_categoria = c.id_categoria
+            LEFT JOIN Recetas r ON p.id_producto = r.id_producto
+            LEFT JOIN Inventarios i ON r.id_ingrediente = i.id_ingrediente
+            WHERE p.estado_disponibilidad = 'Disponible'
+            GROUP BY 
+                p.id_producto, 
+                p.nombre_producto, 
+                p.descripcion, 
+                p.fotografia, 
+                p.precio, 
+                p.estado_disponibilidad, 
+                p.id_categoria, 
+                c.nombre_categoria
+            ORDER BY p.id_categoria ASC, p.id_producto ASC
         ");
         $stmt->execute();
         return $stmt->fetchAll();
     }
 
     /**
-     * Obtiene los datos de un producto específico por su código alfanumérico
+     * Obtiene los datos de un producto específico por su id_producto
      *
-     * @param string $codigoProducto Código alfanumérico (ej. 'P001', 'P018')
+     * @param int|string $idProducto
      * @return array|false
      */
-    public function obtenerPorCodigo(string $codigoProducto) {
+    public function obtenerPorId($idProducto) {
+        $idInt = is_numeric($idProducto) ? (int)$idProducto : (int)preg_replace('/\D/', '', (string)$idProducto);
+
         $stmt = $this->pdo->prepare("
             SELECT 
-                p.codigo_producto,
-                p.nombre,
-                p.fotografia,
+                p.id_producto,
+                p.nombre_producto,
                 p.descripcion,
+                p.fotografia,
                 p.precio,
+                p.estado_disponibilidad,
                 p.id_categoria,
-                p.disponibilidad,
                 c.nombre_categoria
-            FROM productos p
-            INNER JOIN categorias c ON p.id_categoria = c.id_categoria
-            WHERE p.codigo_producto = :codigo
+            FROM Productos p
+            INNER JOIN Categorias c ON p.id_categoria = c.id_categoria
+            WHERE p.id_producto = :id_producto
             LIMIT 1
         ");
-        $stmt->bindValue(':codigo', trim($codigoProducto), PDO::PARAM_STR);
+        $stmt->bindValue(':id_producto', $idInt, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetch();
     }
 
     /**
-     * Obtiene el precio actual de un producto por su código
+     * Alias de obtenerPorId para compatibilidad
      *
-     * @param string $codigoProducto
+     * @param int|string $idProducto
+     * @return array|false
+     */
+    public function obtenerPorCodigo($idProducto) {
+        return $this->obtenerPorId($idProducto);
+    }
+
+    /**
+     * Obtiene el precio actual de un producto por su id_producto
+     *
+     * @param int|string $idProducto
      * @return float
      */
-    public function obtenerPrecio(string $codigoProducto): float {
+    public function obtenerPrecio($idProducto): float {
+        $idInt = is_numeric($idProducto) ? (int)$idProducto : (int)preg_replace('/\D/', '', (string)$idProducto);
+
         $stmt = $this->pdo->prepare("
             SELECT precio 
-            FROM productos 
-            WHERE codigo_producto = :codigo 
+            FROM Productos 
+            WHERE id_producto = :id_producto 
             LIMIT 1
         ");
-        $stmt->bindValue(':codigo', trim($codigoProducto), PDO::PARAM_STR);
+        $stmt->bindValue(':id_producto', $idInt, PDO::PARAM_INT);
         $stmt->execute();
         $precio = $stmt->fetchColumn();
         return $precio !== false ? (float)$precio : 0.00;
     }
 
     /**
-     * Alterna la disponibilidad de venta de un producto (1 = Activo, 0 = Inactivo)
+     * Actualiza el estado de disponibilidad de un producto ('Disponible' / 'No disponible')
      *
-     * @param string $codigoProducto Código alfanumérico
-     * @param int $disponibilidad 1 o 0
+     * @param int|string $idProducto
+     * @param int|string|bool $estadoDisponibilidad
      * @return bool
      */
-    public function actualizarDisponibilidad(string $codigoProducto, int $disponibilidad): bool {
+    public function actualizarDisponibilidad($idProducto, $estadoDisponibilidad): bool {
+        $idInt = is_numeric($idProducto) ? (int)$idProducto : (int)preg_replace('/\D/', '', (string)$idProducto);
+
+        if (is_bool($estadoDisponibilidad) || is_numeric($estadoDisponibilidad)) {
+            $estadoStr = ((int)$estadoDisponibilidad === 1) ? 'Disponible' : 'No disponible';
+        } else {
+            $val = strtolower(trim((string)$estadoDisponibilidad));
+            $estadoStr = in_array($val, ['disponible', 'activo', '1', 'true'], true) ? 'Disponible' : 'No disponible';
+        }
+
         $stmt = $this->pdo->prepare("
-            UPDATE productos 
-            SET disponibilidad = :disponibilidad 
-            WHERE codigo_producto = :codigo
+            UPDATE Productos 
+            SET estado_disponibilidad = :estado_disponibilidad 
+            WHERE id_producto = :id_producto
         ");
-        $stmt->bindValue(':disponibilidad', $disponibilidad ? 1 : 0, PDO::PARAM_INT);
-        $stmt->bindValue(':codigo', trim($codigoProducto), PDO::PARAM_STR);
+        $stmt->bindValue(':estado_disponibilidad', $estadoStr, PDO::PARAM_STR);
+        $stmt->bindValue(':id_producto', $idInt, PDO::PARAM_INT);
         return $stmt->execute();
     }
 
     /**
-     * Registra un nuevo producto en el catálogo
+     * Registra un nuevo producto en la tabla Productos
      *
-     * @param string $codigo Código alfanumérico VARCHAR(10)
-     * @param string $nombre
-     * @param string|null $fotografia
-     * @param string|null $descripcion
+     * @param string $nombreProducto
+     * @param string $descripcion
+     * @param string $fotografia
      * @param float $precio
      * @param int $idCategoria
-     * @param int $disponibilidad
-     * @return bool
+     * @param string $estadoDisponibilidad
+     * @return int ID del producto creado
      */
     public function crear(
-        string $codigo, 
-        string $nombre, 
-        ?string $fotografia, 
-        ?string $descripcion, 
+        string $nombreProducto, 
+        string $descripcion, 
+        string $fotografia, 
         float $precio, 
         int $idCategoria, 
-        int $disponibilidad = 1
-    ): bool {
+        string $estadoDisponibilidad = 'Disponible'
+    ): int {
         $stmt = $this->pdo->prepare("
-            INSERT INTO productos (
-                codigo_producto, 
-                nombre, 
-                fotografia, 
+            INSERT INTO Productos (
+                nombre_producto, 
                 descripcion, 
+                fotografia, 
                 precio, 
-                id_categoria, 
-                disponibilidad
+                estado_disponibilidad, 
+                id_categoria
             ) VALUES (
-                :codigo, 
-                :nombre, 
-                :fotografia, 
+                :nombre_producto, 
                 :descripcion, 
+                :fotografia, 
                 :precio, 
-                :id_categoria, 
-                :disponibilidad
+                :estado_disponibilidad, 
+                :id_categoria
             )
         ");
-        $stmt->bindValue(':codigo', trim($codigo), PDO::PARAM_STR);
-        $stmt->bindValue(':nombre', trim($nombre), PDO::PARAM_STR);
-        $stmt->bindValue(':fotografia', $fotografia ? trim($fotografia) : null, $fotografia ? PDO::PARAM_STR : PDO::PARAM_NULL);
-        $stmt->bindValue(':descripcion', $descripcion ? trim($descripcion) : null, $descripcion ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->bindValue(':nombre_producto', trim($nombreProducto), PDO::PARAM_STR);
+        $stmt->bindValue(':descripcion', trim($descripcion), PDO::PARAM_STR);
+        $stmt->bindValue(':fotografia', trim($fotografia), PDO::PARAM_STR);
         $stmt->bindValue(':precio', number_format($precio, 2, '.', ''), PDO::PARAM_STR);
+        $stmt->bindValue(':estado_disponibilidad', trim($estadoDisponibilidad), PDO::PARAM_STR);
         $stmt->bindValue(':id_categoria', $idCategoria, PDO::PARAM_INT);
-        $stmt->bindValue(':disponibilidad', $disponibilidad ? 1 : 0, PDO::PARAM_INT);
+        $stmt->execute();
 
-        return $stmt->execute();
+        return (int)$this->pdo->lastInsertId();
     }
 
     /**
-     * Actualiza la información de un producto existente
+     * Actualiza la información de un producto existente en la tabla Productos
      *
-     * @param string $codigo
-     * @param string $nombre
-     * @param string|null $fotografia
-     * @param string|null $descripcion
+     * @param int $idProducto
+     * @param string $nombreProducto
+     * @param string $descripcion
+     * @param string $fotografia
      * @param float $precio
      * @param int $idCategoria
-     * @param int $disponibilidad
+     * @param string $estadoDisponibilidad
      * @return bool
      */
     public function actualizar(
-        string $codigo, 
-        string $nombre, 
-        ?string $fotografia, 
-        ?string $descripcion, 
+        int $idProducto, 
+        string $nombreProducto, 
+        string $descripcion, 
+        string $fotografia, 
         float $precio, 
         int $idCategoria, 
-        int $disponibilidad = 1
+        string $estadoDisponibilidad = 'Disponible'
     ): bool {
         $stmt = $this->pdo->prepare("
-            UPDATE productos 
-            SET nombre = :nombre,
-                fotografia = :fotografia,
+            UPDATE Productos 
+            SET nombre_producto = :nombre_producto,
                 descripcion = :descripcion,
+                fotografia = :fotografia,
                 precio = :precio,
-                id_categoria = :id_categoria,
-                disponibilidad = :disponibilidad
-            WHERE codigo_producto = :codigo
+                estado_disponibilidad = :estado_disponibilidad,
+                id_categoria = :id_categoria
+            WHERE id_producto = :id_producto
         ");
-        $stmt->bindValue(':codigo', trim($codigo), PDO::PARAM_STR);
-        $stmt->bindValue(':nombre', trim($nombre), PDO::PARAM_STR);
-        $stmt->bindValue(':fotografia', $fotografia ? trim($fotografia) : null, $fotografia ? PDO::PARAM_STR : PDO::PARAM_NULL);
-        $stmt->bindValue(':descripcion', $descripcion ? trim($descripcion) : null, $descripcion ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->bindValue(':nombre_producto', trim($nombreProducto), PDO::PARAM_STR);
+        $stmt->bindValue(':descripcion', trim($descripcion), PDO::PARAM_STR);
+        $stmt->bindValue(':fotografia', trim($fotografia), PDO::PARAM_STR);
         $stmt->bindValue(':precio', number_format($precio, 2, '.', ''), PDO::PARAM_STR);
+        $stmt->bindValue(':estado_disponibilidad', trim($estadoDisponibilidad), PDO::PARAM_STR);
         $stmt->bindValue(':id_categoria', $idCategoria, PDO::PARAM_INT);
-        $stmt->bindValue(':disponibilidad', $disponibilidad ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':id_producto', $idProducto, PDO::PARAM_INT);
 
         return $stmt->execute();
     }
 
     /**
-     * Elimina un producto por su código alfanumérico
+     * Elimina un producto por su id_producto
      *
-     * @param string $codigo
+     * @param int|string $idProducto
      * @return bool
      */
-    public function eliminar(string $codigo): bool {
-        $stmt = $this->pdo->prepare("DELETE FROM productos WHERE codigo_producto = :codigo");
-        $stmt->bindValue(':codigo', trim($codigo), PDO::PARAM_STR);
+    public function eliminar($idProducto): bool {
+        $idInt = is_numeric($idProducto) ? (int)$idProducto : (int)preg_replace('/\D/', '', (string)$idProducto);
+
+        $stmt = $this->pdo->prepare("DELETE FROM Productos WHERE id_producto = :id_producto");
+        $stmt->bindValue(':id_producto', $idInt, PDO::PARAM_INT);
         return $stmt->execute();
     }
 }

@@ -14,7 +14,6 @@ require_once __DIR__ . '/../models/Inventario.php';
 require_once __DIR__ . '/../models/Mesa.php';
 require_once __DIR__ . '/../models/Usuario.php';
 require_once __DIR__ . '/../models/Pedido.php';
-require_once __DIR__ . '/../models/Cuenta.php';
 
 class AdminController {
     private PDO $pdo;
@@ -24,27 +23,27 @@ class AdminController {
     }
 
     /**
-     * Alterna la disponibilidad de un producto en el menú
+     * Alterna el estado_disponibilidad de un producto en la tabla `Productos`
      */
     public function cambiarDisponibilidad(): void {
         $data = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-        $codigo = isset($data['codigo']) ? trim((string)$data['codigo']) : '';
-        $disponibilidad = isset($data['disponibilidad']) ? (int)$data['disponibilidad'] : 0;
+        $idProducto = $data['id_producto'] ?? ($data['codigo'] ?? ($data['id'] ?? 0));
+        $estadoDisponibilidad = $data['estado_disponibilidad'] ?? ($data['disponibilidad'] ?? 'Disponible');
 
-        if (empty($codigo)) {
-            echo json_encode(['success' => false, 'error' => 'Código de producto requerido'], JSON_UNESCAPED_UNICODE);
+        if (empty($idProducto)) {
+            echo json_encode(['success' => false, 'error' => 'ID de producto requerido'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         try {
             $productoModel = new Producto($this->pdo);
-            $actualizado = $productoModel->actualizarDisponibilidad($codigo, $disponibilidad);
+            $actualizado = $productoModel->actualizarDisponibilidad($idProducto, $estadoDisponibilidad);
 
             echo json_encode([
-                'success' => $actualizado,
-                'codigo' => $codigo,
-                'disponibilidad' => $disponibilidad,
-                'message' => $actualizado ? 'Disponibilidad actualizada' : 'No se pudo actualizar'
+                'success'               => $actualizado,
+                'id_producto'           => (int)$idProducto,
+                'estado_disponibilidad' => $estadoDisponibilidad,
+                'message'               => $actualizado ? 'Disponibilidad actualizada' : 'No se pudo actualizar'
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -52,27 +51,29 @@ class AdminController {
     }
 
     /**
-     * Ajusta la cantidad de stock de un ingrediente y recalcula su estado
+     * Ajusta la cantidad_estimada de un ingrediente en la tabla `Inventarios`
      */
     public function ajustarStock(): void {
         $data = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-        $codigo = isset($data['codigo_ingrediente']) ? trim((string)$data['codigo_ingrediente']) : (isset($data['codigo']) ? trim((string)$data['codigo']) : '');
-        $cantidad = isset($data['cantidad']) ? (float)$data['cantidad'] : 0.00;
+        $idIngrediente = $data['id_ingrediente'] ?? ($data['codigo_ingrediente'] ?? ($data['codigo'] ?? 0));
+        $cantidadEstimada = isset($data['cantidad_estimada'])
+            ? (float)$data['cantidad_estimada']
+            : (isset($data['cantidad']) ? (float)$data['cantidad'] : 0.00);
 
-        if (empty($codigo)) {
-            echo json_encode(['success' => false, 'error' => 'Código de ingrediente requerido'], JSON_UNESCAPED_UNICODE);
+        if (empty($idIngrediente)) {
+            echo json_encode(['success' => false, 'error' => 'ID de ingrediente requerido'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         try {
             $inventarioModel = new Inventario($this->pdo);
-            $actualizado = $inventarioModel->actualizarStock($codigo, $cantidad);
+            $actualizado = $inventarioModel->actualizarStock($idIngrediente, $cantidadEstimada);
 
             echo json_encode([
-                'success' => $actualizado,
-                'codigo_ingrediente' => $codigo,
-                'nueva_cantidad' => $cantidad,
-                'message' => $actualizado ? 'Stock de ingrediente actualizado' : 'No se pudo actualizar el stock'
+                'success'           => $actualizado,
+                'id_ingrediente'    => (int)$idIngrediente,
+                'cantidad_estimada' => $cantidadEstimada,
+                'message'           => $actualizado ? 'Stock de ingrediente actualizado' : 'No se pudo actualizar el stock'
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -80,12 +81,14 @@ class AdminController {
     }
 
     /**
-     * Actualiza el estado operativo de una mesa
+     * Actualiza el estado_mesa de una mesa en la tabla `Mesas`
      */
     public function actualizarEstadoMesa(): void {
         $data = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-        $idMesa = isset($data['id_mesa']) ? $data['id_mesa'] : (isset($data['numero_mesa']) ? $data['numero_mesa'] : '');
-        $nuevoEstado = isset($data['estado']) ? trim((string)$data['estado']) : 'Disponible';
+        $idMesa = $data['id_mesa'] ?? ($data['numero_mesa'] ?? '');
+        $nuevoEstado = isset($data['estado_mesa'])
+            ? trim((string)$data['estado_mesa'])
+            : (isset($data['estado']) ? trim((string)$data['estado']) : 'Disponible');
 
         if (empty($idMesa)) {
             echo json_encode(['success' => false, 'error' => 'Identificador de mesa requerido'], JSON_UNESCAPED_UNICODE);
@@ -97,9 +100,9 @@ class AdminController {
             $actualizado = $mesaModel->actualizarEstado($idMesa, $nuevoEstado);
 
             echo json_encode([
-                'success' => $actualizado,
-                'id_mesa' => $idMesa,
-                'nuevo_estado' => $nuevoEstado
+                'success'     => $actualizado,
+                'id_mesa'     => $idMesa,
+                'estado_mesa' => $nuevoEstado
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -107,28 +110,32 @@ class AdminController {
     }
 
     /**
-     * Registra una nueva mesa
+     * Registra una nueva mesa en la tabla `Mesas`
      */
     public function crearMesa(): void {
         $data = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-        $numeroMesa = isset($data['numero_mesa']) ? trim((string)$data['numero_mesa']) : '';
+        $numeroMesa = $data['numero_mesa'] ?? '';
         $capacidad = isset($data['capacidad']) ? (int)$data['capacidad'] : 4;
-        $estado = isset($data['estado']) ? trim((string)$data['estado']) : 'Disponible';
+        $estadoMesa = isset($data['estado_mesa'])
+            ? trim((string)$data['estado_mesa'])
+            : (isset($data['estado']) ? trim((string)$data['estado']) : 'Disponible');
 
-        if (empty($numeroMesa)) {
+        if ($numeroMesa === '') {
             echo json_encode(['success' => false, 'error' => 'Número de mesa requerido'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         try {
             $mesaModel = new Mesa($this->pdo);
-            $idMesa = $mesaModel->crear($numeroMesa, $capacidad, $estado);
+            $idMesa = $mesaModel->crear($numeroMesa, $capacidad, $estadoMesa);
 
             echo json_encode([
-                'success' => true,
-                'id_mesa' => $idMesa,
-                'numero_mesa' => $numeroMesa,
-                'message' => 'Mesa registrada con éxito'
+                'success'     => true,
+                'id_mesa'     => $idMesa,
+                'numero_mesa' => (int)preg_replace('/\D/', '', (string)$numeroMesa),
+                'capacidad'   => $capacidad,
+                'estado_mesa' => $estadoMesa,
+                'message'     => 'Mesa registrada con éxito'
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -145,8 +152,8 @@ class AdminController {
             $top = $pedidoModel->obtenerProductosMasVendidos(5);
 
             echo json_encode([
-                'success' => true,
-                'kpis' => $kpis,
+                'success'       => true,
+                'kpis'          => $kpis,
                 'top_productos' => $top
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
@@ -179,4 +186,3 @@ if (isset($_GET['action'])) {
             break;
     }
 }
-

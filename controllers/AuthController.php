@@ -34,33 +34,41 @@ class AuthController {
             $data = $_POST;
         }
 
-        $username = isset($data['usuario']) ? trim($data['usuario']) : (isset($data['username']) ? trim($data['username']) : '');
-        $password = isset($data['password']) ? $data['password'] : (isset($data['contrasenha']) ? $data['contrasenha'] : '');
+        $nombreUsuario = isset($data['nombre_usuario'])
+            ? trim((string)$data['nombre_usuario'])
+            : (isset($data['usuario']) ? trim((string)$data['usuario']) : (isset($data['username']) ? trim((string)$data['username']) : ''));
 
-        if (empty($username) || empty($password)) {
+        $password = isset($data['contrasena'])
+            ? (string)$data['contrasena']
+            : (isset($data['password']) ? (string)$data['password'] : '');
+
+        if (empty($nombreUsuario) || empty($password)) {
             echo json_encode([
                 'success' => false,
-                'error' => 'Por favor ingrese usuario y contraseña.'
+                'error'   => 'Por favor ingrese usuario y contraseña.'
             ], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         try {
             $usuarioModel = new Usuario($this->pdo);
-            $usuario = $usuarioModel->autenticar($username, $password);
+            $usuario = $usuarioModel->autenticar($nombreUsuario, $password);
 
             if ($usuario) {
-                // Regenerar el ID de sesión para prevenir Session Fixation
                 session_regenerate_id(true);
 
-                // Guardar los datos del usuario en $_SESSION
-                $_SESSION['id_usuario'] = (int)$usuario['id_usuario'];
-                $_SESSION['nombre'] = $usuario['nombre_completo'];
-                $_SESSION['usuario'] = $usuario['usuario'];
-                $_SESSION['rol'] = $usuario['nombre_rol'];
-                $_SESSION['id_rol'] = (int)$usuario['id_rol'];
+                // Guardar los datos del usuario en $_SESSION usando las columnas exactas de Usuarios y Roles
+                $_SESSION['id_usuario']      = (int)$usuario['id_usuario'];
+                $_SESSION['nombre_completo'] = $usuario['nombre_completo'];
+                $_SESSION['nombre_usuario']  = $usuario['nombre_usuario'];
+                $_SESSION['nombre_rol']      = $usuario['nombre_rol'];
+                $_SESSION['id_rol']          = (int)$usuario['id_rol'];
 
-                // Determinar ruta según el rol y sus privilegios
+                // Índices cortos de compatibilidad
+                $_SESSION['nombre']  = $usuario['nombre_completo'];
+                $_SESSION['usuario'] = $usuario['nombre_usuario'];
+                $_SESSION['rol']     = $usuario['nombre_rol'];
+
                 $rolNombre = strtolower(trim($usuario['nombre_rol']));
                 if ($rolNombre === 'administrador') {
                     $redirect = 'views/admin/admin_dashboard.php';
@@ -69,24 +77,26 @@ class AuthController {
                 }
 
                 echo json_encode([
-                    'success' => true,
+                    'success'  => true,
                     'redirect' => $redirect,
-                    'usuario' => [
-                        'id_usuario' => (int)$usuario['id_usuario'],
-                        'nombre' => $usuario['nombre_completo'],
-                        'rol' => $usuario['nombre_rol']
+                    'usuario'  => [
+                        'id_usuario'      => (int)$usuario['id_usuario'],
+                        'nombre_completo' => $usuario['nombre_completo'],
+                        'nombre_usuario'  => $usuario['nombre_usuario'],
+                        'id_rol'          => (int)$usuario['id_rol'],
+                        'nombre_rol'      => $usuario['nombre_rol']
                     ]
                 ], JSON_UNESCAPED_UNICODE);
             } else {
                 echo json_encode([
                     'success' => false,
-                    'error' => 'Credenciales incorrectas. Verifique su usuario y contraseña.'
+                    'error'   => 'Credenciales incorrectas. Verifique su usuario y contraseña.'
                 ], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
             echo json_encode([
                 'success' => false,
-                'error' => 'Error al procesar la autenticación: ' . $e->getMessage()
+                'error'   => 'Error al procesar la autenticación: ' . $e->getMessage()
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -109,7 +119,7 @@ class AuthController {
         session_destroy();
 
         echo json_encode([
-            'success' => true,
+            'success'  => true,
             'redirect' => '../../index.php'
         ], JSON_UNESCAPED_UNICODE);
     }

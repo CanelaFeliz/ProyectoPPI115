@@ -7,10 +7,10 @@ try {
     $ingredientes = $inventarioModel->obtenerTodos();
     if (empty($ingredientes)) {
         $ingredientes = [
-            ['codigo_ingrediente' => 'I01', 'nombre' => 'Café molido', 'unidad' => 'lb', 'cantidad' => 15.50, 'stock_minimo' => 20.00, 'estado' => 'Bajo'],
-            ['codigo_ingrediente' => 'I03', 'nombre' => 'Leche', 'unidad' => 'L', 'cantidad' => 22.00, 'stock_minimo' => 10.00, 'estado' => 'Suficiente'],
-            ['codigo_ingrediente' => 'I13', 'nombre' => 'Huevo', 'unidad' => 'unidad', 'cantidad' => 30.00, 'stock_minimo' => 12.00, 'estado' => 'Suficiente'],
-            ['codigo_ingrediente' => 'I24', 'nombre' => 'Croissant', 'unidad' => 'unidad', 'cantidad' => 12.00, 'stock_minimo' => 5.00, 'estado' => 'Suficiente']
+            ['id_ingrediente' => 1, 'nombre_ingrediente' => 'Café molido', 'cantidad_estimada' => 100.00],
+            ['id_ingrediente' => 3, 'nombre_ingrediente' => 'Leche', 'cantidad_estimada' => 100.00],
+            ['id_ingrediente' => 13, 'nombre_ingrediente' => 'Huevo', 'cantidad_estimada' => 100.00],
+            ['id_ingrediente' => 24, 'nombre_ingrediente' => 'Croissant', 'cantidad_estimada' => 100.00]
         ];
     }
 } catch (PDOException $e) {
@@ -68,26 +68,25 @@ require_once '../layouts/sidebar.php';
               <tbody id="tablaInventarioBody">
                 <?php foreach ($ingredientes as $ing): ?>
                   <?php 
-                    $esBajo = (isset($ing['stock_minimo']) && (float)$ing['cantidad'] <= (float)$ing['stock_minimo']) 
-                              || (isset($ing['estado']) && strtolower(trim($ing['estado'])) === 'bajo');
+                    $cantidadEst = (float)$ing['cantidad_estimada'];
+                    $esBajo = ($cantidadEst <= 15.00);
                   ?>
-                  <tr<?php echo $esBajo ? ' class="row-stock-alert"' : ''; ?>>
-                    <td class="cell-code<?php echo $esBajo ? ' text-danger' : ''; ?>"><?php echo htmlspecialchars($ing['codigo_ingrediente']); ?></td>
+                  <tr<?php echo $esBajo ? ' class="row-stock-alert"' : ''; ?> data-id="<?php echo (int)$ing['id_ingrediente']; ?>">
+                    <td class="cell-code<?php echo $esBajo ? ' text-danger' : ''; ?>"><?php echo (int)$ing['id_ingrediente']; ?></td>
                     <td class="cell-ingredient">
-                      <span class="ingredient-name"><?php echo htmlspecialchars($ing['nombre']); ?></span>
+                      <span class="ingredient-name"><?php echo htmlspecialchars($ing['nombre_ingrediente']); ?></span>
                       <?php if ($esBajo): ?>
                         <span class="badge-stock-low">STOCK BAJO</span>
                       <?php endif; ?>
                     </td>
-                    <td class="cell-unit"><?php echo htmlspecialchars($ing['unidad']); ?></td>
+                    <td class="cell-unit">Porción / Unidad</td>
                     <td class="cell-qty">
-                      <strong class="<?php echo $esBajo ? 'qty-val-danger' : 'qty-val-normal'; ?>"><?php echo number_format((float)$ing['cantidad'], 2); ?></strong>
-                      <span class="unit-text"><?php echo htmlspecialchars($ing['unidad']); ?></span>
+                      <strong class="<?php echo $esBajo ? 'qty-val-danger' : 'qty-val-normal'; ?>"><?php echo number_format($cantidadEst, 2); ?></strong>
                     </td>
                     <td class="cell-adjust">
                       <div class="adjust-control-group">
-                        <input type="number" step="0.01" class="input-adjust" value="0.00" aria-label="Ajuste manual para <?php echo htmlspecialchars($ing['nombre']); ?>">
-                        <button type="button" class="btn-adjust-save">Guardar</button>
+                        <input type="number" step="0.01" class="input-adjust" value="<?php echo number_format($cantidadEst, 2, '.', ''); ?>" data-id="<?php echo (int)$ing['id_ingrediente']; ?>" aria-label="Ajuste manual para <?php echo htmlspecialchars($ing['nombre_ingrediente']); ?>">
+                        <button type="button" class="btn-adjust-save" data-id="<?php echo (int)$ing['id_ingrediente']; ?>">Guardar</button>
                       </div>
                     </td>
                   </tr>

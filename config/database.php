@@ -1,17 +1,28 @@
 <?php
+/**
+ * ==============================================================================
+ * NIXGARU – Configuración de Conexión PDO a Base de Datos MySQL
+ * config/database.php
+ * ==============================================================================
+ */
+
 $host = 'localhost';
 $dbname = 'nixgaru_db';
-$username = 'root'; 
-
-// Si usas una contraseña para entrar a tu conexión en MySQL Workbench, escríbela aquí.
-// Si usas XAMPP por defecto y no te pide contraseña, déjalo vacío ('').
-$password = ''; 
+$username = 'root';
+$password = '';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $pdo = new PDO(
+        "mysql:host=$host;dbname=$dbname;charset=utf8mb4",
+        $username,
+        $password,
+        [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]
+    );
 } catch (PDOException $e) {
-    die("Error de conexión a la base de datos MySQL: " . $e->getMessage());
+    die("Error de conexión a la base de datos MySQL (nixgaru_db): " . $e->getMessage());
 }
-?>
+

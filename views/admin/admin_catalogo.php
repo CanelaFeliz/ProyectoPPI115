@@ -85,15 +85,15 @@ require_once '../layouts/sidebar.php';
                         4 => 'platos',
                         default => 'otros'
                     };
-                    $activo = ((int)$producto['disponibilidad'] === 1);
+                    $activo = (strtolower(trim($producto['estado_disponibilidad'])) === 'disponible');
                   ?>
                   <tr data-category="<?php echo $catSlug; ?>">
                     <td class="cell-cat-photo">
-                      <div class="product-thumb-placeholder" title="Fotografía de <?php echo htmlspecialchars($producto['nombre']); ?>">
+                      <div class="product-thumb-placeholder" title="Fotografía de <?php echo htmlspecialchars($producto['nombre_producto']); ?>">
                         <?php if (!empty($producto['fotografia'])): ?>
                           <img 
                             src="../../public/img/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
-                            alt="<?php echo htmlspecialchars($producto['nombre']); ?>"
+                            alt="<?php echo htmlspecialchars($producto['nombre_producto']); ?>"
                             style="width: 100%; height: 100%; object-fit: cover;"
                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
                           >
@@ -111,17 +111,17 @@ require_once '../layouts/sidebar.php';
                         <?php endif; ?>
                       </div>
                     </td>
-                    <td class="cell-name"><?php echo htmlspecialchars($producto['nombre']); ?></td>
+                    <td class="cell-name"><?php echo htmlspecialchars($producto['nombre_producto']); ?></td>
                     <td class="cell-cat-desc"><?php echo htmlspecialchars($producto['descripcion'] ?? 'Sin descripción'); ?></td>
                     <td class="cell-cat-price">
                       <span class="catalog-price">$<?php echo number_format((float)$producto['precio'], 2); ?></span>
                     </td>
                     <td class="cell-cat-status">
-                      <div class="toggle-switch-wrapper <?php echo $activo ? 'active' : ''; ?>" data-product="<?php echo htmlspecialchars($producto['nombre']); ?>" data-codigo="<?php echo htmlspecialchars($producto['codigo_producto']); ?>">
+                      <div class="toggle-switch-wrapper <?php echo $activo ? 'active' : ''; ?>" data-product="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" data-id="<?php echo (int)$producto['id_producto']; ?>" data-codigo="<?php echo (int)$producto['id_producto']; ?>">
                         <button type="button" class="toggle-switch" aria-label="Cambiar disponibilidad" aria-checked="<?php echo $activo ? 'true' : 'false'; ?>">
                           <span class="toggle-knob"></span>
                         </button>
-                        <span class="toggle-status-label"><?php echo $activo ? 'Activo' : 'Inactivo'; ?></span>
+                        <span class="toggle-status-label"><?php echo htmlspecialchars($producto['estado_disponibilidad']); ?></span>
                       </div>
                     </td>
                     <td class="cell-acciones">

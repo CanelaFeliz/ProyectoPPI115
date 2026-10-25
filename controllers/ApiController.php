@@ -22,16 +22,17 @@ class ApiController {
     }
 
     /**
-     * Captura el parámetro alfanumérico codigo por GET, consulta los ingredientes
+     * Captura el parámetro id_producto (o codigo) por GET, consulta los ingredientes
      * de la receta en la base de datos a través del modelo Inventario y retorna JSON
      */
     public function obtenerIngredientes(): void {
-        $codigo = isset($_GET['codigo']) ? trim((string)$_GET['codigo']) : '';
+        $rawId = $_GET['id_producto'] ?? ($_GET['codigo'] ?? '');
+        $idProducto = is_numeric($rawId) ? (int)$rawId : (int)preg_replace('/\D/', '', (string)$rawId);
 
-        if (empty($codigo)) {
+        if ($idProducto <= 0) {
             echo json_encode([
-                'success' => false,
-                'codigo' => '',
+                'success'      => false,
+                'id_producto'  => 0,
                 'ingredientes' => []
             ], JSON_UNESCAPED_UNICODE);
             return;
@@ -39,21 +40,22 @@ class ApiController {
 
         try {
             $inventarioModel = new Inventario($this->pdo);
-            $ingredientes = $inventarioModel->obtenerPorProducto($codigo);
+            $ingredientes = $inventarioModel->obtenerPorProducto($idProducto);
 
             if (empty($ingredientes)) {
                 $ingredientes = ['Ingredientes frescos seleccionados artesanalmente'];
             }
 
             echo json_encode([
-                'success' => true,
-                'codigo' => $codigo,
+                'success'      => true,
+                'id_producto'  => $idProducto,
+                'codigo'       => (string)$idProducto,
                 'ingredientes' => $ingredientes
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             echo json_encode([
-                'success' => false,
-                'error' => $e->getMessage(),
+                'success'      => false,
+                'error'        => $e->getMessage(),
                 'ingredientes' => []
             ], JSON_UNESCAPED_UNICODE);
         }
@@ -68,21 +70,21 @@ class ApiController {
             $productos = $productoModel->obtenerActivos();
 
             echo json_encode([
-                'success' => true,
-                'total' => count($productos),
+                'success'   => true,
+                'total'     => count($productos),
                 'productos' => $productos
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             echo json_encode([
-                'success' => false,
-                'error' => $e->getMessage(),
+                'success'   => false,
+                'error'     => $e->getMessage(),
                 'productos' => []
             ], JSON_UNESCAPED_UNICODE);
         }
     }
 
     /**
-     * Retorna la lista de mesas físicas con su capacidad y estado
+     * Retorna la lista de mesas físicas con su número y estado_mesa
      */
     public function obtenerMesas(): void {
         try {
@@ -91,14 +93,14 @@ class ApiController {
 
             echo json_encode([
                 'success' => true,
-                'total' => count($mesas),
-                'mesas' => $mesas
+                'total'   => count($mesas),
+                'mesas'   => $mesas
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             echo json_encode([
                 'success' => false,
-                'error' => $e->getMessage(),
-                'mesas' => []
+                'error'   => $e->getMessage(),
+                'mesas'   => []
             ], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -112,13 +114,13 @@ class ApiController {
             $categorias = $categoriaModel->obtenerTodas();
 
             echo json_encode([
-                'success' => true,
+                'success'    => true,
                 'categorias' => $categorias
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             echo json_encode([
-                'success' => false,
-                'error' => $e->getMessage(),
+                'success'    => false,
+                'error'      => $e->getMessage(),
                 'categorias' => []
             ], JSON_UNESCAPED_UNICODE);
         }

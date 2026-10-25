@@ -33,9 +33,9 @@ class ClienteController {
             $categorias = $categoriaModel->obtenerTodas();
 
             echo json_encode([
-                'success' => true,
+                'success'    => true,
                 'categorias' => $categorias,
-                'productos' => $productos
+                'productos'  => $productos
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -48,7 +48,7 @@ class ClienteController {
     public function confirmarPedido(): void {
         $data = json_decode(file_get_contents('php://input'), true) ?: $_POST;
 
-        $idMesa = isset($data['id_mesa']) ? $data['id_mesa'] : (isset($data['mesa']) ? $data['mesa'] : 0);
+        $idMesa = $data['id_mesa'] ?? ($data['mesa'] ?? 0);
         $productos = isset($data['productos']) && is_array($data['productos']) ? $data['productos'] : [];
 
         if (empty($idMesa)) {
@@ -70,19 +70,19 @@ class ClienteController {
             // Asegura la mesa física
             $idMesaReal = $mesaModel->asegurarMesa($idMesa, 'En proceso');
 
-            // Guarda el pedido asignando mesero predeterminado (ej. 3 - Ana Ruiz)
-            $idPedido = $pedidoModel->guardarOrden($idMesaReal, $productos, 3, 'En preparación');
+            // Guarda el pedido asignando el usuario mesero predeterminado (id_usuario = 4 en nixgaru_db.sql)
+            $idPedido = $pedidoModel->guardarOrden($idMesaReal, $productos, 4, 'En preparación');
 
-            // Actualiza la mesa a 'En proceso'
+            // Actualiza estado_mesa a 'En proceso'
             $mesaModel->actualizarEstado($idMesaReal, 'En proceso');
 
             $this->pdo->commit();
 
             echo json_encode([
-                'success' => true,
+                'success'   => true,
                 'id_pedido' => $idPedido,
-                'id_mesa' => $idMesaReal,
-                'message' => '¡Su pedido ha sido enviado con éxito a la barra y cocina!'
+                'id_mesa'   => $idMesaReal,
+                'message'   => '¡Su pedido ha sido enviado con éxito a la barra y cocina!'
             ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
@@ -109,4 +109,3 @@ if (isset($_GET['action'])) {
             break;
     }
 }
-

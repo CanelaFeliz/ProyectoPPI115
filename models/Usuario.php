@@ -3,7 +3,7 @@
  * ==============================================================================
  * NIXGARU – Modelo: Usuario
  * models/Usuario.php
- * Gestiona cuentas de personal, autenticación segura y roles operativos
+ * Gestiona cuentas de personal, autenticación segura y roles en `Usuarios` y `Roles`
  * ==============================================================================
  */
 
@@ -24,12 +24,11 @@ class Usuario {
             SELECT 
                 u.id_usuario,
                 u.nombre_completo,
-                u.usuario,
+                u.nombre_usuario,
                 u.id_rol,
-                u.estado,
                 r.nombre_rol
-            FROM usuarios u
-            INNER JOIN roles r ON u.id_rol = r.id_rol
+            FROM Usuarios u
+            INNER JOIN Roles r ON u.id_rol = r.id_rol
             ORDER BY u.id_usuario ASC
         ");
         $stmt->execute();
@@ -37,7 +36,7 @@ class Usuario {
     }
 
     /**
-     * Obtiene los datos de un usuario por su ID
+     * Obtiene los datos de un usuario por su id_usuario
      *
      * @param int $idUsuario
      * @return array|false
@@ -47,12 +46,11 @@ class Usuario {
             SELECT 
                 u.id_usuario,
                 u.nombre_completo,
-                u.usuario,
+                u.nombre_usuario,
                 u.id_rol,
-                u.estado,
                 r.nombre_rol
-            FROM usuarios u
-            INNER JOIN roles r ON u.id_rol = r.id_rol
+            FROM Usuarios u
+            INNER JOIN Roles r ON u.id_rol = r.id_rol
             WHERE u.id_usuario = :id_usuario
             LIMIT 1
         ");
@@ -62,63 +60,69 @@ class Usuario {
     }
 
     /**
-     * Obtiene los datos de un usuario por su nombre de usuario único
+     * Obtiene los datos de un usuario por su nombre_usuario
      *
-     * @param string $username
+     * @param string $nombreUsuario
      * @return array|false
      */
-    public function obtenerPorUsuario(string $username) {
+    public function obtenerPorUsuario(string $nombreUsuario) {
         $stmt = $this->pdo->prepare("
             SELECT 
                 u.id_usuario,
                 u.nombre_completo,
-                u.usuario,
-                u.contrasenha,
+                u.nombre_usuario,
+                u.contrasena,
                 u.id_rol,
-                u.estado,
                 r.nombre_rol
-            FROM usuarios u
-            INNER JOIN roles r ON u.id_rol = r.id_rol
-            WHERE u.usuario = :usuario
+            FROM Usuarios u
+            INNER JOIN Roles r ON u.id_rol = r.id_rol
+            WHERE u.nombre_usuario = :nombre_usuario
             LIMIT 1
         ");
-        $stmt->bindValue(':usuario', trim($username), PDO::PARAM_STR);
+        $stmt->bindValue(':nombre_usuario', trim($nombreUsuario), PDO::PARAM_STR);
         $stmt->execute();
         return $stmt->fetch();
     }
 
     /**
-     * Autentica a un usuario recibiendo credenciales y verificando contraseña cifrada (RNF06)
+     * Obtiene todos los roles disponibles en la tabla `Roles`
      *
-     * @param string $username Nombre de usuario
+     * @return array
+     */
+    public function obtenerRoles(): array {
+        $stmt = $this->pdo->prepare("
+            SELECT id_rol, nombre_rol 
+            FROM Roles 
+            ORDER BY id_rol ASC
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Autentica a un usuario verificando su contraseña contra la columna `contrasena`
+     * Soporta Bcrypt (password_verify), SHA-256 (datos semilla de nixgaru_db.sql) y texto plano
+     *
+     * @param string $nombreUsuario Nombre de usuario (nombre_usuario)
      * @param string $password Contraseña en texto plano
      * @return array|false Datos del usuario y rol si es válido; false en caso contrario
      */
-    public function autenticar(string $username, string $password) {
-        $usuario = $this->obtenerPorUsuario($username);
+    public function autenticar(string $nombreUsuario, string $password) {
+        $usuario = $this->obtenerPorUsuario($nombreUsuario);
 
         if (!$usuario) {
             return false;
         }
 
-        // Si el usuario está deshabilitado en el sistema
-        if (isset($usuario['estado']) && (int)$usuario['estado'] === 0) {
-            return false;
-        }
-
-        // Verificación con password_verify para cumplimiento de RNF06
+        $hashAlmacenado = (string)$usuario['contrasena'];
         $passwordValida = false;
-        if (password_verify($password, $usuario['contrasenha'])) {
+
+        if (password_verify($password, $hashAlmacenado)) {
             $passwordValida = true;
-        } elseif ($usuario['contrasenha'] === $password) {
-            // Compatibilidad legacy: migración automática y segura a hash Bcrypt
+        } elseif (hash_equals($hashAlmacenado, hash('sha256', $password))) {
             $passwordValida = true;
-            $nuevoHash = password_hash($password, PASSWORD_BCRYPT);
-            $stmtUpd = $this->pdo->prepare("UPDATE usuarios SET contrasenha = :pass WHERE id_usuario = :id");
-            $stmtUpd->bindValue(':pass', $nuevoHash, PDO::PARAM_STR);
-            $stmtUpd->bindValue(':id', $usuario['id_usuario'], PDO::PARAM_INT);
-            $stmtUpd->execute();
-            $usuario['contrasenha'] = $nuevoHash;
+        } elseif (hash_equals($hashAlmacenado, $password)) {
+            $passwordValida = true;
         }
 
         if (!$passwordValida) {
@@ -126,114 +130,104 @@ class Usuario {
         }
 
         // No exponer el hash en el arreglo de retorno
-        unset($usuario['contrasenha']);
+        unset($usuario['contrasena']);
 
         return $usuario;
     }
 
     /**
-     * Registra una nueva cuenta de usuario
+     * Registra una nueva cuenta de usuario en la tabla `Usuarios`
      *
      * @param string $nombreCompleto
-     * @param string $usuario
-     * @param string $password Contraseña en texto plano (se cifra con BCRYPT)
+     * @param string $nombreUsuario
+     * @param string $password Contraseña en texto plano
      * @param int $idRol
-     * @param int $estado
      * @return int ID del usuario creado
      */
     public function crear(
         string $nombreCompleto, 
-        string $usuario, 
+        string $nombreUsuario, 
         string $password, 
-        int $idRol, 
-        int $estado = 1
+        int $idRol
     ): int {
         $hash = password_hash($password, PASSWORD_BCRYPT);
 
         $stmt = $this->pdo->prepare("
-            INSERT INTO usuarios (
+            INSERT INTO Usuarios (
                 nombre_completo, 
-                usuario, 
-                contrasenha, 
-                id_rol, 
-                estado
+                nombre_usuario, 
+                contrasena, 
+                id_rol
             ) VALUES (
-                :nombre, 
-                :usuario, 
-                :password, 
-                :id_rol, 
-                :estado
+                :nombre_completo, 
+                :nombre_usuario, 
+                :contrasena, 
+                :id_rol
             )
         ");
-        $stmt->bindValue(':nombre', trim($nombreCompleto), PDO::PARAM_STR);
-        $stmt->bindValue(':usuario', trim($usuario), PDO::PARAM_STR);
-        $stmt->bindValue(':password', $hash, PDO::PARAM_STR);
+        $stmt->bindValue(':nombre_completo', trim($nombreCompleto), PDO::PARAM_STR);
+        $stmt->bindValue(':nombre_usuario', trim($nombreUsuario), PDO::PARAM_STR);
+        $stmt->bindValue(':contrasena', $hash, PDO::PARAM_STR);
         $stmt->bindValue(':id_rol', $idRol, PDO::PARAM_INT);
-        $stmt->bindValue(':estado', $estado ? 1 : 0, PDO::PARAM_INT);
         $stmt->execute();
 
         return (int)$this->pdo->lastInsertId();
     }
 
     /**
-     * Actualiza la información de un empleado
+     * Actualiza la información de un usuario en la tabla `Usuarios`
      *
      * @param int $idUsuario
      * @param string $nombreCompleto
-     * @param string $usuario
+     * @param string $nombreUsuario
      * @param string|null $password Si se proporciona, se actualiza el hash; si es null, se conserva la contraseña actual
      * @param int $idRol
-     * @param int $estado
      * @return bool
      */
     public function actualizar(
         int $idUsuario, 
         string $nombreCompleto, 
-        string $usuario, 
+        string $nombreUsuario, 
         ?string $password, 
-        int $idRol, 
-        int $estado
+        int $idRol
     ): bool {
         if (!empty($password)) {
             $hash = password_hash($password, PASSWORD_BCRYPT);
             $stmt = $this->pdo->prepare("
-                UPDATE usuarios 
-                SET nombre_completo = :nombre,
-                    usuario = :usuario,
-                    contrasenha = :password,
-                    id_rol = :id_rol,
-                    estado = :estado
+                UPDATE Usuarios 
+                SET nombre_completo = :nombre_completo,
+                    nombre_usuario = :nombre_usuario,
+                    contrasena = :contrasena,
+                    id_rol = :id_rol
                 WHERE id_usuario = :id_usuario
             ");
-            $stmt->bindValue(':password', $hash, PDO::PARAM_STR);
+            $stmt->bindValue(':contrasena', $hash, PDO::PARAM_STR);
         } else {
             $stmt = $this->pdo->prepare("
-                UPDATE usuarios 
-                SET nombre_completo = :nombre,
-                    usuario = :usuario,
-                    id_rol = :id_rol,
-                    estado = :estado
+                UPDATE Usuarios 
+                SET nombre_completo = :nombre_completo,
+                    nombre_usuario = :nombre_usuario,
+                    id_rol = :id_rol
                 WHERE id_usuario = :id_usuario
             ");
         }
 
-        $stmt->bindValue(':nombre', trim($nombreCompleto), PDO::PARAM_STR);
-        $stmt->bindValue(':usuario', trim($usuario), PDO::PARAM_STR);
+        $stmt->bindValue(':nombre_completo', trim($nombreCompleto), PDO::PARAM_STR);
+        $stmt->bindValue(':nombre_usuario', trim($nombreUsuario), PDO::PARAM_STR);
         $stmt->bindValue(':id_rol', $idRol, PDO::PARAM_INT);
-        $stmt->bindValue(':estado', $estado ? 1 : 0, PDO::PARAM_INT);
         $stmt->bindValue(':id_usuario', $idUsuario, PDO::PARAM_INT);
 
         return $stmt->execute();
     }
 
     /**
-     * Deshabilita o elimina un usuario por su ID
+     * Elimina un usuario por su id_usuario
      *
      * @param int $idUsuario
      * @return bool
      */
     public function eliminar(int $idUsuario): bool {
-        $stmt = $this->pdo->prepare("DELETE FROM usuarios WHERE id_usuario = :id_usuario");
+        $stmt = $this->pdo->prepare("DELETE FROM Usuarios WHERE id_usuario = :id_usuario");
         $stmt->bindValue(':id_usuario', $idUsuario, PDO::PARAM_INT);
         return $stmt->execute();
     }
