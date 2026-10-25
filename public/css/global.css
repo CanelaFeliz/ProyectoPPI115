@@ -27,6 +27,7 @@
 
   /* Tipografía */
   --fuente-principal: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --fuente-mono: 'Courier Prime', 'SF Mono', Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* Sombras y bordes redondeados */
   --radio-lg: 28px;

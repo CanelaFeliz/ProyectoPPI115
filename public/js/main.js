@@ -1242,12 +1242,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 2. Comportamiento del Panel de Detalle en Escritorio y Móviles (mesas.php y gestion_orden.php)
+  // 2. Comportamiento del Panel de Detalle en Escritorio y Móviles (mesas.php, gestion_orden.php y cierre_cuenta.php)
   const btnToggleDetalle = document.getElementById('btnToggleDetalle');
-  const panelSidebar = document.querySelector('aside.cuenta-panel, aside.active-order-sidebar');
-  const layoutContainer = document.querySelector('.mesas-layout, .order-layout');
-  const closeBtns = document.querySelectorAll('#cuentaCloseBtn, #activeOrderCloseBtn, .cuenta-close-btn');
-  const backdrops = document.querySelectorAll('#cuentaBackdrop, #activeOrderBackdrop, .cuenta-backdrop');
+  const panelSidebar = document.querySelector('aside.cuenta-panel, aside.active-order-sidebar, aside.ticket-sidebar, aside.cierre-ticket-panel');
+  const layoutContainer = document.querySelector('.mesas-layout, .order-layout, .cierre-layout');
+  const closeBtns = document.querySelectorAll('#cuentaCloseBtn, #activeOrderCloseBtn, #ticketCloseBtn, .cuenta-close-btn, .ticket-close-btn');
+  const backdrops = document.querySelectorAll('#cuentaBackdrop, #activeOrderBackdrop, #cierreBackdrop, .cuenta-backdrop');
 
   // Funciones para abrir y cerrar el panel superpuesto en móviles o escritorio
   function abrirDetalleMovil() {
@@ -1891,7 +1891,7 @@ document.addEventListener('DOMContentLoaded', () => {
    * PANTALLA: CIERRE DE CUENTA (cierre_cuenta.php)
    * ==========================================================================
    */
-  const btnGenerarPDF = document.getElementById('btnGenerarPDF');
+  const btnImprimirTicket = document.getElementById('btnImprimirTicket') || document.getElementById('btnGenerarPDF');
   const ticketContainer = document.getElementById('ticketContainer');
   const btnProcesarPago = document.getElementById('btnProcesarPago');
   const inputMontoRecibido = document.getElementById('inputMontoRecibido');
@@ -1904,9 +1904,39 @@ document.addEventListener('DOMContentLoaded', () => {
     cierreTitle.textContent = `Cierre de Cuenta – Mesa ${mesaCierre}`;
   }
 
-  // 1. Botón "Generar Ticket PDF" mediante html2pdf.js
-  if (btnGenerarPDF && ticketContainer) {
-    btnGenerarPDF.addEventListener('click', () => {
+  // Alternar selección de método de pago (Efectivo / Tarjeta)
+  const cardMetodoEfectivo = document.getElementById('metodoEfectivoCard');
+  const cardMetodoTarjeta = document.getElementById('metodoTarjetaCard');
+  const cashDetailCard = document.querySelector('.cash-detail-card');
+
+  if (cardMetodoEfectivo && cardMetodoTarjeta) {
+    function seleccionarMetodo(metodo) {
+      if (metodo === 'efectivo') {
+        cardMetodoEfectivo.classList.add('active');
+        cardMetodoEfectivo.classList.remove('payment-method-card-inactive');
+        cardMetodoTarjeta.classList.remove('active');
+        cardMetodoTarjeta.classList.add('payment-method-card-inactive');
+        if (cashDetailCard) {
+          cashDetailCard.style.display = '';
+        }
+      } else {
+        cardMetodoTarjeta.classList.add('active');
+        cardMetodoTarjeta.classList.remove('payment-method-card-inactive');
+        cardMetodoEfectivo.classList.remove('active');
+        cardMetodoEfectivo.classList.add('payment-method-card-inactive');
+        if (cashDetailCard) {
+          cashDetailCard.style.display = 'none';
+        }
+      }
+    }
+
+    cardMetodoEfectivo.addEventListener('click', () => seleccionarMetodo('efectivo'));
+    cardMetodoTarjeta.addEventListener('click', () => seleccionarMetodo('tarjeta'));
+  }
+
+  // 1. Botón "Imprimir": exporta el comprobante de venta a PDF mediante html2pdf.js
+  if (btnImprimirTicket && ticketContainer) {
+    btnImprimirTicket.addEventListener('click', () => {
       const opciones = {
         margin:       [10, 10, 10, 10],
         filename:     `Ticket_NIXGARU_Mesa_${mesaCierre}.pdf`,
@@ -1915,25 +1945,44 @@ document.addEventListener('DOMContentLoaded', () => {
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      const textoOriginal = btnGenerarPDF.innerHTML;
-      btnGenerarPDF.innerHTML = `<span>Generando PDF...</span>`;
+      const textoOriginal = btnImprimirTicket.innerHTML;
+      btnImprimirTicket.disabled = true;
+      btnImprimirTicket.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;">
+          <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        <span>Generando PDF...</span>
+      `;
 
-      // Generar y descargar el ticket en PDF
       if (typeof html2pdf !== 'undefined') {
         html2pdf()
           .set(opciones)
           .from(ticketContainer)
           .save()
           .then(() => {
-            btnGenerarPDF.innerHTML = textoOriginal;
+            btnImprimirTicket.innerHTML = `
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>¡Ticket PDF generado!</span>
+            `;
+            setTimeout(() => {
+              btnImprimirTicket.disabled = false;
+              btnImprimirTicket.innerHTML = textoOriginal;
+            }, 1800);
           })
           .catch((err) => {
-            console.error('Error al generar PDF:', err);
-            btnGenerarPDF.innerHTML = textoOriginal;
+            console.error('Error al generar PDF del ticket:', err);
+            btnImprimirTicket.disabled = false;
+            btnImprimirTicket.innerHTML = textoOriginal;
           });
       } else {
-        alert("La librería html2pdf.js aún se está cargando. Por favor, intenta de nuevo en unos segundos.");
-        btnGenerarPDF.innerHTML = textoOriginal;
+        window.print();
+        btnImprimirTicket.disabled = false;
+        btnImprimirTicket.innerHTML = textoOriginal;
       }
     });
   }
@@ -1944,8 +1993,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const mesaActiva = btnProcesarPago.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
       const inputMonto = document.getElementById('inputMontoRecibido');
+      const esTarjeta = cardMetodoTarjeta && cardMetodoTarjeta.classList.contains('active');
       const montoRecibido = inputMonto ? parseFloat(inputMonto.value) || 0 : 0;
       const totalOperacion = parseFloat(btnProcesarPago.dataset.total) || 0;
+
+      if (!esTarjeta && montoRecibido < totalOperacion) {
+        alert('El monto recibido en efectivo no puede ser menor al total de la operación ($' + totalOperacion.toFixed(2) + ').');
+        return;
+      }
 
       const checkMesaDesocupada = document.getElementById('checkMesaDesocupada');
       if (checkMesaDesocupada && !checkMesaDesocupada.checked) {
@@ -1966,7 +2021,7 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           id_mesa: (mesaActiva && !isNaN(parseInt(mesaActiva, 10)) && !mesaActiva.toString().startsWith('M')) ? parseInt(mesaActiva, 10) : mesaActiva,
           id_pedido: btnProcesarPago.dataset.idpedido ? parseInt(btnProcesarPago.dataset.idpedido, 10) : null,
-          monto_recibido: montoRecibido > 0 ? montoRecibido : totalOperacion,
+          monto_recibido: esTarjeta ? totalOperacion : (montoRecibido > 0 ? montoRecibido : totalOperacion),
           id_cajero: 1
         })
       })

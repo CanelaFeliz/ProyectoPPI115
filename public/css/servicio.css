@@ -1553,36 +1553,94 @@
 }
 
 /* ==========================================================================
-   7. Vista: Cierre de Cuenta y Pago (3.png / cierre_cuenta.php)
+   7. Vista: Cierre de Cuenta y Pago (cierre_cuenta.php)
    ========================================================================== */
 .cierre-layout {
   max-width: 1440px;
   margin: 28px auto;
   padding: 0 32px 36px 32px;
   display: grid;
-  grid-template-columns: minmax(0, 470px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 440px;
   gap: 32px;
   align-items: start;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Panel Izquierdo: Comprobante / Ticket de Venta */
-.cierre-ticket-panel {
+/* Alternancia en escritorio: expandir panel de pago al ocultar el ticket */
+.cierre-layout.detail-hidden {
+  grid-template-columns: 1fr;
+}
+
+.cierre-layout.detail-hidden .ticket-sidebar,
+.cierre-layout.detail-hidden .cierre-ticket-panel,
+.ticket-sidebar.hidden {
+  display: none !important;
+}
+
+/* Panel Derecho: Comprobante / Ticket de Venta */
+.cierre-ticket-panel,
+aside.ticket-sidebar {
+  position: sticky;
+  top: 90px;
+  max-height: calc(100vh - 120px);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   width: 100%;
+  max-width: 440px;
+  box-sizing: border-box;
+}
+
+.ticket-sidebar-header {
+  display: none; /* Oculto en escritorio, visible en modal deslizante móvil */
+}
+
+/* Tipografía monoespaciada estricta para todo el ticket excepto el logo/nombre de la marca, título del drawer y botón imprimir */
+.ticket-sidebar,
+.ticket-sidebar *:not(.ticket-brand):not(.ticket-sidebar-title):not(.btn-print-ticket):not(.btn-print-ticket *),
+.ticket-card,
+.ticket-card *:not(.ticket-brand) {
+  font-family: var(--fuente-mono, 'Courier Prime', Courier, 'Courier New', monospace) !important;
+}
+
+.ticket-brand,
+.ticket-sidebar-title,
+.btn-print-ticket {
+  font-family: var(--fuente-principal, 'Poppins', sans-serif) !important;
+}
+
+.ticket-sidebar-title {
+  font-family: var(--fuente-principal, 'Poppins', sans-serif) !important;
+  font-size: 1.25rem !important; /* 20px Poppins */
+  font-weight: 700 !important;
+  color: var(--color-negro-suave) !important;
+  letter-spacing: -0.01em !important;
+  margin: 0 !important;
+  text-transform: none !important;
 }
 
 .ticket-card {
   width: 100%;
-  max-width: 460px;
+  max-width: 440px;
   background-color: var(--color-blanco);
   border: 1px solid var(--color-borde-suave);
   border-radius: 16px;
-  padding: 34px 34px;
+  padding: 32px 30px;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
-  font-family: 'Courier Prime', Courier, 'Courier New', monospace;
+  font-family: var(--fuente-mono, 'Courier Prime', Courier, 'Courier New', monospace);
   color: var(--color-negro-suave);
   line-height: 1.5;
+  box-sizing: border-box;
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+}
+
+.ticket-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ticket-card::-webkit-scrollbar-thumb {
+  background-color: #D1D5DB;
+  border-radius: 4px;
 }
 
 .ticket-header {
@@ -1591,11 +1649,11 @@
 }
 
 .ticket-brand {
-  font-family: var(--fuente-principal);
+  font-family: var(--fuente-principal, 'Poppins', sans-serif) !important;
   font-size: 1.45rem;
   font-weight: 800;
   color: var(--color-negro-suave);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   margin-bottom: 4px;
 }
 
@@ -1697,17 +1755,17 @@
 }
 
 .grand-total-label {
-  font-family: var(--fuente-principal);
+  font-family: var(--fuente-mono, 'Courier Prime', Courier, 'Courier New', monospace) !important;
   font-size: 0.95rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-negro-suave);
   letter-spacing: 0.02em;
 }
 
 .grand-total-amount {
-  font-family: var(--fuente-principal);
+  font-family: var(--fuente-mono, 'Courier Prime', Courier, 'Courier New', monospace) !important;
   font-size: 1.65rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--color-negro-suave);
 }
 
@@ -1735,6 +1793,51 @@
 .ticket-fiscal {
   font-size: 0.65rem;
   color: #9CA3AF;
+}
+
+/* Botón Imprimir Ticket (en la parte inferior del panel de ticket) */
+.ticket-panel-actions {
+  margin-top: 16px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.btn-print-ticket {
+  width: 100%;
+  background-color: #3C2F2F;
+  color: var(--color-blanco);
+  border: none;
+  border-radius: 14px;
+  padding: 15px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(60, 47, 47, 0.25);
+  font-family: var(--fuente-principal) !important;
+}
+
+.btn-print-ticket:hover {
+  background-color: #2D2323;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(60, 47, 47, 0.35);
+}
+
+.btn-print-ticket:active {
+  transform: translateY(0);
+}
+
+.btn-print-ticket:disabled {
+  opacity: 0.85;
+  cursor: wait;
+}
+
+.btn-print-ticket svg {
+  flex-shrink: 0;
 }
 
 /* Panel Derecho: Procesamiento de Pago */
@@ -1803,6 +1906,12 @@
   gap: 12px;
 }
 
+.payment-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
 .section-title {
   font-size: 0.95rem;
   font-weight: 700;
@@ -1810,22 +1919,47 @@
 }
 
 .payment-method-card {
-  background-color: #3C2F2F;
-  color: var(--color-blanco);
+  background-color: var(--color-blanco);
+  color: var(--color-negro-suave);
   border-radius: 14px;
-  padding: 18px 24px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
-  box-shadow: 0 4px 12px rgba(60, 47, 47, 0.2);
+  border: 1.5px solid #222629;
 }
 
-.payment-method-card:hover {
-  background-color: #4D3D3D;
+.payment-method-card.active {
+  background-color: #3C2F2F !important;
+  color: var(--color-blanco) !important;
+  border-color: #3C2F2F !important;
+  box-shadow: 0 4px 12px rgba(60, 47, 47, 0.25);
+}
+
+.payment-method-card.active:hover {
+  background-color: #4D3D3D !important;
+  border-color: #4D3D3D !important;
+  transform: translateY(-1px);
+}
+
+.payment-method-card-inactive,
+.payment-method-card:not(.active) {
+  background-color: var(--color-blanco) !important;
+  color: #222629 !important;
+  border-color: #222629 !important;
+  box-shadow: none;
+  cursor: pointer !important;
+}
+
+.payment-method-card-inactive:hover,
+.payment-method-card:not(.active):hover {
+  background-color: var(--color-gris-superficie) !important;
+  color: #000000 !important;
+  border-color: #000000 !important;
   transform: translateY(-1px);
 }
 
@@ -2121,7 +2255,9 @@
 
   /* 3. Paneles laterales transformados en Modal/Drawer superpuesto deslizante */
   aside.cuenta-panel,
-  aside.active-order-sidebar {
+  aside.active-order-sidebar,
+  aside.ticket-sidebar,
+  aside.cierre-ticket-panel {
     position: fixed;
     top: 0;
     right: 0;
@@ -2150,10 +2286,45 @@
   aside.cuenta-panel.open,
   aside.cuenta-panel.active,
   aside.active-order-sidebar.open,
-  aside.active-order-sidebar.active {
+  aside.active-order-sidebar.active,
+  aside.ticket-sidebar.open,
+  aside.ticket-sidebar.active,
+  aside.cierre-ticket-panel.open,
+  aside.cierre-ticket-panel.active {
     transform: translateX(0);
     visibility: visible;
     display: flex;
+  }
+
+  /* Cabecera del drawer de ticket en móvil */
+  .ticket-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 0;
+    border-bottom: none;
+    flex-shrink: 0;
+  }
+
+  .ticket-sidebar-title {
+    font-family: var(--fuente-principal) !important;
+    font-size: 1.25rem !important; /* 20px Poppins idéntico a detalle de orden */
+    font-weight: 700 !important;
+    color: var(--color-negro-suave) !important;
+    letter-spacing: -0.01em !important;
+    margin: 0 !important;
+    text-transform: none !important;
+  }
+
+  aside.ticket-sidebar .ticket-card,
+  aside.cierre-ticket-panel .ticket-card {
+    border: 1px solid var(--color-borde-suave);
+    box-shadow: none;
+    padding: 20px 18px;
+    border-radius: 14px;
+    max-height: calc(100dvh - 160px);
+    overflow-y: auto;
   }
 
   /* 4. Botón de cierre ("X") visible únicamente en móviles */
@@ -2236,9 +2407,27 @@
   }
 }
 
+@media (max-width: 640px) {
+  .btn-back-tables {
+    width: 38px;
+    height: 38px;
+    padding: 0 !important;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50% !important;
+    flex-shrink: 0;
+  }
+
+  .btn-back-tables span {
+    display: none !important;
+  }
+}
+
 @media (max-width: 480px) {
   aside.cuenta-panel,
-  aside.active-order-sidebar {
+  aside.active-order-sidebar,
+  aside.ticket-sidebar,
+  aside.cierre-ticket-panel {
     max-width: 100%;
     border-radius: 0;
     padding: 20px 16px;

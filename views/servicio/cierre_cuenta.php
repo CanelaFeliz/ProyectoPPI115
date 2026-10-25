@@ -68,9 +68,116 @@ require_once '../layouts/header.php';
   <!-- Layout Principal de Cierre de Cuenta -->
   <main class="cierre-layout">
 
-    <!-- COLUMNA IZQUIERDA: Vista del Ticket / Factura -->
-    <section class="cierre-ticket-panel">
+    <!-- COLUMNA PRINCIPAL (IZQUIERDA): Procesamiento y Método de Pago -->
+    <section class="cierre-payment-panel">
       
+      <!-- Tarjeta Superior: Monto Total de Operación -->
+      <div class="payment-total-card">
+        <div class="payment-total-info">
+          <h3 class="payment-total-title">Monto Total de Operación</h3>
+          <p class="payment-total-subtitle">Mesa <?php echo htmlspecialchars($numeroMesa); ?> · Incluye propuesta de propina</p>
+        </div>
+        <div class="payment-total-display">
+          <span class="total-big-number" id="displayTotalOperacion">$<?php echo number_format($total, 2); ?></span>
+          <span class="total-big-currency">USD</span>
+        </div>
+      </div>
+
+      <!-- Selección de Método de Pago -->
+      <div class="payment-method-section">
+        <h3 class="section-title">Método de Pago</h3>
+        
+        <div class="payment-methods-grid">
+          <!-- Opción 1: Efectivo -->
+          <div class="payment-method-card active" id="metodoEfectivoCard" role="button" tabindex="0">
+            <div class="payment-method-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                <circle cx="12" cy="12" r="2"></circle>
+                <path d="M6 12h.01M18 12h.01"></path>
+              </svg>
+            </div>
+            <span class="payment-method-text">Efectivo</span>
+          </div>
+
+          <!-- Opción 2: Tarjeta (por ahora sin función) -->
+          <div class="payment-method-card payment-method-card-inactive" id="metodoTarjetaCard" role="button" tabindex="0" title="Pago con tarjeta próximamente">
+            <div class="payment-method-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                <line x1="1" y1="10" x2="23" y2="10"></line>
+              </svg>
+            </div>
+            <span class="payment-method-text">Tarjeta</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta: Detalle de Efectivo -->
+      <div class="cash-detail-card">
+        <div class="cash-detail-header">
+          <h3 class="cash-detail-title">Detalle de Efectivo</h3>
+          <span class="exact-badge" id="sugeridoExactoBadge">Sugerido Exacto: $<?php echo number_format($total, 2); ?></span>
+        </div>
+
+        <div class="cash-inputs-row">
+          <!-- Monto Recibido -->
+          <div class="cash-input-group">
+            <label for="inputMontoRecibido" class="cash-label">Monto Recibido</label>
+            <div class="cash-input-box active-focus">
+              <span class="currency-symbol">$</span>
+              <input type="number" step="0.01" id="inputMontoRecibido" class="cash-input-field" value="<?php echo number_format($total, 2, '.', ''); ?>" data-total="<?php echo number_format($total, 2, '.', ''); ?>" aria-label="Monto Recibido">
+            </div>
+          </div>
+
+          <!-- Cambio a Entregar -->
+          <div class="cash-input-group">
+            <label class="cash-label">Cambio a Entregar</label>
+            <div class="cash-change-box">
+              <span class="currency-symbol-green">$</span>
+              <span class="cash-change-value" id="cashChangeValue">0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmación de Mesa Desocupada -->
+      <div class="table-confirm-box">
+        <label class="checkbox-container">
+          <input type="checkbox" id="checkMesaDesocupada" checked>
+          <span class="checkbox-checkmark"></span>
+          <span class="checkbox-label-text">Confirmar que la mesa ha desocupado la estación antes del cierre de cuenta.</span>
+        </label>
+      </div>
+
+      <!-- Botones de Acción Finales -->
+      <div class="cierre-actions">
+        <!-- Botón Procesar Pago & Liberar Mesa -->
+        <button class="btn-process-payment" id="btnProcesarPago" type="button" data-mesa="<?php echo htmlspecialchars($idMesaReal); ?>" data-numero-mesa="<?php echo htmlspecialchars($numeroMesa); ?>" data-total="<?php echo number_format($total, 2, '.', ''); ?>" data-idpedido="<?php echo $idPedido; ?>">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+            <line x1="1" y1="10" x2="23" y2="10"></line>
+          </svg>
+          <span>Procesar Pago &amp; Liberar Mesa</span>
+        </button>
+      </div>
+
+    </section>
+
+    <!-- COLUMNA DERECHA / MODAL DESLIZANTE: Vista del Ticket / Factura -->
+    <aside class="cierre-ticket-panel ticket-sidebar" id="ticketSidebar" aria-label="Detalle del comprobante de venta">
+      
+      <!-- Cabecera del Drawer -->
+      <div class="ticket-sidebar-header">
+        <h2 class="ticket-sidebar-title">Comprobante de Venta</h2>
+        <button class="cuenta-close-btn ticket-close-btn" id="ticketCloseBtn" type="button" aria-label="Cerrar ticket" title="Cerrar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
       <!-- Contenedor del Ticket que se convertirá a PDF -->
       <div class="ticket-card" id="ticketContainer">
         
@@ -144,105 +251,26 @@ require_once '../layouts/header.php';
 
       </div>
 
-    </section>
-
-    <!-- COLUMNA DERECHA: Procesamiento y Método de Pago -->
-    <section class="cierre-payment-panel">
-      
-      <!-- Tarjeta Superior: Monto Total de Operación -->
-      <div class="payment-total-card">
-        <div class="payment-total-info">
-          <h3 class="payment-total-title">Monto Total de Operación</h3>
-          <p class="payment-total-subtitle">Mesa <?php echo htmlspecialchars($numeroMesa); ?> · Incluye propuesta de propina</p>
-        </div>
-        <div class="payment-total-display">
-          <span class="total-big-number" id="displayTotalOperacion">$<?php echo number_format($total, 2); ?></span>
-          <span class="total-big-currency">USD</span>
-        </div>
-      </div>
-
-      <!-- Selección de Método de Pago -->
-      <div class="payment-method-section">
-        <h3 class="section-title">Método de Pago</h3>
-        
-        <div class="payment-method-card active">
-          <div class="payment-method-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-              <circle cx="12" cy="12" r="2"></circle>
-              <path d="M6 12h.01M18 12h.01"></path>
-            </svg>
-          </div>
-          <span class="payment-method-text">Efectivo</span>
-        </div>
-      </div>
-
-      <!-- Tarjeta: Detalle de Efectivo -->
-      <div class="cash-detail-card">
-        <div class="cash-detail-header">
-          <h3 class="cash-detail-title">Detalle de Efectivo</h3>
-          <span class="exact-badge" id="sugeridoExactoBadge">Sugerido Exacto: $<?php echo number_format($total, 2); ?></span>
-        </div>
-
-        <div class="cash-inputs-row">
-          <!-- Monto Recibido -->
-          <div class="cash-input-group">
-            <label for="inputMontoRecibido" class="cash-label">Monto Recibido</label>
-            <div class="cash-input-box active-focus">
-              <span class="currency-symbol">$</span>
-              <input type="number" step="0.01" id="inputMontoRecibido" class="cash-input-field" value="<?php echo number_format($total, 2, '.', ''); ?>" data-total="<?php echo number_format($total, 2, '.', ''); ?>" aria-label="Monto Recibido">
-            </div>
-          </div>
-
-          <!-- Cambio a Entregar -->
-          <div class="cash-input-group">
-            <label class="cash-label">Cambio a Entregar</label>
-            <div class="cash-change-box">
-              <span class="currency-symbol-green">$</span>
-              <span class="cash-change-value" id="cashChangeValue">0.00</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Confirmación de Mesa Desocupada -->
-      <div class="table-confirm-box">
-        <label class="checkbox-container">
-          <input type="checkbox" id="checkMesaDesocupada" checked>
-          <span class="checkbox-checkmark"></span>
-          <span class="checkbox-label-text">Confirmar que la mesa ha desocupado la estación antes del cierre de cuenta.</span>
-        </label>
-      </div>
-
-      <!-- Botones de Acción Finales -->
-      <div class="cierre-actions">
-        <!-- 1. Botón Generar Ticket PDF -->
-        <button class="btn-generate-pdf" id="btnGenerarPDF" type="button">
+      <!-- Acción Inferior: Imprimir Ticket -->
+      <div class="ticket-panel-actions">
+        <button class="btn-print-ticket" id="btnImprimirTicket" type="button" title="Imprimir comprobante de venta">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="6" height="4"></rect>
           </svg>
-          <span>Generar Ticket PDF</span>
-        </button>
-
-        <!-- 2. Botón Procesar Pago & Liberar Mesa -->
-        <button class="btn-process-payment" id="btnProcesarPago" type="button" data-mesa="<?php echo htmlspecialchars($idMesaReal); ?>" data-numero-mesa="<?php echo htmlspecialchars($numeroMesa); ?>" data-total="<?php echo number_format($total, 2, '.', ''); ?>" data-idpedido="<?php echo $idPedido; ?>">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-            <line x1="1" y1="10" x2="23" y2="10"></line>
-          </svg>
-          <span>Procesar Pago &amp; Liberar Mesa</span>
+          <span>Imprimir</span>
         </button>
       </div>
 
-    </section>
+    </aside>
+
+    <!-- Overlay desenfocado para vista móvil -->
+    <div class="cuenta-backdrop" id="cierreBackdrop" aria-hidden="true"></div>
 
   </main>
 
   <!-- Script Principal con la lógica requerida -->
-  <script src="../../public/js/main.js"></script>
+  <script src="../../public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>"></script>
 </body>
 </html>

@@ -144,9 +144,9 @@ if (!isset($headerTitle)) {
           </div>
         </div>
 
-        <?php if ($currentPage === 'mesas.php' || $currentPage === 'gestion_orden.php'): ?>
-        <!-- Botón 'Detalle' (Visible tanto en mesas como en gestión de orden) -->
-        <button class="btn-toggle-detail" id="btnToggleDetalle" title="Mostrar u ocultar panel de detalle" type="button" aria-controls="<?php echo $currentPage === 'gestion_orden.php' ? 'activeOrderSidebar' : 'cuentaPanel'; ?>" aria-expanded="true">
+        <?php if ($currentPage === 'mesas.php' || $currentPage === 'gestion_orden.php' || $currentPage === 'cierre_cuenta.php'): ?>
+        <!-- Botón 'Detalle' (Visible tanto en mesas como en gestión de orden y cierre de cuenta) -->
+        <button class="btn-toggle-detail" id="btnToggleDetalle" title="Mostrar u ocultar panel de detalle" type="button" aria-controls="<?php echo $currentPage === 'gestion_orden.php' ? 'activeOrderSidebar' : ($currentPage === 'cierre_cuenta.php' ? 'ticketSidebar' : 'cuentaPanel'); ?>" aria-expanded="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="15" y1="3" x2="15" y2="21"></line>
