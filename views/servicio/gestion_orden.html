@@ -48,13 +48,13 @@
           </div>
         </div>
 
-        <!-- Botón para regresar al mapa de mesas -->
-        <button class="btn-back-tables" id="btnMapaMesas" title="Regresar al mapa de mesas">
+        <!-- Botón Detalle para mostrar u ocultar panel de detalle -->
+        <button class="btn-toggle-detail" id="btnToggleDetalle" title="Mostrar u ocultar panel de detalle" type="button" aria-controls="activeOrderSidebar" aria-expanded="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
           </svg>
-          <span>Mapa de mesas</span>
+          <span>Detalle</span>
         </button>
       </div>
 
@@ -62,7 +62,7 @@
   </header>
 
   <!-- Layout Principal: 70% Catálogo / 30% Cuenta Activa -->
-  <main class="order-layout">
+  <main class="order-layout" id="orderLayout">
 
     <!-- COLUMNA IZQUIERDA (70%): Catálogo de Productos -->
     <section class="catalog-panel">
@@ -76,108 +76,102 @@
         <button class="order-category-pill" data-category="platos">Platos</button>
       </div>
 
-      <!-- Cuadrícula de Productos (CSS Grid) -->
+      <!-- Cuadrícula de Productos (CSS Grid a 2 columnas) -->
       <div class="order-products-grid">
 
         <!-- Producto 1 -->
-        <article class="order-product-card" data-id="1" data-name="Producto 1" data-price="$0.00">
+        <article class="order-product-card" data-id="1" data-codigo="1" data-name="Café americano" data-nombre="Café americano" data-price="2.00" data-precio="2.00" data-category="bebidas-calientes">
           <div class="order-product-img-box"></div>
-          <div class="order-product-footer">
-            <div class="order-product-meta">
-              <h3 class="order-product-name">Producto 1</h3>
-              <span class="order-product-price">$0.00</span>
+          <div class="order-product-info">
+            <h3 class="order-product-name">Café americano</h3>
+            <div class="order-product-bottom">
+              <span class="order-product-price">$2.00</span>
+              <div class="card-quantity-control" data-id="1" data-codigo="1">
+                <button class="card-qty-btn card-qty-minus" type="button" aria-label="Disminuir cantidad">-</button>
+                <span class="card-qty-value">0</span>
+                <button class="card-qty-btn card-qty-plus" type="button" aria-label="Aumentar cantidad">+</button>
+              </div>
             </div>
-            <button class="btn-add-item" aria-label="Agregar Producto 1">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
           </div>
         </article>
 
         <!-- Producto 2 -->
-        <article class="order-product-card" data-id="2" data-name="Producto 2" data-price="$0.00">
+        <article class="order-product-card" data-id="2" data-codigo="2" data-name="Café con leche" data-nombre="Café con leche" data-price="2.25" data-precio="2.25" data-category="bebidas-calientes">
           <div class="order-product-img-box"></div>
-          <div class="order-product-footer">
-            <div class="order-product-meta">
-              <h3 class="order-product-name">Producto 2</h3>
-              <span class="order-product-price">$0.00</span>
+          <div class="order-product-info">
+            <h3 class="order-product-name">Café con leche</h3>
+            <div class="order-product-bottom">
+              <span class="order-product-price">$2.25</span>
+              <div class="card-quantity-control" data-id="2" data-codigo="2">
+                <button class="card-qty-btn card-qty-minus" type="button" aria-label="Disminuir cantidad">-</button>
+                <span class="card-qty-value">0</span>
+                <button class="card-qty-btn card-qty-plus" type="button" aria-label="Aumentar cantidad">+</button>
+              </div>
             </div>
-            <button class="btn-add-item" aria-label="Agregar Producto 2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
           </div>
         </article>
 
         <!-- Producto 3 -->
-        <article class="order-product-card" data-id="3" data-name="Producto 3" data-price="$0.00">
+        <article class="order-product-card" data-id="3" data-codigo="3" data-name="Cappuccino" data-nombre="Cappuccino" data-price="2.75" data-precio="2.75" data-category="bebidas-calientes">
           <div class="order-product-img-box"></div>
-          <div class="order-product-footer">
-            <div class="order-product-meta">
-              <h3 class="order-product-name">Producto 3</h3>
-              <span class="order-product-price">$0.00</span>
+          <div class="order-product-info">
+            <h3 class="order-product-name">Cappuccino</h3>
+            <div class="order-product-bottom">
+              <span class="order-product-price">$2.75</span>
+              <div class="card-quantity-control" data-id="3" data-codigo="3">
+                <button class="card-qty-btn card-qty-minus" type="button" aria-label="Disminuir cantidad">-</button>
+                <span class="card-qty-value">0</span>
+                <button class="card-qty-btn card-qty-plus" type="button" aria-label="Aumentar cantidad">+</button>
+              </div>
             </div>
-            <button class="btn-add-item" aria-label="Agregar Producto 3">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
           </div>
         </article>
 
         <!-- Producto 4 -->
-        <article class="order-product-card" data-id="4" data-name="Producto 4" data-price="$0.00">
+        <article class="order-product-card" data-id="4" data-codigo="4" data-name="Latte frío" data-nombre="Latte frío" data-price="3.00" data-precio="3.00" data-category="bebidas-frias">
           <div class="order-product-img-box"></div>
-          <div class="order-product-footer">
-            <div class="order-product-meta">
-              <h3 class="order-product-name">Producto 4</h3>
-              <span class="order-product-price">$0.00</span>
+          <div class="order-product-info">
+            <h3 class="order-product-name">Latte frío</h3>
+            <div class="order-product-bottom">
+              <span class="order-product-price">$3.00</span>
+              <div class="card-quantity-control" data-id="4" data-codigo="4">
+                <button class="card-qty-btn card-qty-minus" type="button" aria-label="Disminuir cantidad">-</button>
+                <span class="card-qty-value">0</span>
+                <button class="card-qty-btn card-qty-plus" type="button" aria-label="Aumentar cantidad">+</button>
+              </div>
             </div>
-            <button class="btn-add-item" aria-label="Agregar Producto 4">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
           </div>
         </article>
 
         <!-- Producto 5 -->
-        <article class="order-product-card" data-id="5" data-name="Producto 5" data-price="$0.00">
+        <article class="order-product-card" data-id="5" data-codigo="5" data-name="Desayuno NIXGARU" data-nombre="Desayuno NIXGARU" data-price="4.50" data-precio="4.50" data-category="platos">
           <div class="order-product-img-box"></div>
-          <div class="order-product-footer">
-            <div class="order-product-meta">
-              <h3 class="order-product-name">Producto 5</h3>
-              <span class="order-product-price">$0.00</span>
+          <div class="order-product-info">
+            <h3 class="order-product-name">Desayuno NIXGARU</h3>
+            <div class="order-product-bottom">
+              <span class="order-product-price">$4.50</span>
+              <div class="card-quantity-control" data-id="5" data-codigo="5">
+                <button class="card-qty-btn card-qty-minus" type="button" aria-label="Disminuir cantidad">-</button>
+                <span class="card-qty-value">0</span>
+                <button class="card-qty-btn card-qty-plus" type="button" aria-label="Aumentar cantidad">+</button>
+              </div>
             </div>
-            <button class="btn-add-item" aria-label="Agregar Producto 5">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
           </div>
         </article>
 
         <!-- Producto 6 -->
-        <article class="order-product-card" data-id="6" data-name="Producto 6" data-price="$0.00">
+        <article class="order-product-card" data-id="6" data-codigo="6" data-name="Postre de la casa" data-nombre="Postre de la casa" data-price="2.50" data-precio="2.50" data-category="postres">
           <div class="order-product-img-box"></div>
-          <div class="order-product-footer">
-            <div class="order-product-meta">
-              <h3 class="order-product-name">Producto 6</h3>
-              <span class="order-product-price">$0.00</span>
+          <div class="order-product-info">
+            <h3 class="order-product-name">Postre de la casa</h3>
+            <div class="order-product-bottom">
+              <span class="order-product-price">$2.50</span>
+              <div class="card-quantity-control" data-id="6" data-codigo="6">
+                <button class="card-qty-btn card-qty-minus" type="button" aria-label="Disminuir cantidad">-</button>
+                <span class="card-qty-value">0</span>
+                <button class="card-qty-btn card-qty-plus" type="button" aria-label="Aumentar cantidad">+</button>
+              </div>
             </div>
-            <button class="btn-add-item" aria-label="Agregar Producto 6">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-            </button>
           </div>
         </article>
 
@@ -186,82 +180,39 @@
     </section>
 
     <!-- COLUMNA DERECHA (30%): Cuenta Activa de la Mesa -->
-    <aside class="active-order-sidebar">
+    <aside class="active-order-sidebar" id="activeOrderSidebar" aria-label="Detalle de cuenta de la mesa">
       <div class="active-order-card">
         
         <!-- Encabezado de la Cuenta -->
         <div class="active-order-header">
-          <h2 class="active-order-title">Cuenta - Mesa 1</h2>
-          <span class="order-count-badge" id="orderItemsBadge">5 Items</span>
+          <div class="active-order-header-left" style="display: inline-flex; align-items: center; gap: 10px;">
+            <h2 class="active-order-title" data-mesa="1">Cuenta - Mesa 1</h2>
+            <span class="order-count-badge" id="orderItemsBadge">0 Items</span>
+          </div>
+
+          <!-- Botón de cierre con 'X' visible en vista móvil/drawer -->
+          <button class="cuenta-close-btn" id="activeOrderCloseBtn" type="button" aria-label="Cerrar detalle de cuenta" title="Cerrar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
-        <!-- Lista de Productos Seleccionados -->
+        <!-- Lista de Productos Seleccionados (Llenado dinámico mediante JS) -->
         <div class="active-order-items" id="activeOrderList">
-          
-          <!-- Fila de Producto Seleccionado 1 -->
-          <div class="active-order-item" data-item-id="1">
-            <div class="active-item-info">
-              <h4 class="active-item-title">Producto 1</h4>
-              <span class="active-item-price">$0.00</span>
-            </div>
-            <div class="active-item-controls">
-              <button class="qty-circle-btn" data-action="decrease" aria-label="Disminuir">-</button>
-              <span class="qty-circle-value">2</span>
-              <button class="qty-circle-btn" data-action="increase" aria-label="Aumentar">+</button>
-              <button class="btn-remove-item" data-action="delete" aria-label="Eliminar producto">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Fila de Producto Seleccionado 2 -->
-          <div class="active-order-item" data-item-id="2">
-            <div class="active-item-info">
-              <h4 class="active-item-title">Producto 1</h4>
-              <span class="active-item-price">$0.00</span>
-            </div>
-            <div class="active-item-controls">
-              <button class="qty-circle-btn" data-action="decrease" aria-label="Disminuir">-</button>
-              <span class="qty-circle-value">2</span>
-              <button class="qty-circle-btn" data-action="increase" aria-label="Aumentar">+</button>
-              <button class="btn-remove-item" data-action="delete" aria-label="Eliminar producto">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Fila de Producto Seleccionado 3 -->
-          <div class="active-order-item" data-item-id="3">
-            <div class="active-item-info">
-              <h4 class="active-item-title">Producto 1</h4>
-              <span class="active-item-price">$0.00</span>
-            </div>
-            <div class="active-item-controls">
-              <button class="qty-circle-btn" data-action="decrease" aria-label="Disminuir">-</button>
-              <span class="qty-circle-value">2</span>
-              <button class="qty-circle-btn" data-action="increase" aria-label="Aumentar">+</button>
-              <button class="btn-remove-item" data-action="delete" aria-label="Eliminar producto">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-
+          <!-- Las filas se agregan automáticamente con los controles de cantidad -->
         </div>
 
-        <!-- Resumen de Costos -->
+        <!-- Resumen de Costos: Subtotal, Propina (10%) y Total -->
         <div class="active-order-summary">
           <div class="summary-cost-line">
             <span>Subtotal</span>
             <span id="orderSubtotal">$0.00 USD</span>
+          </div>
+          <div class="summary-cost-line">
+            <span>Propina (10%)</span>
+            <span id="orderTip">$0.00 USD</span>
           </div>
           <div class="summary-cost-line total">
             <span class="total-label">Total</span>
@@ -271,7 +222,7 @@
 
         <!-- Botones de Acción de Bloque Inferior -->
         <div class="active-order-actions">
-          <button class="btn-order-update" id="btnActualizarOrden">
+          <button class="btn-order-update" id="btnActualizarOrden" type="button" data-mesa="1">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               <polyline points="14 2 14 8 20 8"></polyline>
@@ -282,7 +233,7 @@
             <span>Actualizar Orden</span>
           </button>
 
-          <button class="btn-order-send-kitchen" id="btnEnviarCocina">
+          <button class="btn-order-send-kitchen" id="btnEnviarCocina" type="button" data-mesa="1">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"></path>
               <line x1="6" y1="17" x2="18" y2="17"></line>
@@ -293,6 +244,9 @@
 
       </div>
     </aside>
+
+    <!-- Overlay / Fondo oscuro y difuminado para vista móvil/drawer -->
+    <div class="cuenta-backdrop" id="activeOrderBackdrop" aria-hidden="true"></div>
 
   </main>
 

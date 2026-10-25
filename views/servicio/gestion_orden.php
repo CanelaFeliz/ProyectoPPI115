@@ -72,40 +72,18 @@ require_once '../layouts/header.php';
                    data-price="<?php echo htmlspecialchars((string)$producto['precio']); ?>"
                    data-category="<?php echo $catSlug; ?>">
             
-            <div class="order-product-img-box">
-              <?php if (!empty($producto['fotografia'])): ?>
-                <img 
-                  src="../../public/img/<?php echo htmlspecialchars($producto['fotografia']); ?>" 
-                  alt="<?php echo htmlspecialchars($producto['nombre_producto']); ?>"
-                  onerror="this.style.display='none';"
-                >
-              <?php endif; ?>
-            </div>
+            <div class="order-product-img-box"></div>
 
-            <div class="order-product-footer">
-              <div class="order-product-meta">
-                <h3 class="order-product-name"><?php echo htmlspecialchars($producto['nombre_producto']); ?></h3>
-                <?php if (!empty($producto['descripcion'])): ?>
-                  <p class="order-product-desc"><?php echo htmlspecialchars($producto['descripcion']); ?></p>
-                <?php endif; ?>
+            <div class="order-product-info">
+              <h3 class="order-product-name"><?php echo htmlspecialchars($producto['nombre_producto']); ?></h3>
+              <div class="order-product-bottom">
                 <span class="order-product-price">$<?php echo number_format((float)$producto['precio'], 2); ?></span>
+                <div class="card-quantity-control" data-id="<?php echo (int)$producto['id_producto']; ?>" data-codigo="<?php echo (int)$producto['id_producto']; ?>">
+                  <button class="card-qty-btn card-qty-minus" type="button" aria-label="Disminuir cantidad">-</button>
+                  <span class="card-qty-value">0</span>
+                  <button class="card-qty-btn card-qty-plus" type="button" aria-label="Aumentar cantidad">+</button>
+                </div>
               </div>
-
-              <!-- Botón Agregar con atributos data-id, data-nombre y data-precio -->
-              <button 
-                class="btn-add-item" 
-                type="button"
-                aria-label="Agregar <?php echo htmlspecialchars($producto['nombre_producto']); ?>"
-                data-id="<?php echo (int)$producto['id_producto']; ?>"
-                data-codigo="<?php echo (int)$producto['id_producto']; ?>" 
-                data-nombre="<?php echo htmlspecialchars($producto['nombre_producto']); ?>" 
-                data-precio="<?php echo htmlspecialchars((string)$producto['precio']); ?>"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-              </button>
             </div>
 
           </article>

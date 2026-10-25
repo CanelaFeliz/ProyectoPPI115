@@ -1612,6 +1612,36 @@ document.addEventListener('DOMContentLoaded', () => {
     if (orderTotal) {
       orderTotal.textContent = `$${totalGeneral.toFixed(2)} USD`;
     }
+
+    // Sincronizar contadores interactivos de las tarjetas del catálogo
+    sincronizarContadoresCatalogo();
+  }
+
+  // Sincronizar los contadores visuales ([-] [ N ] [+]) de cada tarjeta del catálogo
+  function sincronizarContadoresCatalogo() {
+    const cards = document.querySelectorAll('.order-product-card');
+    if (!cards.length) return;
+
+    cards.forEach(card => {
+      const id = (card.dataset.id || card.dataset.codigo || '').trim();
+      const nombre = (card.dataset.nombre || card.dataset.name || card.querySelector('.order-product-name')?.textContent || '').trim().toLowerCase();
+      const qtySpan = card.querySelector('.card-qty-value');
+      if (!qtySpan) return;
+
+      let count = 0;
+      if (activeOrderList) {
+        const item = Array.from(activeOrderList.querySelectorAll('.active-order-item')).find(it => {
+          if (id && it.dataset.id && it.dataset.id === id) return true;
+          const itemTitle = it.querySelector('.active-item-title')?.textContent.trim().toLowerCase();
+          return itemTitle && itemTitle === nombre;
+        });
+        if (item) {
+          const itemQtySpan = item.querySelector('.qty-circle-value');
+          count = parseInt(itemQtySpan ? itemQtySpan.textContent : '0', 10) || 0;
+        }
+      }
+      qtySpan.textContent = count;
+    });
   }
 
   // Controles de cantidad (- / +) y eliminación (basurero) en la lista de la cuenta
@@ -1659,10 +1689,89 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Capturar el clic en el botón '+' de los productos del catálogo
-  // Agrupación estricta:
-  // - Si el producto ya existe en la cuenta, incrementa la cantidad en esa fila y actualiza su subtotal
-  // - Si no existe, crea una nueva fila con cantidad inicial 1
+  // Controles de cantidad interactivos en las tarjetas del catálogo ([-] [ 0 ] [+])
+  document.addEventListener('click', (e) => {
+    const qtyBtn = e.target.closest('.card-qty-btn');
+    if (!qtyBtn) return;
+    e.preventDefault();
+
+    if (!activeOrderList) return;
+
+    const card = qtyBtn.closest('.order-product-card');
+    const control = qtyBtn.closest('.card-quantity-control');
+    const id = (control?.dataset.id || control?.dataset.codigo || card?.dataset.id || card?.dataset.codigo || '').trim();
+    const nombre = (card?.dataset.nombre || card?.dataset.name || card?.querySelector('.order-product-name')?.textContent || 'Producto').trim();
+    const rawPrecio = card?.dataset.precio || card?.dataset.price || card?.querySelector('.order-product-price')?.textContent || '0.00';
+    const unitPrice = parseFloat(String(rawPrecio).replace(/[^0-9.]/g, '')) || 0;
+
+    const isPlus = qtyBtn.classList.contains('card-qty-plus') || qtyBtn.textContent.trim() === '+';
+    const isMinus = qtyBtn.classList.contains('card-qty-minus') || qtyBtn.textContent.trim() === '-';
+
+    // Buscar si el producto ya existe en activeOrderList
+    const existingItem = Array.from(activeOrderList.querySelectorAll('.active-order-item')).find(item => {
+      if (id && item.dataset.id && item.dataset.id === id) return true;
+      const itemTitle = item.querySelector('.active-item-title')?.textContent.trim();
+      return itemTitle && itemTitle.toLowerCase() === nombre.toLowerCase();
+    });
+
+    if (isPlus) {
+      if (existingItem) {
+        const itemQtySpan = existingItem.querySelector('.qty-circle-value');
+        let currentQty = parseInt(itemQtySpan ? itemQtySpan.textContent : '1', 10) || 1;
+        currentQty++;
+        if (itemQtySpan) itemQtySpan.textContent = currentQty;
+
+        const baseUnit = parseFloat(existingItem.dataset.unitPrice) || unitPrice;
+        const priceSpan = existingItem.querySelector('.active-item-price');
+        if (priceSpan) {
+          priceSpan.textContent = `$${(baseUnit * currentQty).toFixed(2)}`;
+        }
+      } else {
+        const newItem = document.createElement('div');
+        newItem.className = 'active-order-item';
+        newItem.dataset.id = id;
+        newItem.dataset.unitPrice = unitPrice;
+        newItem.innerHTML = `
+          <div class="active-item-info">
+            <h4 class="active-item-title">${nombre}</h4>
+            <span class="active-item-price">$${unitPrice.toFixed(2)}</span>
+          </div>
+          <div class="active-item-controls">
+            <button class="qty-circle-btn" data-action="decrease" aria-label="Disminuir">-</button>
+            <span class="qty-circle-value">1</span>
+            <button class="qty-circle-btn" data-action="increase" aria-label="Aumentar">+</button>
+            <button class="btn-remove-item" data-action="delete" aria-label="Eliminar producto">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        `;
+        activeOrderList.appendChild(newItem);
+      }
+      actualizarTotalesOrden();
+    } else if (isMinus) {
+      if (existingItem) {
+        const itemQtySpan = existingItem.querySelector('.qty-circle-value');
+        let currentQty = parseInt(itemQtySpan ? itemQtySpan.textContent : '1', 10) || 1;
+        if (currentQty > 1) {
+          currentQty--;
+          if (itemQtySpan) itemQtySpan.textContent = currentQty;
+          const baseUnit = parseFloat(existingItem.dataset.unitPrice) || unitPrice;
+          const priceSpan = existingItem.querySelector('.active-item-price');
+          if (priceSpan) {
+            priceSpan.textContent = `$${(baseUnit * currentQty).toFixed(2)}`;
+          }
+        } else {
+          existingItem.remove();
+        }
+        actualizarTotalesOrden();
+      }
+    }
+  });
+
+  // Capturar el clic en el botón '+' de los productos del catálogo (compatibilidad botón único)
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-add-item');
     if (!btn) return;
@@ -1684,7 +1793,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (existingItem) {
-      // SI YA EXISTE: incrementamos el valor numérico de la cantidad en esa misma fila y recalculamos su subtotal
       const qtySpan = existingItem.querySelector('.qty-circle-value');
       const priceSpan = existingItem.querySelector('.active-item-price');
       
@@ -1697,7 +1805,6 @@ document.addEventListener('DOMContentLoaded', () => {
         priceSpan.textContent = `$${(baseUnit * currentQty).toFixed(2)}`;
       }
 
-      // Animación visual de confirmación en la fila existente
       existingItem.style.transition = 'background-color 0.25s ease';
       existingItem.style.backgroundColor = 'rgba(193, 122, 93, 0.15)';
       setTimeout(() => {
@@ -1705,7 +1812,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 300);
 
     } else {
-      // SI NO EXISTE: creamos la fila con cantidad 1
       const newItem = document.createElement('div');
       newItem.className = 'active-order-item';
       newItem.dataset.id = id;
@@ -1730,7 +1836,6 @@ document.addEventListener('DOMContentLoaded', () => {
       activeOrderList.appendChild(newItem);
     }
 
-    // Recalcular Subtotal, Propina (10%) y Total general de la mesa en tiempo real
     actualizarTotalesOrden();
   });
 
@@ -1777,6 +1882,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Error al precargar orden en gestion_orden:', e);
       }
     }
+    // Sincronizar totales y contadores visuales del catálogo al cargar la vista
+    actualizarTotalesOrden();
   }
 
   /**
