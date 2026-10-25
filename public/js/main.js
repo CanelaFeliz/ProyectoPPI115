@@ -1021,7 +1021,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const emptyState = document.getElementById('cuentaEmptyState');
     const detalleContainer = document.getElementById('cuentaDetalleContainer');
     if (emptyState) emptyState.style.display = 'none';
-    if (detalleContainer) detalleContainer.style.display = 'block';
+    if (detalleContainer) {
+      detalleContainer.style.display = 'flex';
+      detalleContainer.style.flexDirection = 'column';
+    }
 
     // 6. Habilitar y actualizar botones de acción del panel lateral
     const btnAgregar = document.getElementById('btnAgregarProducto');

@@ -79,7 +79,7 @@ if (!isset($headerTitle)) {
   <link rel="stylesheet" href="/NIXGARU/public/css/global.css">
   <?php if (in_array($currentPage, ['mesas.php', 'gestion_orden.php', 'cierre_cuenta.php']) || (isset($rolUsuario) && $rolUsuario === 'Personal de servicio')): ?>
   <!-- Estilos modulares para el módulo de personal de servicio -->
-  <link rel="stylesheet" href="/NIXGARU/public/css/servicio.css">
+  <link rel="stylesheet" href="/NIXGARU/public/css/servicio.css?v=<?php echo file_exists(__DIR__ . '/../../public/css/servicio.css') ? filemtime(__DIR__ . '/../../public/css/servicio.css') : time(); ?>">
   <?php endif; ?>
 </head>
 <body>

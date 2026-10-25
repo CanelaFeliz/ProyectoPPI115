@@ -266,7 +266,7 @@ require_once '../layouts/header.php';
         </div>
 
         <!-- Contenedor Dinámico de la Cuenta Activa (Productos y Totales) -->
-        <div id="cuentaDetalleContainer" style="<?php echo $idMesaActiva !== null ? 'display: block;' : 'display: none;'; ?>">
+        <div id="cuentaDetalleContainer" class="cuenta-detalle-container" style="<?php echo $idMesaActiva !== null ? 'display: flex; flex-direction: column;' : 'display: none;'; ?> width: 100%; min-width: 0;">
           <!-- Sección de Productos -->
           <div class="cuenta-section-label">PRODUCTOS</div>
 
@@ -358,6 +358,7 @@ require_once '../layouts/header.php';
           </a>
         </div>
 
+      </div>
     </aside>
  
     <!-- Overlay / Fondo desenfocado para vista móvil -->
@@ -366,6 +367,6 @@ require_once '../layouts/header.php';
   </main>
 
   <!-- Script Principal con la lógica requerida -->
-  <script src="../../public/js/main.js"></script>
+  <script src="../../public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>"></script>
 </body>
 </html>

@@ -648,22 +648,42 @@
   background-color: var(--color-blanco);
   border: 1px solid var(--color-borde-suave);
   border-radius: var(--radio-lg);
-  padding: 26px 22px;
+  padding: 24px 22px;
   box-shadow: var(--sombra-card);
+  position: sticky;
+  top: 90px;
+  height: calc(100vh - 120px);
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 
 .cuenta-card {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .cuenta-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .cuenta-header-left {
@@ -709,21 +729,63 @@
   display: inline-block;
 }
 
+/* Contenedor dinámico de la orden activa: ocupa el espacio vertical disponible */
+.cuenta-detalle-container,
+#cuentaDetalleContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .cuenta-section-label {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-texto-muted);
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .cuenta-items-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  min-height: 120px;
-  margin-bottom: 24px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  margin-bottom: 0;
+  padding-right: 6px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #D1D5DB transparent;
+}
+
+.cuenta-items-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.cuenta-items-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cuenta-items-list::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+
+.cuenta-items-list::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
 }
 
 .cuenta-item {
@@ -802,14 +864,19 @@
   margin: 0;
 }
 
-/* Totales de la Cuenta */
+/* Totales de la Cuenta: anclados en la parte inferior del contenedor */
 .cuenta-totals {
   border-top: 1px solid var(--color-borde-suave);
-  padding-top: 18px;
+  padding-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-bottom: 22px;
+  margin-top: auto;
+  margin-bottom: 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .totals-line {
@@ -818,6 +885,8 @@
   justify-content: space-between;
   font-size: 0.88rem;
   color: var(--color-texto-muted);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .totals-line.total-highlight {
@@ -837,11 +906,16 @@
   color: var(--color-negro-suave);
 }
 
-/* Botones de Acción en Panel Lateral */
+/* Botones de Acción en Panel Lateral: anclados al nivel inferior */
 .cuenta-actions {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 16px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 /* Acción Secundaria / Construcción: Agregar Producto */
@@ -1841,6 +1915,8 @@
     max-width: 440px;
     height: 100vh;
     height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
     z-index: 1000;
     margin: 0;
     padding: 24px 20px;
@@ -1848,7 +1924,8 @@
     border: none;
     border-radius: 20px 0 0 20px;
     box-shadow: -8px 0 35px rgba(0, 0, 0, 0.25);
-    overflow-y: auto;
+    overflow: hidden;
+    box-sizing: border-box;
     transform: translateX(100%);
     visibility: hidden;
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s ease;
