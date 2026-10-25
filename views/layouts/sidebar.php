@@ -51,7 +51,7 @@ if (!isset($pageTitle)) {
 
   <div class="admin-layout" id="adminLayout">
 
-    <!-- BARRA LATERAL (SIDEBAR ADMIN OSCURA #382823) -->
+    <!-- BARRA LATERAL (SIDEBAR ADMIN OSCURA #222629) -->
     <aside class="admin-sidebar" id="adminSidebar">
       
       <!-- Logotipo Admin - Clic en la taza para alternar entre vista detallada y reducida -->

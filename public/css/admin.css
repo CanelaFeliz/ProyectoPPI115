@@ -11,7 +11,7 @@
 
 /* Fondo general del área administrativa */
 body.admin-body {
-  background-color: #F5F2EE;
+  background-color: var(--color-gris-superficie);
   color: var(--color-texto);
   font-family: var(--fuente-principal);
   min-height: 100vh;
@@ -27,12 +27,12 @@ body.admin-body {
 }
 
 /* --------------------------------------------------------------------------
-   Barra Lateral (Sidebar Admin - #382823)
+   Barra Lateral (Sidebar Admin - var(--color-negro-suave))
    -------------------------------------------------------------------------- */
 .admin-sidebar {
   width: 270px;
   min-width: 270px;
-  background-color: #382823;
+  background-color: var(--color-negro-suave);
   color: var(--color-blanco);
   display: flex;
   flex-direction: column;
@@ -105,7 +105,7 @@ body.admin-body {
 .admin-brand-sub {
   font-size: 0.62rem;
   font-weight: 700;
-  color: #B5A59E;
+  color: #94A3B8;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-top: 3px;
@@ -167,7 +167,7 @@ body.admin-body {
   left: calc(100% + 14px);
   top: 50%;
   transform: translateY(-50%);
-  background-color: #241A16;
+  background-color: var(--color-negro-suave);
   color: #FFFFFF;
   padding: 7px 14px;
   border-radius: 8px;
@@ -189,7 +189,7 @@ body.admin-body {
   transform: translateY(-50%);
   border-width: 6px 7px 6px 0;
   border-style: solid;
-  border-color: transparent #241A16 transparent transparent;
+  border-color: transparent var(--color-negro-suave) transparent transparent;
   z-index: 1000;
   pointer-events: none;
 }
@@ -231,7 +231,7 @@ body.admin-body {
   padding: 12px 18px;
   border-radius: var(--radio-md);
   text-decoration: none;
-  color: #B5A59E;
+  color: #94A3B8;
   font-size: 0.9rem;
   font-weight: 500;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -250,16 +250,16 @@ body.admin-body {
   color: var(--color-blanco);
 }
 
-/* Enlace activo: Fondo blanco, texto oscuro y bordes suaves */
+/* Enlace activo: Fondo blanco, texto negro suave y acento rojo frambuesa */
 .admin-nav-item.active {
   background-color: var(--color-blanco);
-  color: #382823;
+  color: var(--color-negro-suave);
   font-weight: 700;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
 .admin-nav-item.active svg {
-  stroke: #382823;
+  stroke: var(--color-rojo-frambuesa);
 }
 
 /* Perfil de Administrador en el Pie del Sidebar */
@@ -276,7 +276,7 @@ body.admin-body {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #553E37;
+  background-color: var(--color-terracota);
   color: var(--color-blanco);
   font-weight: 700;
   font-size: 0.85rem;
@@ -305,7 +305,7 @@ body.admin-body {
 
 .admin-profile-role {
   font-size: 0.72rem;
-  color: #B5A59E;
+  color: #94A3B8;
   margin-top: 2px;
 }
 
@@ -324,7 +324,7 @@ body.admin-body {
 .admin-content-card {
   background-color: var(--color-blanco);
   border-radius: var(--radio-lg);
-  border: 1px solid #ECE7E2;
+  border: 1px solid var(--color-borde-suave);
   box-shadow: var(--sombra-card);
   padding: 36px 40px;
   flex: 1;
@@ -352,7 +352,7 @@ body.admin-body {
 .admin-page-title {
   font-size: 1.65rem;
   font-weight: 800;
-  color: #2E2420;
+  color: var(--color-negro-suave);
   letter-spacing: -0.02em;
   line-height: 1.2;
   margin-bottom: 6px;
@@ -368,7 +368,7 @@ body.admin-body {
 /* Botones de Acción Primarios (+ Agregar Mesa, + Agregar Empleado, etc.) */
 .btn-add-table,
 .btn-admin-primary {
-  background-color: var(--color-terracota);
+  background-color: var(--color-rojo-frambuesa);
   color: var(--color-blanco);
   border: none;
   border-radius: 12px;
@@ -380,16 +380,16 @@ body.admin-body {
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 14px rgba(198, 111, 80, 0.28);
+  box-shadow: 0 4px 14px rgba(197, 46, 69, 0.28);
   white-space: nowrap;
   font-family: inherit;
 }
 
 .btn-add-table:hover,
 .btn-admin-primary:hover {
-  background-color: #B55F42;
+  background-color: #AE2439;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(198, 111, 80, 0.36);
+  box-shadow: 0 6px 18px rgba(197, 46, 69, 0.36);
 }
 
 .btn-add-table:active,
@@ -400,12 +400,12 @@ body.admin-body {
 /* Botón de Rango de Fechas (Dashboard) */
 .btn-date-range {
   background-color: #FAFAFA;
-  border: 1px solid #E5E0DC;
+  border: 1px solid var(--color-borde-suave);
   border-radius: 10px;
   padding: 9px 16px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #4B3F39;
+  color: var(--color-negro-suave);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -415,8 +415,8 @@ body.admin-body {
 }
 
 .btn-date-range:hover {
-  background-color: #F4EFEB;
-  border-color: #D6CEC8;
+  background-color: var(--color-gris-superficie);
+  border-color: var(--color-borde-suave);
 }
 
 /* Buscador de Insumos / Ingredientes */
@@ -430,14 +430,14 @@ body.admin-body {
 .search-input-icon {
   position: absolute;
   left: 14px;
-  color: #9C8F88;
+  color: var(--color-texto-muted);
   pointer-events: none;
 }
 
 .admin-search-input {
   width: 100%;
   padding: 10px 16px 10px 40px;
-  border: 1px solid #E5E0DC;
+  border: 1px solid var(--color-borde-suave);
   border-radius: 12px;
   font-size: 0.88rem;
   background-color: #FAFAFA;
@@ -448,13 +448,13 @@ body.admin-body {
 }
 
 .admin-search-input:focus {
-  border-color: var(--color-terracota);
+  border-color: var(--color-rojo-frambuesa);
   background-color: var(--color-blanco);
-  box-shadow: 0 0 0 3px rgba(198, 111, 80, 0.15);
+  box-shadow: 0 0 0 3px rgba(197, 46, 69, 0.15);
 }
 
 .admin-search-input::placeholder {
-  color: #A3968F;
+  color: var(--color-texto-muted);
 }
 
 /* ==========================================================================
@@ -471,7 +471,7 @@ body.admin-body {
 
 .admin-stat-card {
   background-color: var(--color-blanco);
-  border: 1px solid #ECE7E3;
+  border: 1px solid var(--color-borde-suave);
   border-radius: var(--radio-md);
   padding: 24px 28px;
   display: flex;
@@ -483,7 +483,7 @@ body.admin-body {
 .stat-label {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #9E918A;
+  color: var(--color-texto-muted);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-bottom: 8px;
@@ -498,7 +498,7 @@ body.admin-body {
 .stat-number {
   font-size: 1.95rem;
   font-weight: 800;
-  color: #2E2420;
+  color: var(--color-negro-suave);
   letter-spacing: -0.02em;
 }
 
@@ -521,7 +521,7 @@ body.admin-body {
 
 .kpi-card {
   background-color: var(--color-blanco);
-  border: 1px solid #ECE7E3;
+  border: 1px solid var(--color-borde-suave);
   border-radius: var(--radio-md);
   padding: 24px 28px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -537,18 +537,18 @@ body.admin-body {
 .kpi-title {
   font-size: 0.88rem;
   font-weight: 600;
-  color: #786C65;
+  color: var(--color-texto-muted);
 }
 
 .kpi-icon-badge {
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background-color: #F8F5F2;
+  background-color: var(--color-gris-superficie);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-terracota);
+  color: var(--color-rojo-frambuesa);
 }
 
 .kpi-value-group {
@@ -565,16 +565,16 @@ body.admin-body {
 }
 
 .text-kpi-primary {
-  color: #2E2420;
+  color: var(--color-negro-suave);
 }
 
 .text-kpi-highlight {
-  color: #2E2420;
+  color: var(--color-negro-suave);
 }
 
 .kpi-subtext {
   font-size: 0.8rem;
-  color: #9E918A;
+  color: var(--color-texto-muted);
   margin: 0;
 }
 
@@ -589,9 +589,9 @@ body.admin-body {
 }
 
 .catalog-filter-pill {
-  border: 1px solid #E5E0DC;
+  border: 1px solid var(--color-borde-suave);
   background-color: var(--color-blanco);
-  color: #5C504A;
+  color: var(--color-negro-suave);
   border-radius: var(--radio-pill);
   padding: 8px 22px;
   font-size: 0.86rem;
@@ -602,15 +602,15 @@ body.admin-body {
 }
 
 .catalog-filter-pill:hover {
-  border-color: #CFC5BE;
-  background-color: #FAF8F6;
+  border-color: var(--color-borde-suave);
+  background-color: var(--color-gris-superficie);
 }
 
 .catalog-filter-pill.active {
-  background-color: var(--color-terracota);
+  background-color: var(--color-rojo-frambuesa);
   color: var(--color-blanco);
-  border-color: var(--color-terracota);
-  box-shadow: 0 3px 10px rgba(198, 111, 80, 0.25);
+  border-color: var(--color-rojo-frambuesa);
+  box-shadow: 0 3px 10px rgba(197, 46, 69, 0.25);
 }
 
 /* ==========================================================================
@@ -620,7 +620,7 @@ body.admin-body {
 .ranking-table-card,
 .inventory-table-card {
   background-color: var(--color-blanco);
-  border: 1px solid #EDE8E4;
+  border: 1px solid var(--color-borde-suave);
   border-radius: var(--radio-md);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
@@ -636,7 +636,7 @@ body.admin-body {
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  border-bottom: 1px solid #F5F1EE;
+  border-bottom: 1px solid var(--color-borde-suave);
 }
 
 .table-header-left,
@@ -650,7 +650,7 @@ body.admin-body {
 .inventory-card-title {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #2E2420;
+  color: var(--color-negro-suave);
   margin-bottom: 4px;
 }
 
@@ -658,7 +658,7 @@ body.admin-body {
 .ranking-card-subtitle,
 .inventory-card-subtitle {
   font-size: 0.82rem;
-  color: #948881;
+  color: var(--color-texto-muted);
   font-weight: 400;
 }
 
@@ -668,8 +668,8 @@ body.admin-body {
 .inventory-badge-updated {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #8F5542;
-  background-color: #FAF0EC;
+  color: var(--color-terracota);
+  background-color: rgba(198, 111, 80, 0.12);
   border-radius: var(--radio-pill);
   padding: 4px 14px;
   white-space: nowrap;
@@ -699,9 +699,9 @@ body.admin-body {
   padding: 16px 28px;
   font-size: 0.78rem;
   font-weight: 700;
-  color: #9C8F88;
+  color: var(--color-texto-muted);
   letter-spacing: 0.02em;
-  border-bottom: 1px solid #ECE7E3;
+  border-bottom: 1px solid var(--color-borde-suave);
   background-color: transparent;
   white-space: nowrap;
 }
@@ -710,7 +710,7 @@ body.admin-body {
 .inventory-table tbody tr,
 .ranking-table tbody tr,
 .catalog-table tbody tr {
-  border-bottom: 1px solid #F2EEEA;
+  border-bottom: 1px solid #F4F4F5;
   transition: background-color 0.15s ease;
 }
 
@@ -718,7 +718,7 @@ body.admin-body {
 .inventory-table tbody tr:not(.row-stock-alert):hover,
 .ranking-table tbody tr:hover,
 .catalog-table tbody tr:hover {
-  background-color: #FCFBFA;
+  background-color: #F8F9FA;
 }
 
 .admin-data-table tbody td,
@@ -727,7 +727,7 @@ body.admin-body {
 .catalog-table tbody td {
   padding: 18px 28px;
   font-size: 0.9rem;
-  color: #382823;
+  color: var(--color-negro-suave);
   vertical-align: middle;
 }
 
@@ -735,14 +735,14 @@ body.admin-body {
 .cell-id,
 .cell-code {
   font-weight: 700;
-  color: #4A3E39;
+  color: var(--color-negro-suave);
   width: 70px;
 }
 
 .cell-name,
 .ingredient-name {
   font-weight: 700;
-  color: #2E2420;
+  color: var(--color-negro-suave);
 }
 
 .cell-user {
@@ -751,12 +751,12 @@ body.admin-body {
 }
 
 .cell-cat-desc {
-  color: #786C65;
+  color: var(--color-texto-muted);
   font-size: 0.85rem;
 }
 
 .catalog-price {
-  color: var(--color-terracota);
+  color: var(--color-rojo-frambuesa);
   font-weight: 700;
   font-size: 0.95rem;
 }
@@ -770,8 +770,8 @@ body.admin-body {
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background-color: #F8F6F4;
-  border: 1px solid #EBE5E0;
+  background-color: var(--color-gris-superficie);
+  border: 1px solid var(--color-borde-suave);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -802,12 +802,12 @@ body.admin-body {
 }
 
 .btn-action-edit {
-  color: #736761;
+  color: var(--color-texto-muted);
 }
 
 .btn-action-edit:hover {
-  color: #382823;
-  background-color: #F4EFEB;
+  color: var(--color-negro-suave);
+  background-color: var(--color-gris-superficie);
 }
 
 .btn-action-delete {
@@ -853,13 +853,13 @@ body.admin-body {
 }
 
 .qty-val-normal {
-  color: #2E2420;
+  color: var(--color-negro-suave);
   font-weight: 800;
   font-size: 1rem;
 }
 
 .unit-text {
-  color: #9C8F88;
+  color: var(--color-texto-muted);
   font-size: 0.85rem;
   margin-left: 4px;
   font-weight: 500;
@@ -875,25 +875,25 @@ body.admin-body {
 .input-adjust {
   width: 72px;
   padding: 7px 8px;
-  border: 1px solid #E0D9D4;
+  border: 1px solid var(--color-borde-suave);
   border-radius: 8px;
   text-align: center;
   font-size: 0.85rem;
   font-family: inherit;
   font-weight: 600;
-  color: #2E2420;
+  color: var(--color-negro-suave);
   background-color: var(--color-blanco);
   outline: none;
   transition: border-color 0.2s ease;
 }
 
 .input-adjust:focus {
-  border-color: var(--color-terracota);
-  box-shadow: 0 0 0 2px rgba(198, 111, 80, 0.12);
+  border-color: var(--color-rojo-frambuesa);
+  box-shadow: 0 0 0 2px rgba(197, 46, 69, 0.12);
 }
 
 .btn-adjust-save {
-  background-color: #382823;
+  background-color: var(--color-negro-suave);
   color: var(--color-blanco);
   border: none;
   border-radius: 8px;
@@ -906,7 +906,7 @@ body.admin-body {
 }
 
 .btn-adjust-save:hover {
-  background-color: #241A17;
+  background-color: #181A1C;
 }
 
 /* Mensaje de no resultados */
@@ -923,18 +923,18 @@ body.admin-body {
 .inventory-footer-link {
   padding: 16px 28px;
   text-align: center;
-  border-top: 1px solid #F5F1EE;
+  border-top: 1px solid var(--color-borde-suave);
   background-color: #FAFAFA;
   font-size: 0.85rem;
 }
 
 .admin-table-footer {
-  color: #9C8F88;
+  color: var(--color-texto-muted);
   font-size: 0.82rem;
 }
 
 .link-detail-report {
-  color: var(--color-terracota);
+  color: var(--color-rojo-frambuesa);
   text-decoration: none;
   font-size: 0.88rem;
   font-weight: 600;
@@ -990,7 +990,7 @@ body.admin-body {
   width: 28px;
   text-align: center;
   font-weight: 700;
-  color: #8F827A;
+  color: var(--color-texto-muted);
 }
 
 .rank-product-info {
@@ -1000,17 +1000,17 @@ body.admin-body {
 
 .rank-product-name {
   font-weight: 700;
-  color: #2E2420;
+  color: var(--color-negro-suave);
 }
 
 .rank-product-price {
   font-size: 0.78rem;
-  color: #9C8F88;
+  color: var(--color-texto-muted);
 }
 
 .rank-qty-val {
   font-weight: 700;
-  color: #2E2420;
+  color: var(--color-negro-suave);
 }
 
 /* ==========================================================================
@@ -1065,13 +1065,13 @@ body.admin-body {
 
 /* Píldora de Rol Asignado (Cuentas de Personal) */
 .role-pill {
-  background-color: #F6F3F0;
-  color: #4B3F39;
+  background-color: var(--color-gris-superficie);
+  color: var(--color-negro-suave);
   font-size: 0.8rem;
   font-weight: 600;
   padding: 5px 14px;
   border-radius: var(--radio-pill);
-  border: 1px solid #ECE7E2;
+  border: 1px solid var(--color-borde-suave);
   display: inline-block;
   white-space: nowrap;
 }
@@ -1209,7 +1209,7 @@ body.admin-body {
   inset: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(30, 20, 16, 0.55);
+  background-color: rgba(34, 38, 41, 0.6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: none;
@@ -1246,7 +1246,7 @@ body.admin-body {
   box-shadow: var(--sombra-modal);
   position: relative;
   animation: scaleUpModalCard 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid #EDE8E3;
+  border: 1px solid var(--color-borde-suave);
 }
 
 @keyframes scaleUpModalCard {
@@ -1268,14 +1268,14 @@ body.admin-body {
 .modal-title {
   font-size: 1.45rem;
   font-weight: 800;
-  color: #2E2420;
+  color: var(--color-negro-suave);
   letter-spacing: -0.01em;
   margin-bottom: 6px;
 }
 
 .modal-subtitle {
   font-size: 0.85rem;
-  color: #8C8078;
+  color: var(--color-texto-muted);
   line-height: 1.45;
   margin: 0;
 }
@@ -1296,7 +1296,7 @@ body.admin-body {
 .form-label {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #382823;
+  color: var(--color-negro-suave);
 }
 
 /* Entradas de Texto y Selectores */
@@ -1304,25 +1304,25 @@ body.admin-body {
 .form-select {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #ECE7E3;
+  border: 1px solid var(--color-borde-suave);
   border-radius: 12px;
   font-size: 0.9rem;
   font-family: inherit;
-  background-color: #FAF8F6;
-  color: #2E2420;
+  background-color: var(--color-gris-superficie);
+  color: var(--color-negro-suave);
   outline: none;
   transition: all 0.2s ease;
 }
 
 .form-input::placeholder {
-  color: #B5A8A0;
+  color: #A1A1AA;
 }
 
 .form-input:focus,
 .form-select:focus {
-  border-color: var(--color-terracota);
+  border-color: var(--color-rojo-frambuesa);
   background-color: var(--color-blanco);
-  box-shadow: 0 0 0 3px rgba(198, 111, 80, 0.15);
+  box-shadow: 0 0 0 3px rgba(197, 46, 69, 0.15);
 }
 
 /* Selector estilizado con flecha chevron personalizada */
@@ -1347,7 +1347,7 @@ body.admin-body {
   transform: translateY(-50%);
   width: 10px;
   height: 6px;
-  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23786C65' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2371717A' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: center;
   pointer-events: none;
@@ -1365,8 +1365,8 @@ body.admin-body {
 
 .btn-modal-cancel {
   background-color: var(--color-blanco);
-  border: 1px solid #DCD5CF;
-  color: #4F433E;
+  border: 1px solid var(--color-borde-suave);
+  color: var(--color-negro-suave);
   border-radius: 12px;
   padding: 10px 22px;
   font-size: 0.88rem;
@@ -1377,12 +1377,12 @@ body.admin-body {
 }
 
 .btn-modal-cancel:hover {
-  background-color: #F8F5F2;
-  border-color: #CBC2BB;
+  background-color: var(--color-gris-superficie);
+  border-color: var(--color-borde-suave);
 }
 
 .btn-modal-save {
-  background-color: var(--color-terracota);
+  background-color: var(--color-rojo-frambuesa);
   border: none;
   color: var(--color-blanco);
   border-radius: 12px;
@@ -1391,12 +1391,12 @@ body.admin-body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(198, 111, 80, 0.28);
+  box-shadow: 0 4px 12px rgba(197, 46, 69, 0.28);
   font-family: inherit;
 }
 
 .btn-modal-save:hover {
-  background-color: #B55F42;
+  background-color: #AE2439;
   transform: translateY(-1px);
 }
 
