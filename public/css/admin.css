@@ -271,14 +271,35 @@ body.admin-body {
   stroke: var(--color-rojo-frambuesa);
 }
 
-/* Perfil de Administrador en el Pie del Sidebar */
-.admin-sidebar-profile {
+/* Perfil de Administrador en el Pie del Sidebar y Menú Desplegable */
+.admin-sidebar-profile-wrapper {
   margin-top: auto;
-  padding: 18px 8px 0;
+  position: relative;
+  width: 100%;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+}
+
+.admin-header-profile-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.admin-sidebar-profile {
+  padding: 8px 10px;
+  border-radius: var(--radio-md);
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-sidebar-profile:hover,
+.admin-sidebar-profile:focus-visible,
+.admin-sidebar-profile-wrapper.open .admin-sidebar-profile {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .admin-profile-avatar {
@@ -294,6 +315,22 @@ body.admin-body {
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.15);
   flex-shrink: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-header-profile {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  user-select: none;
+}
+
+.admin-header-profile:hover .admin-profile-avatar,
+.admin-header-profile-wrapper.open .admin-profile-avatar {
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .admin-profile-meta {
@@ -316,6 +353,129 @@ body.admin-body {
   font-size: 0.72rem;
   color: #94A3B8;
   margin-top: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Burbuja Desplegable de Perfil / Cerrar Sesión (Estilo Módulo Servicio)
+   -------------------------------------------------------------------------- */
+.admin-user-dropdown {
+  position: absolute;
+  min-width: 220px;
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  padding: 8px;
+  z-index: 100000;
+  display: none;
+  animation: adminDropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+}
+
+.admin-user-dropdown.open,
+.admin-user-dropdown.show {
+  display: block;
+}
+
+@keyframes adminDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Posición en el Header Móvil (Despliega hacia abajo a la derecha) */
+.admin-header-profile-wrapper .admin-user-dropdown {
+  top: calc(100% + 10px);
+  right: 0;
+}
+
+/* Posición en la Barra Lateral (Despliega hacia arriba) */
+.admin-sidebar-profile-wrapper .admin-dropdown-sidebar {
+  bottom: calc(100% + 10px);
+  left: 0;
+  right: 0;
+}
+
+/* En escritorio cuando el sidebar está colapsado (82px) */
+@media (min-width: 1025px) {
+  .admin-sidebar.collapsed .admin-sidebar-profile-wrapper .admin-dropdown-sidebar {
+    bottom: 0;
+    left: calc(100% + 12px);
+    right: auto;
+    min-width: 220px;
+  }
+}
+
+/* Encabezado dentro de la burbuja */
+.admin-user-dropdown .dropdown-header-info {
+  padding: 8px 12px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-user-dropdown .dropdown-user-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  line-height: 1.25;
+}
+
+.admin-user-dropdown .dropdown-user-role {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-texto-muted);
+  margin-top: 3px;
+}
+
+/* Línea divisoria suave */
+.admin-user-dropdown .dropdown-divider {
+  height: 1px;
+  background-color: var(--color-borde-suave);
+  margin: 6px 4px 8px;
+}
+
+/* Botón de Cerrar Sesión en la burbuja */
+.admin-user-dropdown .btn-admin-logout,
+.admin-user-dropdown .btn-logout {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-rojo-frambuesa);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  font-family: inherit;
+}
+
+.admin-user-dropdown .btn-admin-logout svg,
+.admin-user-dropdown .btn-logout svg {
+  stroke: var(--color-rojo-frambuesa);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.admin-user-dropdown .btn-admin-logout:hover,
+.admin-user-dropdown .btn-logout:hover {
+  background-color: #FEF2F2;
+  color: #B91C1C;
+}
+
+.admin-user-dropdown .btn-admin-logout:hover svg,
+.admin-user-dropdown .btn-logout:hover svg {
+  stroke: #B91C1C;
+  transform: translateX(2px);
 }
 
 /* --------------------------------------------------------------------------

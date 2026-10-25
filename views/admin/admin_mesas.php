@@ -164,7 +164,7 @@ require_once '../layouts/sidebar.php';
     </div>
   </div>
 
-  <script src="../../public/js/main.js"></script>
+  <script src="../../public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>"></script>
 </body>
 </html>
 

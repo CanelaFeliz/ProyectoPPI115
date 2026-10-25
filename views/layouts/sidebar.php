@@ -6,8 +6,28 @@
  * ==============================================================================
  */
 
+// Iniciar sesión para recuperar datos del administrador si existe
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Detección dinámica de la página actual para aplicar la clase .active en la navegación
 $currentPage = $currentPage ?? basename($_SERVER['PHP_SELF']);
+
+// Datos del usuario administrador en sesión
+$nombreUsuario = $_SESSION['nombre'] ?? ($nombreUsuario ?? 'María López');
+$rolUsuario = $_SESSION['rol'] ?? ($rolUsuario ?? 'Administradora');
+
+// Generar iniciales para el avatar
+if (!isset($avatarUsuario)) {
+    $palabras = preg_split('/\s+/', trim($nombreUsuario));
+    $avatarUsuario = '';
+    if (count($palabras) >= 2) {
+        $avatarUsuario = mb_strtoupper(mb_substr($palabras[0], 0, 1) . mb_substr($palabras[1], 0, 1));
+    } else {
+        $avatarUsuario = mb_strtoupper(mb_substr($nombreUsuario, 0, 2));
+    }
+}
 
 // Título dinámico por defecto según la página si no fue especificado previamente
 if (!isset($pageTitle)) {
@@ -46,8 +66,6 @@ if (!isset($pageTitle)) {
   <link rel="stylesheet" href="/NIXGARU/public/css/global.css">
   <!-- Hoja de estilos exclusiva para el módulo administrativo -->
   <link rel="stylesheet" href="/NIXGARU/public/css/admin.css?v=<?php echo file_exists(__DIR__ . '/../../public/css/admin.css') ? filemtime(__DIR__ . '/../../public/css/admin.css') : time(); ?>">
-  <!-- Script principal del sistema administrativo con recarga de caché -->
-  <script src="/NIXGARU/public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>" defer></script>
 </head>
 <body class="admin-body">
 
@@ -70,8 +88,27 @@ if (!isset($pageTitle)) {
           <span class="admin-brand-sub">ADMINISTRACION</span>
         </div>
       </div>
-      <div class="admin-header-profile" title="María López - Administradora">
-        <div class="admin-profile-avatar">ML</div>
+      <!-- Menú Desplegable del Perfil del Administrador (Header Móvil) -->
+      <div class="admin-header-profile-wrapper">
+        <div class="admin-header-profile" id="adminHeaderProfile" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" title="Perfil y opciones de sesión">
+          <div class="admin-profile-avatar"><?php echo htmlspecialchars($avatarUsuario); ?></div>
+        </div>
+        <!-- Burbuja Desplegable de Usuario (Header Móvil) -->
+        <div class="user-dropdown-menu admin-user-dropdown" id="adminHeaderDropdownMenu" aria-hidden="true">
+          <div class="dropdown-header-info">
+            <span class="dropdown-user-name"><?php echo htmlspecialchars($nombreUsuario); ?></span>
+            <span class="dropdown-user-role"><?php echo htmlspecialchars($rolUsuario); ?></span>
+          </div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item btn-logout btn-admin-logout" id="btnAdminLogoutMobile" title="Cerrar Sesión" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -149,12 +186,30 @@ if (!isset($pageTitle)) {
         </a>
       </nav>
 
-      <!-- Perfil de Administrador en el pie de la barra lateral -->
-      <div class="admin-sidebar-profile" title="María López - Administradora">
-        <div class="admin-profile-avatar">ML</div>
-        <div class="admin-profile-meta">
-          <span class="admin-profile-name">María López</span>
-          <span class="admin-profile-role">Administradora</span>
+      <!-- Perfil de Administrador y Menú Desplegable en el pie de la barra lateral -->
+      <div class="admin-sidebar-profile-wrapper">
+        <div class="admin-sidebar-profile" id="adminSidebarProfile" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" title="Perfil y opciones de sesión">
+          <div class="admin-profile-avatar"><?php echo htmlspecialchars($avatarUsuario); ?></div>
+          <div class="admin-profile-meta">
+            <span class="admin-profile-name"><?php echo htmlspecialchars($nombreUsuario); ?></span>
+            <span class="admin-profile-role"><?php echo htmlspecialchars($rolUsuario); ?></span>
+          </div>
+        </div>
+        <!-- Burbuja Desplegable de Usuario (Barra Lateral) -->
+        <div class="user-dropdown-menu admin-user-dropdown admin-dropdown-sidebar" id="adminSidebarDropdownMenu" aria-hidden="true">
+          <div class="dropdown-header-info">
+            <span class="dropdown-user-name"><?php echo htmlspecialchars($nombreUsuario); ?></span>
+            <span class="dropdown-user-role"><?php echo htmlspecialchars($rolUsuario); ?></span>
+          </div>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item btn-logout btn-admin-logout" id="btnAdminLogoutSidebar" title="Cerrar Sesión" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
       </div>
 

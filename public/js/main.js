@@ -2545,6 +2545,11 @@ document.addEventListener('DOMContentLoaded', () => {
    * MÓDULO DE ADMINISTRACIÓN: CONTROL DE BARRA LATERAL (ESCRITORIO Y MÓVIL)
    * ==========================================================================
    */
+  if (window.__NIXGARU_ADMIN_INITIALIZED__) {
+    return;
+  }
+  window.__NIXGARU_ADMIN_INITIALIZED__ = true;
+
   const adminSidebar = document.querySelector('.admin-sidebar');
   const adminBackdrop = document.getElementById('adminSidebarBackdrop');
 
@@ -2611,6 +2616,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  /**
+   * ==========================================================================
+   * MÓDULO DE ADMINISTRACIÓN: CONTROL DE PERFIL Y CERRAR SESIÓN
+   * ==========================================================================
+   */
+  const cerrarTodosLosDropdownsAdmin = () => {
+    document.querySelectorAll('.admin-user-dropdown').forEach(dd => {
+      dd.classList.remove('open', 'show');
+      dd.setAttribute('aria-hidden', 'true');
+    });
+    document.querySelectorAll('.admin-header-profile, .admin-sidebar-profile').forEach(p => {
+      p.setAttribute('aria-expanded', 'false');
+    });
+    document.querySelectorAll('.admin-header-profile-wrapper, .admin-sidebar-profile-wrapper').forEach(w => {
+      w.classList.remove('open');
+    });
+  };
+
+  const toggleDropdownAdmin = (wrapper, trigger, e) => {
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+    const dropdown = wrapper.querySelector('.admin-user-dropdown');
+    if (!dropdown) return;
+    const estaAbierto = dropdown.classList.contains('open') || dropdown.classList.contains('show');
+    cerrarTodosLosDropdownsAdmin();
+    if (!estaAbierto) {
+      dropdown.classList.add('open', 'show');
+      dropdown.setAttribute('aria-hidden', 'false');
+      trigger.setAttribute('aria-expanded', 'true');
+      wrapper.classList.add('open');
+    }
+  };
+
   if (adminSidebar) {
     // Restaurar estado guardado en localStorage SÓLO para escritorio (> 1024px)
     if (!esVistaMovilAdmin() && localStorage.getItem('admin_sidebar_collapsed') === 'true') {
@@ -2619,13 +2659,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Delegación centralizada de clics en el documento
     document.addEventListener('click', (e) => {
-      // Clic en el telón de fondo oscuro (Backdrop) -> cerrar menú
+      // 1. Clic en botón "Cerrar Sesión"
+      const btnLogout = e.target.closest('.btn-admin-logout, .btn-logout, #btnCerrarSesion');
+      if (btnLogout) {
+        e.preventDefault();
+        sessionStorage.clear();
+        try {
+          fetch('/NIXGARU/controllers/AuthController.php?action=logout').finally(() => {
+            window.location.href = '/NIXGARU/index.php';
+          });
+        } catch (err) {
+          window.location.href = '/NIXGARU/index.php';
+        }
+        return;
+      }
+
+      // 2. Clic en el perfil del header móvil
+      const headerProfile = e.target.closest('.admin-header-profile');
+      if (headerProfile) {
+        const wrapper = headerProfile.closest('.admin-header-profile-wrapper');
+        if (wrapper) {
+          toggleDropdownAdmin(wrapper, headerProfile, e);
+          return;
+        }
+      }
+
+      // 3. Clic en el perfil de la barra lateral (desktop o drawer móvil)
+      const sidebarProfile = e.target.closest('.admin-sidebar-profile');
+      if (sidebarProfile) {
+        const wrapper = sidebarProfile.closest('.admin-sidebar-profile-wrapper');
+        if (wrapper) {
+          toggleDropdownAdmin(wrapper, sidebarProfile, e);
+          return;
+        }
+      }
+
+      // 4. Si se hace clic dentro de la burbuja dropdown, no cerrarla (salvo logout)
+      if (e.target.closest('.admin-user-dropdown')) {
+        return;
+      }
+
+      // 5. Clic fuera de las burbujas -> cerrarlas
+      cerrarTodosLosDropdownsAdmin();
+
+      // 6. Clic en el telón de fondo oscuro (Backdrop) -> cerrar menú móvil
       if (e.target.closest('#adminSidebarBackdrop, .admin-sidebar-backdrop')) {
         cerrarDrawerMovil();
         return;
       }
 
-      // Clic en botón de la taza o en contenedor de la marca
+      // 7. Clic en botón de la taza o en contenedor de la marca
       const btnTaza = e.target.closest('#btnToggleAdminMobile, #btnToggleAdminSidebar, .btn-toggle-admin-mobile, .btn-toggle-admin-sidebar, .admin-brand-icon');
       const brandCont = e.target.closest('#adminMobileBrand, #adminBrand, .admin-mobile-header .admin-brand, .admin-sidebar .admin-brand');
 
@@ -2636,13 +2719,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cerrar con la tecla Escape
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && esVistaMovilAdmin()) {
-        cerrarDrawerMovil();
+      if (e.key === 'Escape') {
+        cerrarTodosLosDropdownsAdmin();
+        if (esVistaMovilAdmin()) {
+          cerrarDrawerMovil();
+        }
       }
     });
 
     // Reaccionar al redimensionar la ventana
     window.addEventListener('resize', () => {
+      cerrarTodosLosDropdownsAdmin();
       if (!esVistaMovilAdmin()) {
         cerrarDrawerMovil();
         if (localStorage.getItem('admin_sidebar_collapsed') === 'true') {
