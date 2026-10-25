@@ -41,8 +41,10 @@ body.admin-body {
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 4px 0 16px rgba(0, 0, 0, 0.05);
   z-index: 40;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Logotipo e Identidad Institucional */
@@ -67,6 +69,20 @@ body.admin-body {
   justify-content: center;
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(197, 46, 69, 0.35);
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  outline: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.admin-brand-icon:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 18px rgba(197, 46, 69, 0.5);
+}
+
+.admin-brand-icon:active {
+  transform: scale(0.95);
 }
 
 .admin-brand-icon svg {
@@ -93,6 +109,111 @@ body.admin-body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-top: 3px;
+}
+
+/* ==========================================================================
+   Barra Lateral en Modo Reducido (Collapsed - Solo Iconos)
+   ========================================================================== */
+.admin-sidebar.collapsed {
+  width: 82px;
+  min-width: 82px;
+  padding: 28px 12px;
+  align-items: center;
+}
+
+/* Logotipo centrado sin textos en modo reducido */
+.admin-sidebar.collapsed .admin-brand {
+  padding: 0;
+  margin-bottom: 30px;
+  justify-content: center;
+  width: 100%;
+}
+
+.admin-sidebar.collapsed .admin-brand-info {
+  display: none !important;
+}
+
+/* Navegación colapsada: elementos compactos y centrados */
+.admin-sidebar.collapsed .admin-nav {
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-sidebar.collapsed .admin-nav-item {
+  padding: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  justify-content: center;
+  gap: 0;
+  position: relative;
+}
+
+.admin-sidebar.collapsed .admin-nav-item span {
+  display: none !important;
+}
+
+.admin-sidebar.collapsed .admin-nav-item svg {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+/* Tooltip interactivo flotante en hover para cada icono */
+.admin-sidebar.collapsed .admin-nav-item[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #241A16;
+  color: #FFFFFF;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  z-index: 1000;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  animation: adminTooltipFade 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-sidebar.collapsed .admin-nav-item[data-tooltip]:hover::before {
+  content: '';
+  position: absolute;
+  left: calc(100% + 7px);
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px 7px 6px 0;
+  border-style: solid;
+  border-color: transparent #241A16 transparent transparent;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+@keyframes adminTooltipFade {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* Perfil colapsado: Solo avatar centrado */
+.admin-sidebar.collapsed .admin-sidebar-profile {
+  padding: 16px 0 0 0;
+  justify-content: center;
+  width: 100%;
+}
+
+.admin-sidebar.collapsed .admin-profile-meta {
+  display: none !important;
 }
 
 /* Navegación del Administrador */

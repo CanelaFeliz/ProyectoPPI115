@@ -2539,6 +2539,41 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  /**
+   * ==========================================================================
+   * MÓDULO DE ADMINISTRACIÓN: COLAPSAR / EXPANDIR BARRA LATERAL (LOGO TAZA)
+   * ==========================================================================
+   */
+  const adminSidebar = document.querySelector('.admin-sidebar');
+  const btnToggleAdmin = document.getElementById('btnToggleAdminSidebar') || document.querySelector('.admin-brand-icon');
+  const adminBrand = document.getElementById('adminBrand') || document.querySelector('.admin-brand');
+
+  if (adminSidebar) {
+    // Restaurar estado guardado en localStorage
+    if (localStorage.getItem('admin_sidebar_collapsed') === 'true') {
+      adminSidebar.classList.add('collapsed');
+    }
+
+    const toggleSidebar = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const isCollapsed = adminSidebar.classList.toggle('collapsed');
+      localStorage.setItem('admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+    };
+
+    if (btnToggleAdmin) {
+      btnToggleAdmin.addEventListener('click', toggleSidebar);
+    }
+    if (adminBrand && adminBrand !== btnToggleAdmin) {
+      adminBrand.addEventListener('click', (e) => {
+        // Si se hace clic directamente en el contenedor del logo
+        if (!e.target.closest('a')) {
+          toggleSidebar(e);
+        }
+      });
+    }
+  }
 });
 
 
