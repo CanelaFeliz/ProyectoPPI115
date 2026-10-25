@@ -46,17 +46,44 @@ if (!isset($pageTitle)) {
   <link rel="stylesheet" href="/NIXGARU/public/css/global.css">
   <!-- Hoja de estilos exclusiva para el módulo administrativo -->
   <link rel="stylesheet" href="/NIXGARU/public/css/admin.css?v=<?php echo file_exists(__DIR__ . '/../../public/css/admin.css') ? filemtime(__DIR__ . '/../../public/css/admin.css') : time(); ?>">
+  <!-- Script principal del sistema administrativo con recarga de caché -->
+  <script src="/NIXGARU/public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>" defer></script>
 </head>
 <body class="admin-body">
 
   <div class="admin-layout" id="adminLayout">
 
-    <!-- BARRA LATERAL (SIDEBAR ADMIN OSCURA #222629) -->
+    <!-- HEADER SUPERIOR MÓVIL (Visible solo en pantallas móviles <= 1024px) -->
+    <header class="admin-mobile-header" id="adminMobileHeader">
+      <div class="admin-brand" id="adminMobileBrand" onclick="window.toggleAdminSidebar && window.toggleAdminSidebar(event)">
+        <button class="admin-brand-icon btn-toggle-admin-mobile" id="btnToggleAdminMobile" type="button" onclick="window.toggleAdminSidebar && window.toggleAdminSidebar(event)" title="Abrir o cerrar menú" aria-label="Abrir o cerrar menú lateral de administración">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+            <line x1="6" y1="1" x2="6" y2="4"></line>
+            <line x1="10" y1="1" x2="10" y2="4"></line>
+            <line x1="14" y1="1" x2="14" y2="4"></line>
+          </svg>
+        </button>
+        <div class="admin-brand-info">
+          <span class="admin-brand-title">NIXGARU</span>
+          <span class="admin-brand-sub">ADMINISTRACION</span>
+        </div>
+      </div>
+      <div class="admin-header-profile" title="María López - Administradora">
+        <div class="admin-profile-avatar">ML</div>
+      </div>
+    </header>
+
+    <!-- TELÓN DE FONDO (BACKDROP) OSCURO DIFUMINADO PARA MÓVIL -->
+    <div class="admin-sidebar-backdrop" id="adminSidebarBackdrop"></div>
+
+    <!-- BARRA LATERAL (SIDEBAR ADMIN OSCURA #222629 / DRAWER EN MÓVIL) -->
     <aside class="admin-sidebar" id="adminSidebar">
       
-      <!-- Logotipo Admin - Clic en la taza para alternar entre vista detallada y reducida -->
+      <!-- Logotipo Admin - Clic en la taza para alternar entre vista detallada y reducida en escritorio, o cerrar menú en móvil -->
       <div class="admin-brand" id="adminBrand">
-        <button class="admin-brand-icon" id="btnToggleAdminSidebar" type="button" title="Colapsar o expandir menú" aria-label="Colapsar o expandir menú lateral">
+        <button class="admin-brand-icon btn-toggle-admin-sidebar" id="btnToggleAdminSidebar" type="button" onclick="window.toggleAdminSidebar && window.toggleAdminSidebar(event)" title="Colapsar o cerrar menú" aria-label="Colapsar o cerrar menú lateral">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
             <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>

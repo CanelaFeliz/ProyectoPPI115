@@ -26,6 +26,15 @@ body.admin-body {
   width: 100%;
 }
 
+/* Header Móvil y Backdrop del Drawer (Ocultos por defecto en Escritorio) */
+.admin-mobile-header {
+  display: none;
+}
+
+.admin-sidebar-backdrop {
+  display: none;
+}
+
 /* --------------------------------------------------------------------------
    Barra Lateral (Sidebar Admin - var(--color-negro-suave))
    -------------------------------------------------------------------------- */
@@ -1415,45 +1424,262 @@ body.admin-body {
   }
 }
 
-/* Tablets y Dispositivos Medianos (<= 1024px) */
+/* Tablets y Dispositivos Móviles (<= 1024px) */
 @media (max-width: 1024px) {
   .admin-layout {
     flex-direction: column;
-  }
-
-  .admin-sidebar {
+    min-height: 100vh;
     width: 100%;
-    min-width: 100%;
-    height: auto;
-    position: relative;
-    padding: 20px 24px;
   }
 
-  .admin-brand {
-    margin-bottom: 20px;
+  /* --------------------------------------------------------------------------
+     Header Superior Exclusivo para Vista Móvil
+     Muestra Logo (taza), NIXGARU, ADMINISTRACION a la izq. y Avatar a la dcha.
+     -------------------------------------------------------------------------- */
+  .admin-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--color-negro-suave);
+    color: var(--color-blanco);
+    padding: 12px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 990;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .admin-mobile-header .admin-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+    padding: 0;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .admin-mobile-header .admin-brand-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background-color: var(--color-rojo-frambuesa);
+    box-shadow: 0 4px 12px rgba(197, 46, 69, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    color: var(--color-blanco);
+    flex-shrink: 0;
+  }
+
+  .admin-mobile-header .admin-brand-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--color-blanco);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .admin-mobile-header .admin-brand-sub {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #94A3B8;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* Espacio de icono de perfil a la derecha del header móvil */
+  .admin-header-profile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .admin-header-profile .admin-profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--color-terracota);
+    color: var(--color-blanco);
+    font-weight: 700;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+
+  /* --------------------------------------------------------------------------
+     Telón de Fondo (Backdrop) Oscuro y Difuminado
+     -------------------------------------------------------------------------- */
+  .admin-sidebar-backdrop {
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    background-color: rgba(24, 26, 28, 0.65) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    z-index: 99990 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .admin-sidebar-backdrop.active,
+  .admin-sidebar-backdrop.open,
+  body.admin-mobile-open .admin-sidebar-backdrop {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     Barra Lateral Desplegable (Offcanvas Drawer) desde la Izquierda
+     -------------------------------------------------------------------------- */
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 285px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background-color: var(--color-negro-suave) !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 24px 20px !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease !important;
+    box-shadow: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    min-width: unset !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* Estado Abierto: Se despliega desde la izquierda */
+  .admin-sidebar.mobile-open,
+  .admin-sidebar.open,
+  .admin-sidebar.active,
+  body.admin-mobile-open .admin-sidebar {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    box-shadow: 10px 0 32px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* En móvil anulamos los estilos de .collapsed para mostrar siempre texto completo */
+  .admin-sidebar.collapsed {
+    width: 285px !important;
+    min-width: 285px !important;
+    padding: 24px 20px !important;
+  }
+
+  .admin-sidebar.collapsed .admin-brand {
+    justify-content: flex-start !important;
+    padding: 0 !important;
+    margin-bottom: 28px !important;
+  }
+
+  .admin-sidebar.collapsed .admin-brand-info {
+    display: flex !important;
+  }
+
+  .admin-sidebar.collapsed .admin-nav-item {
+    justify-content: flex-start !important;
+    padding: 12px 18px !important;
+  }
+
+  .admin-sidebar.collapsed .admin-nav-item span {
+    display: inline-block !important;
+  }
+
+  .admin-sidebar.collapsed .admin-sidebar-profile {
+    justify-content: flex-start !important;
+  }
+
+  .admin-sidebar.collapsed .admin-profile-meta {
+    display: flex !important;
+  }
+
+  .admin-sidebar.collapsed .admin-nav-item::before,
+  .admin-sidebar.collapsed .admin-nav-item::after {
+    display: none !important;
+  }
+
+  /* Contenido dentro del Drawer */
+  .admin-sidebar .admin-brand {
+    margin-bottom: 28px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
   }
 
   .admin-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: visible;
+    width: 100%;
+    margin-bottom: 24px;
   }
 
   .admin-nav-item {
-    padding: 10px 16px;
-    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 18px;
+    border-radius: var(--radio-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    color: #94A3B8;
+  }
+
+  .admin-nav-item span {
+    display: inline-block !important;
+  }
+
+  .admin-nav-item.active {
+    background-color: var(--color-blanco);
+    color: var(--color-negro-suave);
+    font-weight: 700;
   }
 
   .admin-sidebar-profile {
-    display: none; /* Se oculta o se traslada en barra superior */
+    display: flex !important;
+    margin-top: auto;
+    padding: 18px 8px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    align-items: center;
+    gap: 12px;
   }
 
+  .admin-profile-meta {
+    display: flex !important;
+    flex-direction: column;
+  }
+
+  /* Área principal de contenido en móvil */
   .admin-main-content {
-    padding: 16px;
+    padding: 18px 16px;
+    width: 100%;
   }
 
   .admin-content-card {
-    padding: 24px;
+    padding: 24px 20px;
     border-radius: var(--radio-md);
   }
 
@@ -1464,35 +1690,25 @@ body.admin-body {
   }
 }
 
-/* Teléfonos y Pantallas Móviles (<= 768px) */
+/* Teléfonos y Pantallas Móviles Pequeñas (<= 768px) */
 @media (max-width: 768px) {
-  .admin-sidebar {
-    padding: 16px;
+  .admin-mobile-header {
+    padding: 10px 14px;
   }
 
-  .admin-brand {
-    margin-bottom: 16px;
-  }
-
-  .admin-brand-icon {
+  .admin-mobile-header .admin-brand-icon {
     width: 38px;
     height: 38px;
   }
 
-  .admin-brand-title {
-    font-size: 1.1rem;
+  .admin-mobile-header .admin-brand-title {
+    font-size: 1.05rem;
   }
 
-  .admin-nav {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .admin-nav-item {
-    white-space: nowrap;
-    flex-shrink: 0;
+  .admin-header-profile .admin-profile-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.82rem;
   }
 
   .admin-main-content {

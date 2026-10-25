@@ -2542,37 +2542,119 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * ==========================================================================
-   * MÓDULO DE ADMINISTRACIÓN: COLAPSAR / EXPANDIR BARRA LATERAL (LOGO TAZA)
+   * MÓDULO DE ADMINISTRACIÓN: CONTROL DE BARRA LATERAL (ESCRITORIO Y MÓVIL)
    * ==========================================================================
    */
   const adminSidebar = document.querySelector('.admin-sidebar');
-  const btnToggleAdmin = document.getElementById('btnToggleAdminSidebar') || document.querySelector('.admin-brand-icon');
-  const adminBrand = document.getElementById('adminBrand') || document.querySelector('.admin-brand');
+  const adminBackdrop = document.getElementById('adminSidebarBackdrop');
+
+  // Función para determinar si nos encontramos en modo vista móvil
+  const esVistaMovilAdmin = () => {
+    const mHeader = document.getElementById('adminMobileHeader') || document.querySelector('.admin-mobile-header');
+    if (mHeader && window.getComputedStyle(mHeader).display !== 'none') {
+      return true;
+    }
+    return window.innerWidth <= 1024;
+  };
+
+  const abrirDrawerMovil = () => {
+    const s = document.querySelector('.admin-sidebar') || adminSidebar;
+    const b = document.getElementById('adminSidebarBackdrop') || adminBackdrop;
+    if (s) {
+      s.classList.add('mobile-open', 'open', 'active');
+      s.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('admin-mobile-open');
+    if (b) {
+      b.classList.add('active', 'open');
+      b.setAttribute('aria-hidden', 'false');
+    }
+    document.body.style.overflow = 'hidden';
+  };
+
+  const cerrarDrawerMovil = () => {
+    const s = document.querySelector('.admin-sidebar') || adminSidebar;
+    const b = document.getElementById('adminSidebarBackdrop') || adminBackdrop;
+    if (s) {
+      s.classList.remove('mobile-open', 'open', 'active');
+      s.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('admin-mobile-open');
+    if (b) {
+      b.classList.remove('active', 'open');
+      b.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = '';
+  };
+
+  // Función global disponible para llamadas inline (onclick) y delegadas
+  window.toggleAdminSidebar = (e) => {
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+    const s = document.querySelector('.admin-sidebar') || adminSidebar;
+    if (!s) return;
+
+    if (esVistaMovilAdmin()) {
+      // En vista móvil: despliega o cierra la barra lateral tipo drawer desde la izquierda
+      const isOpen = s.classList.contains('mobile-open') || s.classList.contains('open') || document.body.classList.contains('admin-mobile-open');
+      if (isOpen) {
+        cerrarDrawerMovil();
+      } else {
+        abrirDrawerMovil();
+      }
+    } else {
+      // En escritorio: colapsa a vista reducida de iconos (82px) o expande (270px)
+      const isCollapsed = s.classList.toggle('collapsed');
+      localStorage.setItem('admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+    }
+  };
 
   if (adminSidebar) {
-    // Restaurar estado guardado en localStorage
-    if (localStorage.getItem('admin_sidebar_collapsed') === 'true') {
+    // Restaurar estado guardado en localStorage SÓLO para escritorio (> 1024px)
+    if (!esVistaMovilAdmin() && localStorage.getItem('admin_sidebar_collapsed') === 'true') {
       adminSidebar.classList.add('collapsed');
     }
 
-    const toggleSidebar = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const isCollapsed = adminSidebar.classList.toggle('collapsed');
-      localStorage.setItem('admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
-    };
+    // Delegación centralizada de clics en el documento
+    document.addEventListener('click', (e) => {
+      // Clic en el telón de fondo oscuro (Backdrop) -> cerrar menú
+      if (e.target.closest('#adminSidebarBackdrop, .admin-sidebar-backdrop')) {
+        cerrarDrawerMovil();
+        return;
+      }
 
-    if (btnToggleAdmin) {
-      btnToggleAdmin.addEventListener('click', toggleSidebar);
-    }
-    if (adminBrand && adminBrand !== btnToggleAdmin) {
-      adminBrand.addEventListener('click', (e) => {
-        // Si se hace clic directamente en el contenedor del logo
-        if (!e.target.closest('a')) {
-          toggleSidebar(e);
+      // Clic en botón de la taza o en contenedor de la marca
+      const btnTaza = e.target.closest('#btnToggleAdminMobile, #btnToggleAdminSidebar, .btn-toggle-admin-mobile, .btn-toggle-admin-sidebar, .admin-brand-icon');
+      const brandCont = e.target.closest('#adminMobileBrand, #adminBrand, .admin-mobile-header .admin-brand, .admin-sidebar .admin-brand');
+
+      if (btnTaza || (brandCont && !e.target.closest('a') && !e.target.closest('input'))) {
+        window.toggleAdminSidebar(e);
+      }
+    });
+
+    // Cerrar con la tecla Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && esVistaMovilAdmin()) {
+        cerrarDrawerMovil();
+      }
+    });
+
+    // Reaccionar al redimensionar la ventana
+    window.addEventListener('resize', () => {
+      if (!esVistaMovilAdmin()) {
+        cerrarDrawerMovil();
+        if (localStorage.getItem('admin_sidebar_collapsed') === 'true') {
+          adminSidebar.classList.add('collapsed');
+        } else {
+          adminSidebar.classList.remove('collapsed');
         }
-      });
-    }
+      } else {
+        // En móvil no debe aplicarse el colapsado de iconos de escritorio
+        adminSidebar.classList.remove('collapsed');
+      }
+    });
   }
 });
 
