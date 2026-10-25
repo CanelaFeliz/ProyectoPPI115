@@ -979,6 +979,17 @@
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 24px;
   align-items: start;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Alternancia en escritorio: expandir catálogo al ocultar el panel de detalle */
+.order-layout.detail-hidden {
+  grid-template-columns: 1fr;
+}
+
+.order-layout.detail-hidden .active-order-sidebar,
+.active-order-sidebar.hidden {
+  display: none !important;
 }
 
 /* Panel Izquierdo: Catálogo de Productos */
@@ -1146,27 +1157,55 @@
   background-color: var(--color-blanco);
   border: 1px solid var(--color-borde-suave);
   border-radius: var(--radio-lg);
-  padding: 26px 22px;
+  padding: 24px 22px;
   box-shadow: var(--sombra-card);
+  position: sticky;
+  top: 90px;
+  height: calc(100vh - 120px);
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 
 .active-order-card {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .active-order-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.active-order-header-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .active-order-title {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-negro-suave);
+  margin: 0;
 }
 
 .order-count-badge {
@@ -1182,12 +1221,36 @@
 .active-order-items {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-height: 140px;
-  margin-bottom: 24px;
-  max-height: 380px;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex: 1 1 auto;
   overflow-y: auto;
-  padding-right: 4px;
+  overflow-x: hidden;
+  min-height: 0;
+  margin-bottom: 0;
+  padding-right: 6px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #D1D5DB transparent;
+}
+
+.active-order-items::-webkit-scrollbar {
+  width: 5px;
+}
+
+.active-order-items::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.active-order-items::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+
+.active-order-items::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
 }
 
 .active-order-item {
@@ -1287,11 +1350,16 @@
 /* Resumen de Costos */
 .active-order-summary {
   border-top: 1px solid var(--color-borde-suave);
-  padding-top: 18px;
+  padding-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 22px;
+  margin-top: auto;
+  margin-bottom: 0;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .summary-cost-line {
@@ -1300,6 +1368,8 @@
   justify-content: space-between;
   font-size: 0.88rem;
   color: var(--color-texto-muted);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .summary-cost-line.total {
@@ -1324,6 +1394,11 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 16px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 /* Acción Secundaria / Construcción: Actualizar Orden */
@@ -1868,9 +1943,38 @@
 }
 
 @media (max-width: 1024px) {
-  /* 1. Botón Detalle oculto estrictamente en la vista móvil */
+  /* 1. Botón Detalle en móvil: solo muestra el icono para ahorrar espacio */
   .btn-toggle-detail {
+    display: inline-flex !important;
+    width: 38px;
+    height: 38px;
+    padding: 0 !important;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50% !important;
+    flex-shrink: 0;
+  }
+
+  .btn-toggle-detail span {
     display: none !important;
+  }
+
+  /* 2. Botón de foto de perfil en móvil: ocultar flecha hacia abajo y metadatos */
+  .profile-dropdown-arrow {
+    display: none !important;
+  }
+
+  .user-meta {
+    display: none !important;
+  }
+
+  .user-profile-badge {
+    padding: 2px !important;
+    gap: 0 !important;
+  }
+
+  .service-user-actions {
+    gap: 10px;
   }
 
   .mesas-layout,
@@ -1906,8 +2010,9 @@
     pointer-events: auto;
   }
 
-  /* 3. Panel lateral transformado en Modal/Drawer superpuesto deslizante */
-  aside.cuenta-panel {
+  /* 3. Paneles laterales transformados en Modal/Drawer superpuesto deslizante */
+  aside.cuenta-panel,
+  aside.active-order-sidebar {
     position: fixed;
     top: 0;
     right: 0;
@@ -1934,7 +2039,9 @@
   }
 
   aside.cuenta-panel.open,
-  aside.cuenta-panel.active {
+  aside.cuenta-panel.active,
+  aside.active-order-sidebar.open,
+  aside.active-order-sidebar.active {
     transform: translateX(0);
     visibility: visible;
     display: flex;
@@ -2017,7 +2124,8 @@
 }
 
 @media (max-width: 480px) {
-  aside.cuenta-panel {
+  aside.cuenta-panel,
+  aside.active-order-sidebar {
     max-width: 100%;
     border-radius: 0;
     padding: 20px 16px;
@@ -2025,7 +2133,6 @@
 
   .mesas-panel,
   .catalog-panel,
-  .active-order-sidebar,
   .cierre-payment-panel {
     padding: 20px 16px;
     border-radius: var(--radio-md);
@@ -2033,14 +2140,6 @@
 
   .ticket-card {
     padding: 24px 18px;
-  }
-
-  .user-meta {
-    display: none;
-  }
-
-  .user-profile-badge {
-    padding: 3px;
   }
 }
 

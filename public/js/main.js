@@ -1242,70 +1242,95 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 2. Comportamiento del Panel de Detalle en Escritorio y Móviles (mesas.php)
+  // 2. Comportamiento del Panel de Detalle en Escritorio y Móviles (mesas.php y gestion_orden.php)
   const btnToggleDetalle = document.getElementById('btnToggleDetalle');
-  const cuentaPanel = document.querySelector('aside.cuenta-panel') || document.getElementById('cuentaPanel');
-  const mesasLayout = document.querySelector('.mesas-layout') || document.getElementById('mesasLayout');
-  const cuentaCloseBtn = document.getElementById('cuentaCloseBtn');
-  const cuentaBackdrop = document.getElementById('cuentaBackdrop');
+  const panelSidebar = document.querySelector('aside.cuenta-panel, aside.active-order-sidebar');
+  const layoutContainer = document.querySelector('.mesas-layout, .order-layout');
+  const closeBtns = document.querySelectorAll('#cuentaCloseBtn, #activeOrderCloseBtn, .cuenta-close-btn');
+  const backdrops = document.querySelectorAll('#cuentaBackdrop, #activeOrderBackdrop, .cuenta-backdrop');
 
-  // Alternar visibilidad del panel lateral en escritorio con el botón "Detalle"
-  if (btnToggleDetalle && cuentaPanel) {
-    btnToggleDetalle.addEventListener('click', (e) => {
-      e.preventDefault();
-      const isHidden = cuentaPanel.classList.toggle('hidden');
-      if (mesasLayout) {
-        mesasLayout.classList.toggle('detail-hidden', isHidden);
-      }
-      btnToggleDetalle.setAttribute('aria-expanded', !isHidden ? 'true' : 'false');
-      btnToggleDetalle.classList.toggle('panel-closed', isHidden);
-      btnToggleDetalle.classList.toggle('active', !isHidden);
-      cuentaPanel.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
-    });
-  }
-
-  // Funciones para abrir y cerrar el panel superpuesto en móviles
+  // Funciones para abrir y cerrar el panel superpuesto en móviles o escritorio
   function abrirDetalleMovil() {
-    if (!cuentaPanel) return;
-    cuentaPanel.classList.add('open', 'active');
-    cuentaPanel.classList.remove('hidden');
-    cuentaPanel.setAttribute('aria-hidden', 'false');
+    if (!panelSidebar) return;
+    panelSidebar.classList.add('open', 'active');
+    panelSidebar.classList.remove('hidden');
+    panelSidebar.setAttribute('aria-hidden', 'false');
 
-    if (cuentaBackdrop) {
-      cuentaBackdrop.classList.add('open', 'active');
-      cuentaBackdrop.setAttribute('aria-hidden', 'false');
-    }
+    backdrops.forEach(b => {
+      b.classList.add('open', 'active');
+      b.setAttribute('aria-hidden', 'false');
+    });
     document.body.style.overflow = 'hidden';
+
+    if (btnToggleDetalle) {
+      btnToggleDetalle.classList.add('active');
+      btnToggleDetalle.classList.remove('panel-closed');
+      btnToggleDetalle.setAttribute('aria-expanded', 'true');
+    }
   }
 
   function cerrarDetalleMovil() {
-    if (!cuentaPanel) return;
-    cuentaPanel.classList.remove('open', 'active');
-    cuentaPanel.setAttribute('aria-hidden', 'true');
+    if (!panelSidebar) return;
+    panelSidebar.classList.remove('open', 'active');
+    panelSidebar.setAttribute('aria-hidden', 'true');
 
-    if (cuentaBackdrop) {
-      cuentaBackdrop.classList.remove('open', 'active');
-      cuentaBackdrop.setAttribute('aria-hidden', 'true');
-    }
+    backdrops.forEach(b => {
+      b.classList.remove('open', 'active');
+      b.setAttribute('aria-hidden', 'true');
+    });
     document.body.style.overflow = '';
+
+    if (btnToggleDetalle) {
+      btnToggleDetalle.classList.remove('active');
+      btnToggleDetalle.classList.add('panel-closed');
+      btnToggleDetalle.setAttribute('aria-expanded', 'false');
+    }
   }
 
-  // Botón "X" dentro del panel en vista móvil
-  if (cuentaCloseBtn) {
-    cuentaCloseBtn.addEventListener('click', (e) => {
+  window.abrirDetalleMovil = abrirDetalleMovil;
+  window.cerrarDetalleMovil = cerrarDetalleMovil;
+
+  // Alternar visibilidad del panel lateral con el botón "Detalle":
+  // - En móviles (<= 1024px): abre y cierra el modal drawer con fondo oscuro y difuminado
+  // - En escritorio (> 1024px): oculta y muestra el panel lateral expandiendo el área principal
+  if (btnToggleDetalle && panelSidebar) {
+    btnToggleDetalle.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.innerWidth <= 1024) {
+        if (panelSidebar.classList.contains('open') || panelSidebar.classList.contains('active')) {
+          cerrarDetalleMovil();
+        } else {
+          abrirDetalleMovil();
+        }
+      } else {
+        const isHidden = panelSidebar.classList.toggle('hidden');
+        if (layoutContainer) {
+          layoutContainer.classList.toggle('detail-hidden', isHidden);
+        }
+        btnToggleDetalle.setAttribute('aria-expanded', !isHidden ? 'true' : 'false');
+        btnToggleDetalle.classList.toggle('panel-closed', isHidden);
+        btnToggleDetalle.classList.toggle('active', !isHidden);
+        panelSidebar.setAttribute('aria-hidden', isHidden ? 'true' : 'false');
+      }
+    });
+  }
+
+  // Botones "X" dentro del panel en vista móvil/drawer
+  closeBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.preventDefault();
       cerrarDetalleMovil();
     });
-  }
+  });
 
-  // Clic en el fondo oscuro difuminado (Backdrop) en vista móvil
-  if (cuentaBackdrop) {
-    cuentaBackdrop.addEventListener('click', () => {
+  // Clic en el fondo oscuro difuminado (Backdrop)
+  backdrops.forEach(b => {
+    b.addEventListener('click', () => {
       cerrarDetalleMovil();
     });
-  }
+  });
 
-  // Cerrar modal móvil al presionar tecla Escape
+  // Cerrar modal al presionar tecla Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && window.innerWidth <= 1024) {
       cerrarDetalleMovil();
@@ -1315,16 +1340,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Limpiar estados móviles al redimensionar a pantalla de escritorio
   window.addEventListener('resize', () => {
     if (window.innerWidth > 1024) {
-      if (cuentaBackdrop) {
-        cuentaBackdrop.classList.remove('open', 'active');
-        cuentaBackdrop.setAttribute('aria-hidden', 'true');
-      }
-      if (cuentaPanel) {
-        cuentaPanel.classList.remove('open', 'active');
+      backdrops.forEach(b => {
+        b.classList.remove('open', 'active');
+        b.setAttribute('aria-hidden', 'true');
+      });
+      if (panelSidebar) {
+        panelSidebar.classList.remove('open', 'active');
         // Si no fue ocultado explícitamente por el botón Detalle, mantenerlo visible en escritorio
-        if (!mesasLayout || !mesasLayout.classList.contains('detail-hidden')) {
-          cuentaPanel.classList.remove('hidden');
-          cuentaPanel.setAttribute('aria-hidden', 'false');
+        if (!layoutContainer || !layoutContainer.classList.contains('detail-hidden')) {
+          panelSidebar.classList.remove('hidden');
+          panelSidebar.setAttribute('aria-hidden', 'false');
+          if (btnToggleDetalle) {
+            btnToggleDetalle.classList.add('active');
+            btnToggleDetalle.classList.remove('panel-closed');
+            btnToggleDetalle.setAttribute('aria-expanded', 'true');
+          }
         }
       }
       // Restaurar scroll de body si no hay otros modales abiertos

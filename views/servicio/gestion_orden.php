@@ -35,7 +35,7 @@ require_once '../layouts/header.php';
 ?>
 
   <!-- Layout Principal: 70% Catálogo / 30% Cuenta Activa -->
-  <main class="order-layout">
+  <main class="order-layout" id="orderLayout">
 
     <!-- COLUMNA IZQUIERDA (70%): Catálogo de Productos -->
     <section class="catalog-panel">
@@ -116,13 +116,23 @@ require_once '../layouts/header.php';
     </section>
 
     <!-- COLUMNA DERECHA (30%): Cuenta Activa de la Mesa -->
-    <aside class="active-order-sidebar">
+    <aside class="active-order-sidebar" id="activeOrderSidebar" aria-label="Detalle de cuenta de la mesa">
       <div class="active-order-card">
         
         <!-- Encabezado de la Cuenta -->
         <div class="active-order-header">
-          <h2 class="active-order-title" data-mesa="<?php echo $idMesaSeleccionada; ?>">Cuenta - Mesa <?php echo $idMesaSeleccionada; ?></h2>
-          <span class="order-count-badge" id="orderItemsBadge">0 Items</span>
+          <div class="active-order-header-left" style="display: inline-flex; align-items: center; gap: 10px;">
+            <h2 class="active-order-title" data-mesa="<?php echo $idMesaSeleccionada; ?>">Cuenta - Mesa <?php echo $idMesaSeleccionada; ?></h2>
+            <span class="order-count-badge" id="orderItemsBadge">0 Items</span>
+          </div>
+
+          <!-- Botón de cierre con 'X' visible en vista móvil/drawer -->
+          <button class="cuenta-close-btn" id="activeOrderCloseBtn" type="button" aria-label="Cerrar detalle de cuenta" title="Cerrar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         <!-- Lista de Productos Seleccionados (Llenado dinámico mediante JS al pulsar '+') -->
@@ -171,9 +181,12 @@ require_once '../layouts/header.php';
       </div>
     </aside>
 
+    <!-- Overlay / Fondo oscuro y difuminado para vista móvil/drawer -->
+    <div class="cuenta-backdrop" id="activeOrderBackdrop" aria-hidden="true"></div>
+
   </main>
 
   <!-- Script Principal con la lógica interactiva -->
-  <script src="../../public/js/main.js"></script>
+  <script src="../../public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>"></script>
 </body>
 </html>
