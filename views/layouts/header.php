@@ -1,29 +1,34 @@
 <?php
 /**
  * ==============================================================================
- * NIXGARU – Layout: Encabezado Personal de Servicio
- * views/layouts/header.php
+ * NIXGARU – Layout: Encabezado Personal de Servicio y Cajero
+ * views/layouts/header.php (RNF04, RF16)
  * ==============================================================================
  */
+if (session_status() === PHP_SESSION_NONE) {
+    if (!headers_sent()) {
+        session_start();
+    }
+}
 
 // Identificación dinámica de la vista actual
 $currentPage = $currentPage ?? basename($_SERVER['PHP_SELF']);
 
-// Variables dinámicas con valores por defecto seguros
+// Variables dinámicas con valores de sesión real prioritarios (RNF04)
 $idMesaSeleccionada = $idMesaSeleccionada ?? 1;
 $numeroMesa = $numeroMesa ?? (string)$idMesaSeleccionada;
-$nombreUsuario = $nombreUsuario ?? ($nombreAtendio ?? 'Carlos Méndez');
-$rolUsuario = $rolUsuario ?? 'Personal de servicio';
+$nombreUsuario = $_SESSION['nombre'] ?? ($nombreUsuario ?? ($nombreAtendio ?? 'Carlos Méndez'));
+$rolUsuario = $_SESSION['rol'] ?? ($rolUsuario ?? 'Personal de servicio');
 
-// Generar iniciales para el avatar
-if (!isset($avatarUsuario)) {
-    $palabras = preg_split('/\s+/', trim($nombreUsuario));
-    $avatarUsuario = '';
-    if (count($palabras) >= 2) {
-        $avatarUsuario = mb_strtoupper(mb_substr($palabras[0], 0, 1) . mb_substr($palabras[1], 0, 1));
-    } else {
-        $avatarUsuario = mb_strtoupper(mb_substr($nombreUsuario, 0, 2));
-    }
+// Generar iniciales reales para el avatar del empleado autenticado
+$palabras = preg_split('/\s+/', trim((string)$nombreUsuario)) ?: [];
+if (count($palabras) >= 2) {
+    $avatarUsuario = mb_strtoupper(mb_substr($palabras[0], 0, 1) . mb_substr($palabras[1], 0, 1));
+} else {
+    $avatarUsuario = mb_strtoupper(mb_substr((string)$nombreUsuario, 0, 2));
+}
+if ($avatarUsuario === '') {
+    $avatarUsuario = 'US';
 }
 
 // Título de página por defecto
@@ -31,6 +36,9 @@ if (!isset($pageTitle)) {
     switch ($currentPage) {
         case 'mesas.php':
             $pageTitle = 'NIXGARU – Plano de Mesas | Personal de Servicio';
+            break;
+        case 'pedidos_web.php':
+            $pageTitle = 'NIXGARU – Recepción de Pedidos Web | Personal de Servicio';
             break;
         case 'gestion_orden.php':
             $pageTitle = 'NIXGARU – Gestión de Orden | Personal de Servicio';
@@ -50,6 +58,9 @@ if (!isset($headerTitle)) {
         case 'mesas.php':
             $headerTitle = 'Plano de Mesas';
             break;
+        case 'pedidos_web.php':
+            $headerTitle = 'Recepción de Pedidos Web';
+            break;
         case 'gestion_orden.php':
             $headerTitle = 'Orden Activa - Mesa ' . ($numeroMesa ?? $idMesaSeleccionada ?? '1');
             break;
@@ -61,6 +72,13 @@ if (!isset($headerTitle)) {
             break;
     }
 }
+
+$ariaControlsSidebar = match ($currentPage) {
+    'gestion_orden.php' => 'activeOrderSidebar',
+    'cierre_cuenta.php' => 'ticketSidebar',
+    'pedidos_web.php'   => 'webOrderSidebar',
+    default             => 'cuentaPanel',
+};
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -77,10 +95,61 @@ if (!isset($headerTitle)) {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <?php endif; ?>
   <link rel="stylesheet" href="/NIXGARU/public/css/global.css">
-  <?php if (in_array($currentPage, ['mesas.php', 'gestion_orden.php', 'cierre_cuenta.php']) || (isset($rolUsuario) && $rolUsuario === 'Personal de servicio')): ?>
+  <?php if (in_array($currentPage, ['mesas.php', 'gestion_orden.php', 'cierre_cuenta.php', 'pedidos_web.php'], true) || (isset($rolUsuario) && $rolUsuario === 'Personal de servicio')): ?>
   <!-- Estilos modulares para el módulo de personal de servicio -->
   <link rel="stylesheet" href="/NIXGARU/public/css/servicio.css?v=<?php echo file_exists(__DIR__ . '/../../public/css/servicio.css') ? filemtime(__DIR__ . '/../../public/css/servicio.css') : time(); ?>">
   <?php endif; ?>
+  <style>
+    /* Botones de navegación rápida en Header de Servicio (Plano de Mesas / Pedidos Web) */
+    .service-nav-pills {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-header-nav {
+      background-color: var(--color-blanco);
+      border: 1px solid var(--color-borde-suave);
+      border-radius: var(--radio-pill);
+      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-negro-suave);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .btn-header-nav:hover {
+      background-color: var(--color-gris-superficie);
+      border-color: var(--color-gris-claro);
+      color: var(--color-negro-suave);
+    }
+    .btn-header-nav.active {
+      background-color: var(--color-rojo-frambuesa);
+      border-color: var(--color-rojo-frambuesa);
+      color: var(--color-blanco);
+      box-shadow: 0 3px 10px rgba(197, 46, 69, 0.22);
+    }
+    .btn-header-nav.active svg {
+      stroke: var(--color-blanco);
+    }
+    @media (max-width: 960px) {
+      .btn-header-nav {
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 50%;
+      }
+      .btn-header-nav span {
+        display: none;
+      }
+    }
+  </style>
 </head>
 <body>
 
@@ -110,15 +179,38 @@ if (!isset($headerTitle)) {
         <h1 class="cierre-main-title"><?php echo htmlspecialchars($headerTitle); ?></h1>
       </div>
 
-      <!-- Derecha: Perfil de usuario con menú desplegable y botones de acción -->
+      <!-- Derecha: Navegación operativa, perfil de usuario y panel de detalle -->
       <div class="service-user-actions">
+
+        <!-- Enlaces rápidos entre Salón (Plano de Mesas) y Bandeja de Pedidos Web (RF16) -->
+        <nav class="service-nav-pills" aria-label="Navegación de servicio">
+          <a href="mesas.php" class="btn-header-nav <?php echo $currentPage === 'mesas.php' ? 'active' : ''; ?>" title="Plano de Mesas">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+            </svg>
+            <span>Plano de Mesas</span>
+          </a>
+
+          <a href="pedidos_web.php" class="btn-header-nav <?php echo $currentPage === 'pedidos_web.php' ? 'active' : ''; ?>" id="navLinkPedidosWeb" title="Bandeja de Pedidos Web">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span>Pedidos Web</span>
+          </a>
+        </nav>
+
         <!-- Menú Desplegable del Perfil del Empleado -->
         <div class="user-profile-dropdown-wrapper">
           <div class="user-profile-badge" id="userProfileBadge" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" title="Perfil y opciones de sesión">
             <div class="user-avatar" id="avatarUsuario"><?php echo htmlspecialchars($avatarUsuario); ?></div>
             <div class="user-meta">
-              <span class="user-name" id="nombreUsuario"><?php echo htmlspecialchars($nombreUsuario); ?></span>
-              <span class="user-role" id="rolUsuario"><?php echo htmlspecialchars($rolUsuario); ?></span>
+              <span class="user-name" id="nombreUsuario"><?php echo htmlspecialchars((string)$nombreUsuario); ?></span>
+              <span class="user-role" id="rolUsuario"><?php echo htmlspecialchars((string)$rolUsuario); ?></span>
             </div>
             <!-- Ícono chevron para indicar menú desplegable -->
             <svg class="profile-dropdown-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -129,8 +221,8 @@ if (!isset($headerTitle)) {
           <!-- Dropdown oculto por defecto con opción de Cerrar Sesión -->
           <div class="user-dropdown-menu" id="userDropdownMenu" aria-hidden="true">
             <div class="dropdown-header-info">
-              <span class="dropdown-user-name"><?php echo htmlspecialchars($nombreUsuario); ?></span>
-              <span class="dropdown-user-role"><?php echo htmlspecialchars($rolUsuario); ?></span>
+              <span class="dropdown-user-name"><?php echo htmlspecialchars((string)$nombreUsuario); ?></span>
+              <span class="dropdown-user-role"><?php echo htmlspecialchars((string)$rolUsuario); ?></span>
             </div>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item btn-logout" id="btnCerrarSesion" title="Cerrar Sesión" type="button">
@@ -144,27 +236,17 @@ if (!isset($headerTitle)) {
           </div>
         </div>
 
-        <?php if ($currentPage === 'mesas.php' || $currentPage === 'gestion_orden.php' || $currentPage === 'cierre_cuenta.php'): ?>
-        <!-- Botón 'Detalle' (Visible tanto en mesas como en gestión de orden y cierre de cuenta) -->
-        <button class="btn-toggle-detail" id="btnToggleDetalle" title="Mostrar u ocultar panel de detalle" type="button" aria-controls="<?php echo $currentPage === 'gestion_orden.php' ? 'activeOrderSidebar' : ($currentPage === 'cierre_cuenta.php' ? 'ticketSidebar' : 'cuentaPanel'); ?>" aria-expanded="true">
+        <?php if (in_array($currentPage, ['mesas.php', 'gestion_orden.php', 'cierre_cuenta.php', 'pedidos_web.php'], true)): ?>
+        <!-- Botón 'Detalle' (Visible en las 4 vistas del módulo de servicio) -->
+        <button class="btn-toggle-detail active" id="btnToggleDetalle" title="Mostrar u ocultar panel de detalle" type="button" aria-controls="<?php echo htmlspecialchars($ariaControlsSidebar); ?>" aria-expanded="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="15" y1="3" x2="15" y2="21"></line>
           </svg>
           <span>Detalle</span>
         </button>
-        <?php else: ?>
-        <!-- Botón para regresar al mapa de mesas -->
-        <button class="btn-back-tables" id="btnMapaMesas" title="Regresar al mapa de mesas" type="button" onclick="window.location.href='mesas.php?mesa_id=<?php echo htmlspecialchars($numeroMesa ?? $idMesaSeleccionada); ?>'">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          <span>Mapa de mesas</span>
-        </button>
         <?php endif; ?>
       </div>
 
     </div>
   </header>
-

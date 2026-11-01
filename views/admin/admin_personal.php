@@ -1,24 +1,36 @@
 <?php
+/**
+ * ==============================================================================
+ * NIXGARU – Cafetería | Módulo Administrativo
+ * Pantalla: Gestión de Cuentas de Personal (admin_personal.php)
+ * Cumple con RF13 (Gestión de cuentas y roles) y RNF06 (Cifrado de contraseñas)
+ * ==============================================================================
+ */
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Usuario.php';
 
 try {
     $usuarioModel = new Usuario($pdo);
     $personal = $usuarioModel->obtenerTodos();
-    if (empty($personal)) {
-        $personal = [
-            ['id_usuario' => 1, 'nombre_completo' => 'Gabriela Bautista', 'nombre_usuario' => 'admin1', 'nombre_rol' => 'Administrador'],
-            ['id_usuario' => 2, 'nombre_completo' => 'Cristian Vasquez', 'nombre_usuario' => 'admin2', 'nombre_rol' => 'Administrador'],
-            ['id_usuario' => 3, 'nombre_completo' => 'Roberto Gómez', 'nombre_usuario' => 'cajero', 'nombre_rol' => 'Cajero'],
-            ['id_usuario' => 4, 'nombre_completo' => 'Ana López', 'nombre_usuario' => 'mesero', 'nombre_rol' => 'Mesero']
+    $rolesSistema = $usuarioModel->obtenerRoles();
+    if (empty($rolesSistema)) {
+        $rolesSistema = [
+            ['id_rol' => 1, 'nombre_rol' => 'Administrador'],
+            ['id_rol' => 2, 'nombre_rol' => 'Cajero'],
+            ['id_rol' => 3, 'nombre_rol' => 'Mesero'],
+            ['id_rol' => 4, 'nombre_rol' => 'Barista'],
+            ['id_rol' => 5, 'nombre_rol' => 'Cocina'],
         ];
     }
 } catch (PDOException $e) {
     die("Error al consultar el personal: " . $e->getMessage());
 }
 
+$totalPersonal = count($personal);
+$totalRoles = count($rolesSistema);
+
 $pageTitle = 'NIXGARU – Gestión de Cuentas de Personal';
-require_once '../layouts/sidebar.php';
+require_once __DIR__ . '/../layouts/sidebar.php';
 ?>
 
     <!-- ÁREA DE CONTENIDO PRINCIPAL -->
@@ -47,7 +59,7 @@ require_once '../layouts/sidebar.php';
           <div class="admin-stat-card">
             <span class="stat-label">PERSONAL REGISTRADO</span>
             <div class="stat-value-group">
-              <span class="stat-number"><?php echo count($personal); ?> Trabajadores</span>
+              <span class="stat-number" id="statTotalPersonal"><?php echo $totalPersonal; ?> Trabajadores</span>
               <span class="stat-badge-active">Activos</span>
             </div>
           </div>
@@ -56,7 +68,7 @@ require_once '../layouts/sidebar.php';
           <div class="admin-stat-card">
             <span class="stat-label">ESTRUCTURA DE ROLES</span>
             <div class="stat-value-group">
-              <span class="stat-number">5 Roles del sistema</span>
+              <span class="stat-number"><?php echo $totalRoles; ?> Roles del sistema</span>
             </div>
           </div>
 
@@ -70,7 +82,7 @@ require_once '../layouts/sidebar.php';
               <h2 class="table-card-title">Listado de Personal</h2>
               <p class="table-card-subtitle">Cuentas de usuario configuradas con accesos activos para el servicio de cafetería</p>
             </div>
-            <span class="table-count-badge" id="personalCountBadge">Total: <?php echo count($personal); ?> mostrados</span>
+            <span class="table-count-badge" id="personalCountBadge">Total: <?php echo $totalPersonal; ?> mostrados</span>
           </div>
 
           <!-- Tabla de Datos -->
@@ -87,21 +99,48 @@ require_once '../layouts/sidebar.php';
               </thead>
               <tbody id="tablaPersonalBody">
                 <?php foreach ($personal as $emp): ?>
-                  <tr>
-                    <td class="cell-id"><?php echo htmlspecialchars((string)$emp['id_usuario']); ?></td>
-                    <td class="cell-name"><?php echo htmlspecialchars($emp['nombre_completo']); ?></td>
-                    <td class="cell-user"><?php echo htmlspecialchars($emp['nombre_usuario']); ?></td>
+                  <?php
+                    $idEmp = (int)$emp['id_usuario'];
+                    $nombreEmp = (string)$emp['nombre_completo'];
+                    $usuarioEmp = (string)$emp['nombre_usuario'];
+                    $rolEmp = (string)$emp['nombre_rol'];
+                  ?>
+                  <tr
+                    data-id="<?php echo $idEmp; ?>"
+                    data-nombre="<?php echo htmlspecialchars($nombreEmp); ?>"
+                    data-usuario="<?php echo htmlspecialchars($usuarioEmp); ?>"
+                    data-rol="<?php echo htmlspecialchars($rolEmp); ?>"
+                  >
+                    <td class="cell-id"><?php echo htmlspecialchars((string)$idEmp); ?></td>
+                    <td class="cell-name"><?php echo htmlspecialchars($nombreEmp); ?></td>
+                    <td class="cell-user"><?php echo htmlspecialchars($usuarioEmp); ?></td>
                     <td class="cell-role">
-                      <span class="role-pill"><?php echo htmlspecialchars($emp['nombre_rol']); ?></span>
+                      <span class="role-pill"><?php echo htmlspecialchars($rolEmp); ?></span>
                     </td>
                     <td class="cell-acciones">
-                      <button class="btn-action-edit" title="Editar empleado" type="button">
+                      <button
+                        class="btn-action-edit"
+                        title="Editar empleado"
+                        type="button"
+                        data-id="<?php echo $idEmp; ?>"
+                        data-nombre="<?php echo htmlspecialchars($nombreEmp); ?>"
+                        data-usuario="<?php echo htmlspecialchars($usuarioEmp); ?>"
+                        data-rol="<?php echo htmlspecialchars($rolEmp); ?>"
+                      >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                       </button>
-                      <button class="btn-action-delete" title="Eliminar empleado" type="button">
+                      <button
+                        class="btn-action-delete"
+                        title="Eliminar empleado"
+                        type="button"
+                        data-id="<?php echo $idEmp; ?>"
+                        data-nombre="<?php echo htmlspecialchars($nombreEmp); ?>"
+                        data-usuario="<?php echo htmlspecialchars($usuarioEmp); ?>"
+                        data-rol="<?php echo htmlspecialchars($rolEmp); ?>"
+                      >
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <polyline points="3 6 5 6 21 6"></polyline>
                           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -116,7 +155,7 @@ require_once '../layouts/sidebar.php';
 
           <!-- Pie de la Tabla -->
           <div class="admin-table-footer">
-            <span>Mostrando <?php echo count($personal); ?> de <?php echo count($personal); ?> cuentas de personal activas</span>
+            <span id="personalFooterCountText">Mostrando <?php echo $totalPersonal; ?> de <?php echo $totalPersonal; ?> cuentas de personal activas</span>
           </div>
 
         </div>
@@ -126,44 +165,49 @@ require_once '../layouts/sidebar.php';
 
   </div>
 
-  <!-- MODAL: REGISTRAR NUEVO EMPLEADO (Oculto por defecto) -->
+  <!-- MODAL REUTILIZABLE: REGISTRAR / EDITAR CUENTA DE PERSONAL (RF13, RNF06) -->
   <div id="modalNuevoEmpleado" class="modal" aria-hidden="true">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title">Nueva Cuenta</h3>
-        <p class="modal-subtitle">Registra un nuevo empleado asignando credenciales de acceso.</p>
+        <h3 class="modal-title" id="tituloModalEmpleado">Nueva Cuenta</h3>
+        <p class="modal-subtitle" id="subtituloModalEmpleado">Registra un nuevo empleado asignando credenciales de acceso.</p>
       </div>
+
+      <div id="errorModalEmpleado" role="alert" style="display: none; background-color: #FEE2E2; color: #B91C1C; border: 1px solid #FCA5A5; border-radius: 10px; padding: 10px 14px; font-size: 0.84rem; font-weight: 600; margin-bottom: 16px;"></div>
       
       <form id="formNuevoEmpleado" class="modal-form">
+        <input type="hidden" id="inputIdEmpleado" name="id_usuario" value="">
+
         <!-- Campo: Nombre Completo -->
         <div class="form-group">
           <label for="inputNombreEmpleado" class="form-label">Nombre Completo</label>
-          <input type="text" id="inputNombreEmpleado" class="form-input" placeholder="Ej. Ana Ruiz" required>
+          <input type="text" id="inputNombreEmpleado" name="nombre_completo" class="form-input" placeholder="Ej. Ana Ruiz" required>
         </div>
 
         <!-- Campo: Nombre de Usuario -->
         <div class="form-group">
           <label for="inputUsuarioEmpleado" class="form-label">Nombre de Usuario</label>
-          <input type="text" id="inputUsuarioEmpleado" class="form-input" placeholder="Ej. aruiz" required>
+          <input type="text" id="inputUsuarioEmpleado" name="nombre_usuario" class="form-input" placeholder="Ej. aruiz" required>
         </div>
 
         <!-- Campo: Contraseña -->
         <div class="form-group">
           <label for="inputPasswordEmpleado" class="form-label">Contraseña</label>
-          <input type="password" id="inputPasswordEmpleado" class="form-input" placeholder="••••••••" required>
+          <input type="password" id="inputPasswordEmpleado" name="password" class="form-input" placeholder="••••••••" required>
+          <small id="ayudaPasswordEmpleado" style="display: none; color: var(--color-texto-muted); font-size: 0.78rem; margin-top: 2px;">Deje en blanco si no desea cambiar la contraseña actual.</small>
         </div>
 
         <!-- Campo: Rol Asignado -->
         <div class="form-group">
           <label for="selectRolEmpleado" class="form-label">Rol Asignado</label>
           <div class="select-wrapper">
-            <select id="selectRolEmpleado" class="form-select" required>
+            <select id="selectRolEmpleado" name="rol" class="form-select" required>
               <option value="" disabled selected>Seleccionar Rol...</option>
-              <option value="Administrador">Administrador</option>
-              <option value="Personal de servicio">Personal de servicio</option>
-              <option value="Cajero">Cajero</option>
-              <option value="Cocinero">Cocinero</option>
-              <option value="Barista">Barista</option>
+              <?php foreach ($rolesSistema as $rolItem): ?>
+                <option value="<?php echo htmlspecialchars((string)$rolItem['nombre_rol']); ?>">
+                  <?php echo htmlspecialchars((string)$rolItem['nombre_rol']); ?>
+                </option>
+              <?php endforeach; ?>
             </select>
           </div>
         </div>
@@ -180,4 +224,3 @@ require_once '../layouts/sidebar.php';
   <script src="../../public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>"></script>
 </body>
 </html>
-

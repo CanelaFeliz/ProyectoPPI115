@@ -1,4 +1,11 @@
 <?php
+/**
+ * ==============================================================================
+ * NIXGARU – Cafetería | Módulo Administrativo
+ * Pantalla: Control de Inventarios y Ajustes Manuales (admin_inventario.php)
+ * Cumple con RF14 (Control de existencias y ajustes manuales validados)
+ * ==============================================================================
+ */
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Inventario.php';
 
@@ -18,7 +25,7 @@ try {
 }
 
 $pageTitle = 'NIXGARU – Control de Inventarios';
-require_once '../layouts/sidebar.php';
+require_once __DIR__ . '/../layouts/sidebar.php';
 ?>
 
     <!-- ÁREA DE CONTENIDO PRINCIPAL -->
@@ -68,13 +75,15 @@ require_once '../layouts/sidebar.php';
               <tbody id="tablaInventarioBody">
                 <?php foreach ($ingredientes as $ing): ?>
                   <?php 
+                    $idIng = (int)$ing['id_ingrediente'];
+                    $nombreIng = (string)$ing['nombre_ingrediente'];
                     $cantidadEst = (float)$ing['cantidad_estimada'];
                     $esBajo = ($cantidadEst <= 15.00);
                   ?>
-                  <tr<?php echo $esBajo ? ' class="row-stock-alert"' : ''; ?> data-id="<?php echo (int)$ing['id_ingrediente']; ?>">
-                    <td class="cell-code<?php echo $esBajo ? ' text-danger' : ''; ?>"><?php echo (int)$ing['id_ingrediente']; ?></td>
+                  <tr<?php echo $esBajo ? ' class="row-stock-alert"' : ''; ?> data-id="<?php echo $idIng; ?>">
+                    <td class="cell-code<?php echo $esBajo ? ' text-danger' : ''; ?>"><?php echo $idIng; ?></td>
                     <td class="cell-ingredient">
-                      <span class="ingredient-name"><?php echo htmlspecialchars($ing['nombre_ingrediente']); ?></span>
+                      <span class="ingredient-name"><?php echo htmlspecialchars($nombreIng); ?></span>
                       <?php if ($esBajo): ?>
                         <span class="badge-stock-low">STOCK BAJO</span>
                       <?php endif; ?>
@@ -85,8 +94,16 @@ require_once '../layouts/sidebar.php';
                     </td>
                     <td class="cell-adjust">
                       <div class="adjust-control-group">
-                        <input type="number" step="0.01" class="input-adjust" value="<?php echo number_format($cantidadEst, 2, '.', ''); ?>" data-id="<?php echo (int)$ing['id_ingrediente']; ?>" aria-label="Ajuste manual para <?php echo htmlspecialchars($ing['nombre_ingrediente']); ?>">
-                        <button type="button" class="btn-adjust-save" data-id="<?php echo (int)$ing['id_ingrediente']; ?>">Guardar</button>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          class="input-adjust"
+                          value="<?php echo number_format($cantidadEst, 2, '.', ''); ?>"
+                          data-id="<?php echo $idIng; ?>"
+                          aria-label="Ajuste manual para <?php echo htmlspecialchars($nombreIng); ?>"
+                        >
+                        <button type="button" class="btn-adjust-save" data-id="<?php echo $idIng; ?>">Guardar</button>
                       </div>
                     </td>
                   </tr>
@@ -100,10 +117,10 @@ require_once '../layouts/sidebar.php';
             No se encontraron ingredientes que coincidan con la búsqueda.
           </div>
 
-          <!-- Pie de la Tarjeta: Enlace Centrado -->
+          <!-- Pie de la Tarjeta: Enlace Centrado hacia Resumen Analítico -->
           <div class="inventory-footer-link">
-            <a href="#" class="link-detail-report">
-              <span>Ver reporte de inventario detallado</span>
+            <a href="admin_dashboard.php" class="link-detail-report">
+              <span>Volver al resumen analítico de ventas</span>
               <span class="link-arrow">&rarr;</span>
             </a>
           </div>
@@ -118,4 +135,3 @@ require_once '../layouts/sidebar.php';
   <script src="../../public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>"></script>
 </body>
 </html>
-

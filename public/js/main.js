@@ -1306,7 +1306,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * ==========================================================================
-   * PLANO DE MESAS: PERSISTENCIA Y SINCRONIZACIÓN CON LOCALSTORAGE (mesas.php)
+   * UTILIDADES COMUNES DEL MÓDULO DE SERVICIO Y CAJERO
+   * ==========================================================================
+   */
+  function escaparHtmlServicio(valor) {
+    return String(valor ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function mapearEstadoMesaASlug(estadoRaw) {
+    const limpio = String(estadoRaw || '').toLowerCase().trim();
+    if (limpio.includes('ocupad')) return 'ocupada';
+    if (limpio.includes('proces')) return 'proceso';
+    if (limpio.includes('sin')) return 'sin-servicio';
+    return 'disponible';
+  }
+
+  /**
+   * ==========================================================================
+   * PLANO DE MESAS: SINCRONIZACIÓN EN TIEMPO REAL CON MYSQL (mesas.php - RF06, RF08, RF09)
    * ==========================================================================
    */
   const tableStatusSelects = document.querySelectorAll('.table-status-select');
@@ -1331,10 +1353,11 @@ document.addEventListener('DOMContentLoaded', () => {
     summaryCountsElement.innerHTML = `Resumen actual: <strong>${disponibles} Disponibles</strong> | <strong>${ocupadas} Ocupadas</strong> | <strong>${proceso} En proceso</strong> | <strong>${sinServicio} Sin servicio</strong>`;
   }
 
-  // Actualiza el círculo indicador de estado en el panel lateral de la cuenta (únicamente el punto de color)
+  // Actualiza el círculo indicador de estado en el panel lateral de la cuenta
   function actualizarEstadoCuentaLateral(estado) {
     const elEstado = document.getElementById('cuentaMesaEstado') || cuentaMesaEstado;
     if (!elEstado) return;
+    const slug = mapearEstadoMesaASlug(estado);
     elEstado.className = 'cuenta-status-badge';
     elEstado.style.display = 'inline-flex';
     
@@ -1345,97 +1368,121 @@ document.addEventListener('DOMContentLoaded', () => {
       'sin-servicio': { texto: 'Sin servicio', clase: 'badge-sin-servicio', dot: 'dot-sin-servicio' }
     };
 
-    const cfg = etiquetas[estado] || etiquetas['disponible'];
+    const cfg = etiquetas[slug] || etiquetas['disponible'];
     elEstado.classList.add(cfg.clase);
     elEstado.setAttribute('title', cfg.texto);
     elEstado.innerHTML = `<span class="status-dot ${cfg.dot}"></span>`;
   }
 
-  // Carga la orden guardada de una mesa en el panel lateral derecho ("Mesa X")
-  function cargarOrdenMesaEnPanelLateral(mesaId) {
+  // Consulta asíncrona a MySQL (`obtener_cuenta_mesa`) para renderizar productos, propina, abono web y saldo real (RF06, RF09)
+  async function cargarOrdenMesaEnPanelLateral(mesaId) {
     const listaProductosCuenta = document.getElementById('listaProductosCuenta');
     const cuentaSubtotal = document.getElementById('cuentaSubtotal');
     const cuentaPropina = document.getElementById('cuentaPropina');
     const cuentaTotal = document.getElementById('cuentaTotal');
+    const filaCuentaAbonoWeb = document.getElementById('filaCuentaAbonoWeb');
+    const cuentaAbonoWeb = document.getElementById('cuentaAbonoWeb');
+    const filaCuentaSaldoPendiente = document.getElementById('filaCuentaSaldoPendiente');
+    const cuentaSaldoPendiente = document.getElementById('cuentaSaldoPendiente');
 
     if (!listaProductosCuenta) return;
 
-    // Verificar si la página actual ya cargó la orden desde el servidor PHP (fuente de la BD)
-    const serverItems = listaProductosCuenta.querySelectorAll('.cuenta-item');
-    const urlParams = new URLSearchParams(window.location.search);
-    const mesaUrl = urlParams.get('mesa_id') || urlParams.get('mesa');
+    try {
+      const res = await fetch(`../../controllers/ServicioController.php?action=obtener_cuenta_mesa&id_mesa=${encodeURIComponent(mesaId)}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      const data = await res.json();
 
-    // Si coincide la mesa con la URL y PHP ya renderizó elementos de la BD, preservarlos
-    if (mesaUrl && String(mesaUrl) === String(mesaId) && serverItems.length > 0) {
-      return;
-    }
-
-    // Leer orden de localStorage
-    const ordenDataRaw = localStorage.getItem('orden_mesa_' + mesaId);
-    let items = [];
-
-    if (ordenDataRaw) {
-      try {
-        items = JSON.parse(ordenDataRaw);
-        if (!Array.isArray(items)) items = [];
-      } catch (e) {
-        console.error('Error al parsear orden de mesa ' + mesaId, e);
-        items = [];
+      if (!res.ok || !data || data.success !== true) {
+        throw new Error((data && data.error) ? data.error : 'No se pudo consultar la cuenta de la mesa.');
       }
+
+      const detalles = Array.isArray(data.detalles) ? data.detalles : [];
+      const subtotal = Number(data.subtotal || 0);
+      const propina = Number(data.propina || 0);
+      const total = Number(data.total ?? data.total_pagar ?? 0);
+      const montoAbonado = Number(data.monto_abonado || 0);
+      const saldoPendiente = Number(data.saldo_pendiente ?? Math.max(0, total - montoAbonado));
+
+      // Sincronizar estado y consumo de la tarjeta en la cuadrícula si existe
+      if (data.mesa && data.mesa.id_mesa) {
+        const cardMesa = Array.from(document.querySelectorAll('.table-card')).find(
+          c => String(c.dataset.tableId) === String(data.mesa.id_mesa) || String(c.dataset.tableNumber) === String(data.mesa.numero_mesa)
+        );
+        if (cardMesa) {
+          const consumoValEl = cardMesa.querySelector('.table-consumo-val') || cardMesa.querySelector('.table-data-row:first-child .data-value');
+          const ordenStatusEl = cardMesa.querySelector('.table-orden-status');
+          if (consumoValEl) {
+            consumoValEl.textContent = `$${total.toFixed(2)}`;
+          }
+          if (ordenStatusEl) {
+            ordenStatusEl.textContent = detalles.length > 0 ? 'Activa' : 'Sin orden';
+          }
+          const selMesa = cardMesa.querySelector('.table-status-select');
+          if (selMesa && data.mesa.estado_mesa) {
+            const slugBD = mapearEstadoMesaASlug(data.mesa.estado_mesa);
+            selMesa.value = slugBD;
+            selMesa.dataset.prevStatus = slugBD;
+            selMesa.classList.remove('status-disponible', 'status-ocupada', 'status-proceso', 'status-sin-servicio');
+            selMesa.classList.add(`status-${slugBD}`);
+            if (cardMesa.classList.contains('active')) {
+              actualizarEstadoCuentaLateral(slugBD);
+            }
+            actualizarResumenMesas();
+          }
+        }
+      }
+
+      if (detalles.length === 0) {
+        listaProductosCuenta.innerHTML = `
+          <div class="empty-cuenta-msg" style="text-align: center; color: #6C757D; font-size: 13.5px; padding: 36px 12px;">
+            <p style="margin: 0 0 6px 0; font-weight: 600; color: #343A40;">Mesa disponible sin consumos activos</p>
+            <span style="font-size: 12.5px; opacity: 0.85;">No hay pedidos pendientes de pago para esta mesa.</span>
+          </div>
+        `;
+      } else {
+        let html = '';
+        detalles.forEach(item => {
+          const qty = parseInt(item.cantidad ?? item.qty, 10) || 1;
+          const nombreProd = escaparHtmlServicio(item.nombre_producto || item.name || 'Producto');
+          const subLinea = Number(item.subtotal ?? ((Number(item.precio || 0)) * qty));
+          html += `
+            <div class="cuenta-item">
+              <span class="item-qty-badge">${qty}</span>
+              <span class="item-name">${nombreProd}</span>
+              <span class="item-price">$${subLinea.toFixed(2)}</span>
+            </div>
+          `;
+        });
+        listaProductosCuenta.innerHTML = html;
+      }
+
+      if (cuentaSubtotal) cuentaSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+      if (cuentaPropina) cuentaPropina.textContent = `$${propina.toFixed(2)}`;
+      if (cuentaTotal) cuentaTotal.textContent = `$${total.toFixed(2)}`;
+
+      if (filaCuentaAbonoWeb && cuentaAbonoWeb) {
+        cuentaAbonoWeb.textContent = `-$${montoAbonado.toFixed(2)}`;
+        filaCuentaAbonoWeb.style.display = montoAbonado > 0 ? 'flex' : 'none';
+      }
+      if (filaCuentaSaldoPendiente && cuentaSaldoPendiente) {
+        cuentaSaldoPendiente.textContent = `$${saldoPendiente.toFixed(2)}`;
+        filaCuentaSaldoPendiente.style.display = montoAbonado > 0 ? 'flex' : 'none';
+      }
+    } catch (err) {
+      console.error('Error al consultar la cuenta activa desde MySQL:', err);
     }
-
-    if (items.length === 0) {
-      listaProductosCuenta.innerHTML = `
-        <div class="empty-cuenta-msg" style="text-align: center; color: #6C757D; font-size: 13.5px; padding: 36px 12px;">
-          <p style="margin: 0 0 6px 0; font-weight: 600; color: #343A40;">Mesa disponible sin consumos activos</p>
-          <span style="font-size: 12.5px; opacity: 0.85;">No hay pedidos pendientes de pago para esta mesa.</span>
-        </div>
-      `;
-      if (cuentaSubtotal) cuentaSubtotal.textContent = '$0.00';
-      if (cuentaPropina) cuentaPropina.textContent = '$0.00';
-      if (cuentaTotal) cuentaTotal.textContent = '$0.00';
-      return;
-    }
-
-    // Renderizar los productos reales guardados
-    let subtotal = 0;
-    let html = '';
-
-    items.forEach(item => {
-      const qty = parseInt(item.qty, 10) || 1;
-      const unitPrice = parseFloat(item.price ?? item.unitPrice) || 0;
-      const itemSubtotal = unitPrice * qty;
-      subtotal += itemSubtotal;
-
-      html += `
-        <div class="cuenta-item">
-          <span class="item-qty-badge">${qty}</span>
-          <span class="item-name">${item.name || item.nombre || 'Producto'}</span>
-          <span class="item-price">$${itemSubtotal.toFixed(2)}</span>
-        </div>
-      `;
-    });
-
-    listaProductosCuenta.innerHTML = html;
-
-    const propina = subtotal * 0.10;
-    const total = subtotal + propina;
-
-    if (cuentaSubtotal) cuentaSubtotal.textContent = `$${subtotal.toFixed(2)}`;
-    if (cuentaPropina) cuentaPropina.textContent = `$${propina.toFixed(2)}`;
-    if (cuentaTotal) cuentaTotal.textContent = `$${total.toFixed(2)}`;
   }
 
-  // Función encargada de actualizar la mesa seleccionada y sincronizarla sin alterar selectores
+  // Función encargada de actualizar la mesa seleccionada y sincronizar su panel lateral con MySQL
   window.seleccionarMesa = function(id, estado, idRealParam) {
     const mesaId = String(id);
     const mesaRealId = idRealParam ? String(idRealParam) : mesaId;
 
-    // 1. Guardar en localStorage la mesa activa seleccionada
-    localStorage.setItem('mesaActiva', mesaRealId);
     sessionStorage.setItem('mesaActiva', mesaRealId);
 
-    // 2. Resaltar visualmente ÚNICAMENTE la tarjeta de la mesa activa en la cuadrícula sin alterar colores de selects
+    // Resaltar visualmente ÚNICAMENTE la tarjeta de la mesa activa en la cuadrícula
     const allCards = document.querySelectorAll('.table-card');
     allCards.forEach(card => {
       const matchNum = String(card.dataset.tableNumber || '') === mesaId;
@@ -1447,17 +1494,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // 3. Actualizar el título del panel lateral derecho (exclusivamente "Mesa X", sin prefijo "Cuenta -")
-    const cuentaMesaTitulo = document.getElementById('cuentaMesaTitulo');
-    if (cuentaMesaTitulo) {
+    // Actualizar el título del panel lateral derecho ("Mesa X")
+    const elTitulo = document.getElementById('cuentaMesaTitulo');
+    if (elTitulo) {
       const numLimpio = mesaId.replace(/^Mesa\s*/i, '').trim();
-      cuentaMesaTitulo.textContent = `Mesa ${numLimpio}`;
+      elTitulo.textContent = `Mesa ${numLimpio}`;
     }
 
-    // 4. Actualizar el indicador de estado en el panel lateral (solo círculo de color)
     actualizarEstadoCuentaLateral(estado);
 
-    // 5. Alternar visibilidad: ocultar estado vacío y mostrar contenedor de productos/totales
+    // Alternar visibilidad: ocultar estado vacío y mostrar contenedor de productos/totales
     const emptyState = document.getElementById('cuentaEmptyState');
     const detalleContainer = document.getElementById('cuentaDetalleContainer');
     if (emptyState) emptyState.style.display = 'none';
@@ -1466,7 +1512,7 @@ document.addEventListener('DOMContentLoaded', () => {
       detalleContainer.style.flexDirection = 'column';
     }
 
-    // 6. Habilitar y actualizar botones de acción del panel lateral
+    // Habilitar y actualizar botones de acción del panel lateral
     const btnAgregar = document.getElementById('btnAgregarProducto');
     if (btnAgregar) {
       btnAgregar.style.pointerEvents = 'auto';
@@ -1491,42 +1537,23 @@ document.addEventListener('DOMContentLoaded', () => {
       btnCerrar.href = `cierre_cuenta.php?mesa_id=${encodeURIComponent(mesaRealId)}`;
     }
 
-    // 7. Sincronizar URL del navegador de forma transparente sin recargar la página
+    // Sincronizar URL del navegador sin recargar la página
     if (window.history && window.history.replaceState) {
       const newUrl = `mesas.php?mesa_id=${encodeURIComponent(mesaRealId)}`;
       window.history.replaceState({ mesa_id: mesaRealId }, '', newUrl);
     }
 
-    // 8. Cargar automáticamente la orden de esa mesa
+    // Consultar la cuenta real de esa mesa desde MySQL
     cargarOrdenMesaEnPanelLateral(mesaRealId);
   };
 
-  // Inicializar plano de mesas al cargar mesas.php
+  // Inicializar plano de mesas al cargar mesas.php respetando los datos SSR de MySQL
   function inicializarPlanoMesas() {
     const allCards = document.querySelectorAll('.table-card');
     if (!allCards || allCards.length === 0) return;
 
-    allCards.forEach(card => {
-      const mesaId = card.dataset.tableNumber;
-      if (!mesaId) return;
-
-      // Leer orden guardada para calcular consumo real en la tarjeta de la mesa si existe en localStorage
-      const ordenRaw = localStorage.getItem('orden_mesa_' + mesaId);
-      if (ordenRaw) {
-        try {
-          const items = JSON.parse(ordenRaw);
-          if (Array.isArray(items) && items.length > 0) {
-            const subtotalMesa = items.reduce((acc, it) => acc + ((parseFloat(it.price ?? it.unitPrice) || 0) * (parseInt(it.qty, 10) || 1)), 0);
-            const totalConPropina = subtotalMesa * 1.10;
-            const consumoVal = card.querySelector('.table-data-row:first-child .data-value');
-            if (consumoVal) {
-              consumoVal.textContent = `$${totalConPropina.toFixed(2)}`;
-            }
-          }
-        } catch (e) {
-          console.error('Error al procesar consumo de mesa ' + mesaId, e);
-        }
-      }
+    tableStatusSelects.forEach(sel => {
+      sel.dataset.prevStatus = sel.value;
     });
 
     actualizarResumenMesas();
@@ -1536,10 +1563,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const mesaUrl = urlParams.get('mesa_id') || urlParams.get('mesa');
 
     if (mesaUrl) {
-      localStorage.setItem('mesaActiva', mesaUrl);
       sessionStorage.setItem('mesaActiva', mesaUrl);
-
-      const cardActiva = Array.from(allCards).find(c => String(c.dataset.tableNumber) === String(mesaUrl) || String(c.dataset.tableId) === String(mesaUrl));
+      const cardActiva = Array.from(allCards).find(
+        c => String(c.dataset.tableId) === String(mesaUrl) || String(c.dataset.tableNumber) === String(mesaUrl)
+      );
       if (cardActiva) {
         cardActiva.classList.add('active');
         const selectActiva = cardActiva.querySelector('.table-status-select');
@@ -1549,42 +1576,76 @@ document.addEventListener('DOMContentLoaded', () => {
         seleccionarMesa(numDisplay, estadoActivo, idReal);
       }
     } else {
-      // Estado inicial vacío: ninguna mesa seleccionada
       allCards.forEach(c => c.classList.remove('active'));
     }
   }
 
-  // Ejecutar inicialización si estamos en la vista de mesas
   if (tableCards.length > 0) {
     inicializarPlanoMesas();
   }
 
-  // Cambio de estado en el selector de cada mesa (guarda en localStorage y actualiza clases solo al cambiar select)
+  // Cambio de estado en el selector de cada mesa -> persistencia inmediata en MySQL (RF08)
   tableStatusSelects.forEach(select => {
-    select.addEventListener('change', () => {
+    select.addEventListener('change', async () => {
       const parentCard = select.closest('.table-card');
       const mesaNum = parentCard ? (parentCard.dataset.tableNumber || '1') : '1';
-      const mesaId = parentCard ? (parentCard.dataset.tableId || mesaNum) : '1';
+      const mesaId = select.dataset.tableId || (parentCard ? (parentCard.dataset.tableId || mesaNum) : '1');
+      const estadoAnterior = select.dataset.prevStatus || 'disponible';
+      const nuevoValor = select.value;
 
       select.classList.remove('status-disponible', 'status-ocupada', 'status-proceso', 'status-sin-servicio');
-      select.classList.add(`status-${select.value}`);
-      
-      // Guardar en localStorage únicamente cuando el usuario cambia el selector
-      localStorage.setItem('estado_mesa_' + mesaId, select.value);
-      localStorage.setItem('estado_mesa_' + mesaNum, select.value);
+      select.classList.add(`status-${nuevoValor}`);
 
       if (parentCard && parentCard.classList.contains('active')) {
-        actualizarEstadoCuentaLateral(select.value);
+        actualizarEstadoCuentaLateral(nuevoValor);
       }
       actualizarResumenMesas();
+
+      try {
+        const res = await fetch('../../controllers/ServicioController.php?action=cambiar_estado_mesa', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            id_mesa: parseInt(mesaId, 10) || mesaId,
+            estado_mesa: nuevoValor
+          })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data || data.success !== true) {
+          throw new Error((data && data.error) ? data.error : 'No fue posible actualizar el estado de la mesa.');
+        }
+
+        const slugConfirmado = mapearEstadoMesaASlug(data.estado_mesa || nuevoValor);
+        select.value = slugConfirmado;
+        select.dataset.prevStatus = slugConfirmado;
+        select.classList.remove('status-disponible', 'status-ocupada', 'status-proceso', 'status-sin-servicio');
+        select.classList.add(`status-${slugConfirmado}`);
+
+        if (parentCard && parentCard.classList.contains('active')) {
+          actualizarEstadoCuentaLateral(slugConfirmado);
+        }
+        actualizarResumenMesas();
+      } catch (err) {
+        console.error('Error al actualizar estado de mesa en MySQL:', err);
+        select.value = estadoAnterior;
+        select.classList.remove('status-disponible', 'status-ocupada', 'status-proceso', 'status-sin-servicio');
+        select.classList.add(`status-${estadoAnterior}`);
+        if (parentCard && parentCard.classList.contains('active')) {
+          actualizarEstadoCuentaLateral(estadoAnterior);
+        }
+        actualizarResumenMesas();
+        alert('Error al cambiar el estado de la mesa: ' + (err.message || 'Fallo de conexión con el servidor.'));
+      }
     });
   });
 
-  // Event listener para clic en las tarjetas de mesa:
-  // Gestiona exclusivamente la selección visual (.active) y el panel lateral sin recargar la página ni alterar selects
+  // Event listener para clic en las tarjetas de mesa
   tableCards.forEach(card => {
     card.addEventListener('click', (e) => {
-      // Ignorar clics dentro del selector para permitir interacción directa con el dropdown de estados
       if (e.target.closest('.table-status-select') || e.target.tagName.toLowerCase() === 'select') {
         return;
       }
@@ -1596,11 +1657,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       seleccionarMesa(mesaNum, estadoActual, mesaIdReal);
 
-      // En vista móvil (<= 1024px), desplegar automáticamente el panel de detalle como modal superpuesto
       if (window.innerWidth <= 1024) {
         abrirDetalleMovil();
       } else {
-        // En vista de escritorio (> 1024px), si el panel lateral de la cuenta está oculto, volverlo visible de inmediato
         const panelCuenta = document.querySelector('aside.cuenta-panel') || document.getElementById('cuentaPanel');
         const layoutMesas = document.querySelector('.mesas-layout') || document.getElementById('mesasLayout');
         const estaOculto = (panelCuenta && panelCuenta.classList.contains('hidden')) ||
@@ -1611,7 +1670,6 @@ document.addEventListener('DOMContentLoaded', () => {
           if (btnToggle && panelCuenta && panelCuenta.classList.contains('hidden')) {
             btnToggle.click();
           } else {
-            // Replicación directa de apertura en caso de ausencia del botón o desincronización de clases
             if (panelCuenta) {
               panelCuenta.classList.remove('hidden');
               panelCuenta.setAttribute('aria-hidden', 'false');
@@ -1653,7 +1711,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Soporte de accesibilidad para teclado (Enter / Espacio)
     userProfileBadge.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
@@ -1661,7 +1718,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Cerrar el dropdown al hacer clic fuera del contenedor
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.user-profile-dropdown-wrapper')) {
         userDropdownMenu.classList.remove('open', 'show');
@@ -1671,7 +1727,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Cerrar el dropdown con tecla Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         userDropdownMenu.classList.remove('open', 'show');
@@ -1682,14 +1737,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 2. Comportamiento del Panel de Detalle en Escritorio y Móviles (mesas.php, gestion_orden.php y cierre_cuenta.php)
+  // 2. Comportamiento del Panel de Detalle en Escritorio y Móviles (mesas.php, pedidos_web.php, gestion_orden.php y cierre_cuenta.php)
   const btnToggleDetalle = document.getElementById('btnToggleDetalle');
-  const panelSidebar = document.querySelector('aside.cuenta-panel, aside.active-order-sidebar, aside.ticket-sidebar, aside.cierre-ticket-panel');
-  const layoutContainer = document.querySelector('.mesas-layout, .order-layout, .cierre-layout');
-  const closeBtns = document.querySelectorAll('#cuentaCloseBtn, #activeOrderCloseBtn, #ticketCloseBtn, .cuenta-close-btn, .ticket-close-btn');
-  const backdrops = document.querySelectorAll('#cuentaBackdrop, #activeOrderBackdrop, #cierreBackdrop, .cuenta-backdrop');
+  const panelSidebar = document.querySelector('aside.cuenta-panel, aside.web-order-sidebar, aside.active-order-sidebar, aside.ticket-sidebar, aside.cierre-ticket-panel');
+  const layoutContainer = document.querySelector('.mesas-layout, .web-orders-layout, .order-layout, .cierre-layout');
+  const closeBtns = document.querySelectorAll('#cuentaCloseBtn, #webOrderCloseBtn, #activeOrderCloseBtn, #ticketCloseBtn, .cuenta-close-btn, .ticket-close-btn');
+  const backdrops = document.querySelectorAll('#cuentaBackdrop, #webOrderBackdrop, #activeOrderBackdrop, #cierreBackdrop, .cuenta-backdrop');
 
-  // Funciones para abrir y cerrar el panel superpuesto en móviles o escritorio
   function abrirDetalleMovil() {
     if (!panelSidebar) return;
     panelSidebar.classList.add('open', 'active');
@@ -1730,9 +1784,6 @@ document.addEventListener('DOMContentLoaded', () => {
   window.abrirDetalleMovil = abrirDetalleMovil;
   window.cerrarDetalleMovil = cerrarDetalleMovil;
 
-  // Alternar visibilidad del panel lateral con el botón "Detalle":
-  // - En móviles (<= 1024px): abre y cierra el modal drawer con fondo oscuro y difuminado
-  // - En escritorio (> 1024px): oculta y muestra el panel lateral expandiendo el área principal
   if (btnToggleDetalle && panelSidebar) {
     btnToggleDetalle.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1755,7 +1806,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Botones "X" dentro del panel en vista móvil/drawer
   closeBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -1763,21 +1813,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Clic en el fondo oscuro difuminado (Backdrop)
   backdrops.forEach(b => {
     b.addEventListener('click', () => {
       cerrarDetalleMovil();
     });
   });
 
-  // Cerrar modal al presionar tecla Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && window.innerWidth <= 1024) {
       cerrarDetalleMovil();
     }
   });
 
-  // Limpiar estados móviles al redimensionar a pantalla de escritorio
   window.addEventListener('resize', () => {
     if (window.innerWidth > 1024) {
       backdrops.forEach(b => {
@@ -1786,7 +1833,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (panelSidebar) {
         panelSidebar.classList.remove('open', 'active');
-        // Si no fue ocultado explícitamente por el botón Detalle, mantenerlo visible en escritorio
         if (!layoutContainer || !layoutContainer.classList.contains('detail-hidden')) {
           panelSidebar.classList.remove('hidden');
           panelSidebar.setAttribute('aria-hidden', 'false');
@@ -1797,22 +1843,22 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       }
-      // Restaurar scroll de body si no hay otros modales abiertos
       const productModal = document.getElementById('product-modal');
       const cartBackdropEl = document.getElementById('cart-backdrop');
       const checkoutModalEl = document.getElementById('modal-checkout-cliente');
       const exitoModalEl = document.getElementById('modal-pedido-exito');
+      const modalAsignarEl = document.getElementById('modalAsignarMesaWeb');
       if ((!productModal || !productModal.classList.contains('active')) &&
           (!cartBackdropEl || !cartBackdropEl.classList.contains('active')) &&
           (!checkoutModalEl || checkoutModalEl.getAttribute('aria-hidden') !== 'false') &&
-          (!exitoModalEl || exitoModalEl.getAttribute('aria-hidden') !== 'false')) {
+          (!exitoModalEl || exitoModalEl.getAttribute('aria-hidden') !== 'false') &&
+          (!modalAsignarEl || !modalAsignarEl.classList.contains('open'))) {
         document.body.style.overflow = '';
       }
     }
   });
 
-  // Botón "Agregar Producto" en panel lateral de mesas.php:
-  // Redirige a gestion_orden.php manteniendo el ID de la mesa activa en la URL
+  // Botón "Agregar Producto" en panel lateral de mesas.php
   const btnAgregarProducto = document.getElementById('btnAgregarProducto');
   if (btnAgregarProducto) {
     btnAgregarProducto.addEventListener('click', (e) => {
@@ -1826,157 +1872,180 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         return;
       }
-      localStorage.setItem('mesaActiva', mesaActiva);
+      sessionStorage.setItem('mesaActiva', mesaActiva);
       window.location.href = `gestion_orden.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
     });
   }
 
   /**
    * ==========================================================================
-   * PANTALLA: GESTIÓN DE ORDEN (gestion_orden.php)
+   * PANTALLA: GESTIÓN DE ORDEN (gestion_orden.php - RF06, RF07, RF09)
    * ==========================================================================
    */
   const btnMapaMesas = document.getElementById('btnMapaMesas');
   const btnEnviarCocina = document.getElementById('btnEnviarCocina');
   const btnActualizarOrden = document.getElementById('btnActualizarOrden');
+  const activeOrderList = document.getElementById('activeOrderList');
+  const orderItemsBadge = document.getElementById('orderItemsBadge');
+  const orderSubtotal = document.getElementById('orderSubtotal');
+  const orderTip = document.getElementById('orderTip');
+  const orderTotal = document.getElementById('orderTotal');
+  const filaOrderAbono = document.getElementById('filaOrderAbono');
+  const orderAbono = document.getElementById('orderAbono');
+  const filaOrderSaldo = document.getElementById('filaOrderSaldo');
+  const orderSaldo = document.getElementById('orderSaldo');
+
+  const urlParamsGO = new URLSearchParams(window.location.search);
+  const idMesaGestionActual = activeOrderList?.dataset.mesa
+    || btnEnviarCocina?.dataset.mesa
+    || urlParamsGO.get('mesa_id')
+    || urlParamsGO.get('mesa')
+    || sessionStorage.getItem('mesaActiva')
+    || '1';
+  const numeroMesaGestionActual = activeOrderList?.dataset.numeroMesa
+    || btnEnviarCocina?.dataset.numeroMesa
+    || idMesaGestionActual;
+
+  if (activeOrderList) {
+    sessionStorage.setItem('mesaActiva', String(idMesaGestionActual));
+    const activeOrderPillText = document.querySelector('.order-pill-text');
+    const activeOrderTitle = document.querySelector('.active-order-title');
+    if (activeOrderPillText) {
+      activeOrderPillText.textContent = `Orden Activa – Mesa ${numeroMesaGestionActual}`;
+    }
+    if (activeOrderTitle) {
+      activeOrderTitle.textContent = `Cuenta - Mesa ${numeroMesaGestionActual}`;
+    }
+  }
 
   // Redirección al presionar "Mapa de mesas"
   if (btnMapaMesas) {
     btnMapaMesas.addEventListener('click', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const mesaActiva = urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
-      window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
+      window.location.href = `mesas.php?mesa_id=${encodeURIComponent(idMesaGestionActual)}`;
     });
   }
 
-  // 2. Botón "Enviar a Cocina" en gestion_orden.php:
-  // - Captura productos del carrito actual
-  // - Guarda en base de datos (pedidos y detalles_pedido) vía api/guardar_orden.php
-  // - Actualiza el estado de la mesa a 'En proceso'
-  // - Redirige de regreso a mesas.php?mesa_id=X
-  if (btnEnviarCocina) {
-    btnEnviarCocina.addEventListener('click', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const mesaActiva = btnEnviarCocina.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || sessionStorage.getItem('mesaActiva') || '1';
+  // Recolecta los productos actuales de `#activeOrderList`
+  function obtenerItemsCarritoMesaActual() {
+    const itemsCarrito = [];
+    if (!activeOrderList) return itemsCarrito;
 
-      // Capturar productos del carrito actual
-      const itemsCarrito = [];
-      const orderListEl = document.getElementById('activeOrderList');
-      if (orderListEl) {
-        const orderItems = orderListEl.querySelectorAll('.active-order-item');
-        orderItems.forEach(item => {
-          const id = item.dataset.id || '';
-          const name = item.querySelector('.active-item-title')?.textContent.trim() || 'Producto';
-          const qty = parseInt(item.querySelector('.qty-circle-value')?.textContent, 10) || 1;
-          const unitPrice = parseFloat(item.dataset.unitPrice) || 0;
+    const orderItems = activeOrderList.querySelectorAll('.active-order-item');
+    orderItems.forEach(item => {
+      const id = (item.dataset.id || '').trim();
+      const name = item.querySelector('.active-item-title')?.textContent.trim() || 'Producto';
+      const qty = parseInt(item.querySelector('.qty-circle-value')?.textContent || '0', 10) || 0;
+      const unitPrice = parseFloat(item.dataset.unitPrice || '0') || 0;
 
-          if (id && qty > 0) {
-            itemsCarrito.push({
-              id: id,
-              name: name,
-              price: unitPrice,
-              qty: qty
-            });
-          }
+      if (id && qty > 0) {
+        itemsCarrito.push({
+          id: !isNaN(parseInt(id, 10)) ? parseInt(id, 10) : id,
+          name: name,
+          price: unitPrice,
+          qty: qty
         });
       }
+    });
 
-      if (itemsCarrito.length === 0) {
-        alert('Por favor agrega al menos un producto a la orden antes de enviar a cocina.');
-        return;
-      }
+    return itemsCarrito;
+  }
 
-      // Animación visual de confirmación
-      const textoOriginal = btnEnviarCocina.innerHTML;
-      btnEnviarCocina.innerHTML = `<span>¡Guardando y enviando a cocina...!</span>`;
-      btnEnviarCocina.disabled = true;
+  // Persiste cualquier apertura o modificación de la orden en MySQL vía `actualizar_orden` (RF07, RF09)
+  async function persistirOrdenMesaEnServidor({ redirigirAlMapa = false, botonAccion = null } = {}) {
+    const itemsCarrito = obtenerItemsCarritoMesaActual();
+    if (itemsCarrito.length === 0) {
+      alert('Por favor agrega al menos un producto a la orden antes de guardarla.');
+      return;
+    }
 
-      // Enviar al backend PHP (MySQL) mediante AJAX Fetch
-      fetch('../../controllers/ServicioController.php?action=guardar_orden', {
+    const idMesaRaw = (botonAccion && botonAccion.dataset.mesa)
+      ? botonAccion.dataset.mesa
+      : idMesaGestionActual;
+    const idMesaEnviar = (!isNaN(parseInt(idMesaRaw, 10)) && !String(idMesaRaw).startsWith('M'))
+      ? parseInt(idMesaRaw, 10)
+      : idMesaRaw;
+
+    const textoOriginalBtn = botonAccion ? botonAccion.innerHTML : '';
+    if (btnActualizarOrden) btnActualizarOrden.disabled = true;
+    if (btnEnviarCocina) btnEnviarCocina.disabled = true;
+    if (botonAccion) {
+      botonAccion.innerHTML = redirigirAlMapa
+        ? `<span>¡Guardando y enviando a cocina...!</span>`
+        : `<span>Guardando cambios en BD...</span>`;
+    }
+
+    try {
+      const res = await fetch('../../controllers/ServicioController.php?action=actualizar_orden', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
-          id_mesa: (mesaActiva && !isNaN(parseInt(mesaActiva, 10)) && !mesaActiva.toString().startsWith('M')) ? parseInt(mesaActiva, 10) : mesaActiva,
+          id_mesa: idMesaEnviar,
           productos: itemsCarrito,
+          reemplazar_items: true,
           estado_mesa: 'En proceso',
           estado_pedido: 'En preparación'
         })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Guardar en localStorage asociados a la mesa activa para sincronización visual
-          localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(itemsCarrito));
-          localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
-          localStorage.setItem('mesaActiva', mesaActiva);
-
-          setTimeout(() => {
-            window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
-          }, 350);
-        } else {
-          alert('Error al guardar la orden en la base de datos: ' + (data.error || 'Error desconocido'));
-          btnEnviarCocina.innerHTML = textoOriginal;
-          btnEnviarCocina.disabled = false;
-        }
-      })
-      .catch(err => {
-        console.error('Error al enviar la orden a api/guardar_orden.php:', err);
-        // Fallback local en caso de pérdida de red momentánea
-        localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(itemsCarrito));
-        localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
-        localStorage.setItem('mesaActiva', mesaActiva);
-        window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
       });
-    });
-  }
 
-  // Botón "Actualizar Orden" en gestion_orden.php
-  if (btnActualizarOrden) {
-    btnActualizarOrden.addEventListener('click', () => {
-      const mesaActiva = localStorage.getItem('mesaActiva') || sessionStorage.getItem('mesaActiva') || '1';
-
-      const itemsCarrito = [];
-      const orderListEl = document.getElementById('activeOrderList');
-      if (orderListEl) {
-        const orderItems = orderListEl.querySelectorAll('.active-order-item');
-        orderItems.forEach(item => {
-          const id = item.dataset.id || '';
-          const name = item.querySelector('.active-item-title')?.textContent.trim() || 'Producto';
-          const qty = parseInt(item.querySelector('.qty-circle-value')?.textContent, 10) || 1;
-          const unitPrice = parseFloat(item.dataset.unitPrice) || 0;
-
-          itemsCarrito.push({
-            id: id,
-            name: name,
-            price: unitPrice,
-            qty: qty
-          });
-        });
+      const data = await res.json();
+      if (!res.ok || !data || data.success !== true) {
+        throw new Error((data && data.error) ? data.error : 'No fue posible guardar la orden en la base de datos.');
       }
 
-      localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(itemsCarrito));
+      // Limpiar cualquier residuo obsoleto en localStorage y sincronizar abono/totales reales
+      localStorage.removeItem('orden_mesa_' + idMesaEnviar);
+      sessionStorage.setItem('mesaActiva', String(data.id_mesa || idMesaEnviar));
 
-      const textoOriginal = btnActualizarOrden.innerHTML;
-      btnActualizarOrden.innerHTML = `<span>¡Orden Guardada!</span>`;
-      setTimeout(() => {
-        btnActualizarOrden.innerHTML = textoOriginal;
-      }, 1000);
+      if (activeOrderList && data.orden) {
+        if (data.orden.id_pedido) {
+          activeOrderList.dataset.idPedido = String(data.orden.id_pedido);
+        }
+        if (typeof data.orden.monto_abonado !== 'undefined') {
+          activeOrderList.dataset.montoAbonado = Number(data.orden.monto_abonado || 0).toFixed(2);
+        }
+        actualizarTotalesOrden();
+      }
+
+      if (redirigirAlMapa) {
+        window.location.href = `mesas.php?mesa_id=${encodeURIComponent(data.id_mesa || idMesaEnviar)}`;
+        return;
+      }
+
+      if (botonAccion) {
+        botonAccion.innerHTML = `<span>¡Orden Actualizada!</span>`;
+        setTimeout(() => {
+          botonAccion.innerHTML = textoOriginalBtn;
+          if (btnActualizarOrden) btnActualizarOrden.disabled = false;
+          if (btnEnviarCocina) btnEnviarCocina.disabled = false;
+        }, 1200);
+      } else {
+        if (btnActualizarOrden) btnActualizarOrden.disabled = false;
+        if (btnEnviarCocina) btnEnviarCocina.disabled = false;
+      }
+    } catch (err) {
+      console.error('Error al actualizar la orden en MySQL:', err);
+      alert('Error al guardar la orden en la base de datos: ' + (err.message || 'Fallo de conexión con el servidor.'));
+      if (botonAccion && textoOriginalBtn) {
+        botonAccion.innerHTML = textoOriginalBtn;
+      }
+      if (btnActualizarOrden) btnActualizarOrden.disabled = false;
+      if (btnEnviarCocina) btnEnviarCocina.disabled = false;
+    }
+  }
+
+  if (btnEnviarCocina) {
+    btnEnviarCocina.addEventListener('click', () => {
+      persistirOrdenMesaEnServidor({ redirigirAlMapa: true, botonAccion: btnEnviarCocina });
     });
   }
 
-  // Sincronizar número de mesa activa en gestion_orden.php
-  const urlParamsGO = new URLSearchParams(window.location.search);
-  const mesaActivaActual = urlParamsGO.get('mesa_id') || urlParamsGO.get('mesa') || localStorage.getItem('mesaActiva') || sessionStorage.getItem('mesaActiva') || '1';
-  localStorage.setItem('mesaActiva', mesaActivaActual);
-  const activeOrderPillText = document.querySelector('.order-pill-text');
-  const activeOrderTitle = document.querySelector('.active-order-title');
-  if (activeOrderPillText) {
-    activeOrderPillText.textContent = `Orden Activa – Mesa ${mesaActivaActual}`;
-  }
-  if (activeOrderTitle) {
-    activeOrderTitle.textContent = `Cuenta - Mesa ${mesaActivaActual}`;
+  if (btnActualizarOrden) {
+    btnActualizarOrden.addEventListener('click', () => {
+      persistirOrdenMesaEnServidor({ redirigirAlMapa: false, botonAccion: btnActualizarOrden });
+    });
   }
 
   // Filtros de categoría en catálogo de orden (gestion_orden.php)
@@ -1987,31 +2056,21 @@ document.addEventListener('DOMContentLoaded', () => {
       pill.classList.add('active');
 
       const filterCat = (pill.dataset.category || 'todos').toLowerCase();
+      const filterCatId = (pill.dataset.categoryId || '').trim();
       const cards = document.querySelectorAll('.order-product-card');
 
       cards.forEach(card => {
         const cardCat = (card.dataset.category || '').toLowerCase();
-        if (filterCat === 'todos' || cardCat === filterCat) {
-          card.style.display = 'flex';
-        } else {
-          card.style.display = 'none';
-        }
+        const cardCatId = (card.dataset.categoryId || '').trim();
+        const coincide = filterCat === 'todos'
+          || (filterCatId !== '' && cardCatId !== '' && filterCatId === cardCatId)
+          || cardCat === filterCat;
+        card.style.display = coincide ? 'flex' : 'none';
       });
     });
   });
 
-  /**
-   * ==========================================================================
-   * GESTIÓN DE ORDEN: CARRITO DE LA CUENTA, AGRUPACIÓN Y TOTALES
-   * ==========================================================================
-   */
-  const activeOrderList = document.getElementById('activeOrderList');
-  const orderItemsBadge = document.getElementById('orderItemsBadge');
-  const orderSubtotal = document.getElementById('orderSubtotal');
-  const orderTip = document.getElementById('orderTip');
-  const orderTotal = document.getElementById('orderTotal');
-
-  // Función para recalcular el total de ítems, subtotal, propina (10%) y total de la cuenta
+  // Recalcula ítems, subtotal, propina (10%), total, abono web y saldo pendiente (RF07, RF09)
   function actualizarTotalesOrden() {
     if (!activeOrderList) return;
     const items = activeOrderList.querySelectorAll('.active-order-item');
@@ -2022,7 +2081,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const qtySpan = item.querySelector('.qty-circle-value');
       const qty = parseInt(qtySpan ? qtySpan.textContent : '1', 10) || 1;
       
-      // Obtener o inferir precio unitario
       let unitPrice = parseFloat(item.dataset.unitPrice);
       if (isNaN(unitPrice)) {
         const priceText = item.querySelector('.active-item-price')?.textContent || '$0.00';
@@ -2032,17 +2090,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       totalItems += qty;
-      subtotalAcumulado += (unitPrice * qty);
+      const lineaSub = Math.round(unitPrice * qty * 100) / 100;
+      subtotalAcumulado = Math.round((subtotalAcumulado + lineaSub) * 100) / 100;
 
-      // Sincronizar el precio total de cada fila (precio unitario * cantidad)
       const priceSpan = item.querySelector('.active-item-price');
       if (priceSpan) {
-        priceSpan.textContent = `$${(unitPrice * qty).toFixed(2)}`;
+        priceSpan.textContent = `$${lineaSub.toFixed(2)}`;
       }
     });
 
-    const propina = subtotalAcumulado * 0.10;
-    const totalGeneral = subtotalAcumulado + propina;
+    const propina = Math.round(subtotalAcumulado * 0.10 * 100) / 100;
+    const totalGeneral = Math.round((subtotalAcumulado + propina) * 100) / 100;
+    const montoAbonado = parseFloat(activeOrderList.dataset.montoAbonado || '0') || 0;
+    const saldoPendiente = Math.max(0, Math.round((totalGeneral - montoAbonado) * 100) / 100);
 
     if (orderItemsBadge) {
       orderItemsBadge.textContent = `${totalItems} Items`;
@@ -2056,8 +2116,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (orderTotal) {
       orderTotal.textContent = `$${totalGeneral.toFixed(2)} USD`;
     }
+    if (filaOrderAbono && orderAbono) {
+      orderAbono.textContent = `-$${montoAbonado.toFixed(2)} USD`;
+      filaOrderAbono.style.display = montoAbonado > 0 ? 'flex' : 'none';
+    }
+    if (filaOrderSaldo && orderSaldo) {
+      orderSaldo.textContent = `$${saldoPendiente.toFixed(2)} USD`;
+      filaOrderSaldo.style.display = montoAbonado > 0 ? 'flex' : 'none';
+    }
 
-    // Sincronizar contadores interactivos de las tarjetas del catálogo
     sincronizarContadoresCatalogo();
   }
 
@@ -2151,7 +2218,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const isPlus = qtyBtn.classList.contains('card-qty-plus') || qtyBtn.textContent.trim() === '+';
     const isMinus = qtyBtn.classList.contains('card-qty-minus') || qtyBtn.textContent.trim() === '-';
 
-    // Buscar si el producto ya existe en activeOrderList
     const existingItem = Array.from(activeOrderList.querySelectorAll('.active-order-item')).find(item => {
       if (id && item.dataset.id && item.dataset.id === id) return true;
       const itemTitle = item.querySelector('.active-item-title')?.textContent.trim();
@@ -2177,14 +2243,14 @@ document.addEventListener('DOMContentLoaded', () => {
         newItem.dataset.unitPrice = unitPrice;
         newItem.innerHTML = `
           <div class="active-item-info">
-            <h4 class="active-item-title">${nombre}</h4>
+            <h4 class="active-item-title">${escaparHtmlServicio(nombre)}</h4>
             <span class="active-item-price">$${unitPrice.toFixed(2)}</span>
           </div>
           <div class="active-item-controls">
-            <button class="qty-circle-btn" data-action="decrease" aria-label="Disminuir">-</button>
+            <button class="qty-circle-btn" type="button" data-action="decrease" aria-label="Disminuir">-</button>
             <span class="qty-circle-value">1</span>
-            <button class="qty-circle-btn" data-action="increase" aria-label="Aumentar">+</button>
-            <button class="btn-remove-item" data-action="delete" aria-label="Eliminar producto">
+            <button class="qty-circle-btn" type="button" data-action="increase" aria-label="Aumentar">+</button>
+            <button class="btn-remove-item" type="button" data-action="delete" aria-label="Eliminar producto">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -2215,7 +2281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Capturar el clic en el botón '+' de los productos del catálogo (compatibilidad botón único)
+  // Compatibilidad botón único `.btn-add-item`
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-add-item');
     if (!btn) return;
@@ -2229,7 +2295,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawPrecio = btn.dataset.precio || card?.dataset.precio || card?.dataset.price || card?.querySelector('.order-product-price')?.textContent || '0.00';
     const unitPrice = parseFloat(String(rawPrecio).replace(/[^0-9.]/g, '')) || 0;
 
-    // Verificar si el producto ya existe en la lista activa (por id o nombre)
     const existingItem = Array.from(activeOrderList.querySelectorAll('.active-order-item')).find(item => {
       if (id && item.dataset.id && item.dataset.id === id) return true;
       const itemTitle = item.querySelector('.active-item-title')?.textContent.trim();
@@ -2239,7 +2304,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (existingItem) {
       const qtySpan = existingItem.querySelector('.qty-circle-value');
       const priceSpan = existingItem.querySelector('.active-item-price');
-      
       let currentQty = parseInt(qtySpan ? qtySpan.textContent : '1', 10) || 1;
       currentQty++;
       if (qtySpan) qtySpan.textContent = currentQty;
@@ -2248,13 +2312,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (priceSpan) {
         priceSpan.textContent = `$${(baseUnit * currentQty).toFixed(2)}`;
       }
-
-      existingItem.style.transition = 'background-color 0.25s ease';
-      existingItem.style.backgroundColor = 'rgba(193, 122, 93, 0.15)';
-      setTimeout(() => {
-        existingItem.style.backgroundColor = 'transparent';
-      }, 300);
-
     } else {
       const newItem = document.createElement('div');
       newItem.className = 'active-order-item';
@@ -2262,14 +2319,14 @@ document.addEventListener('DOMContentLoaded', () => {
       newItem.dataset.unitPrice = unitPrice;
       newItem.innerHTML = `
         <div class="active-item-info">
-          <h4 class="active-item-title">${nombre}</h4>
+          <h4 class="active-item-title">${escaparHtmlServicio(nombre)}</h4>
           <span class="active-item-price">$${unitPrice.toFixed(2)}</span>
         </div>
         <div class="active-item-controls">
-          <button class="qty-circle-btn" data-action="decrease" aria-label="Disminuir">-</button>
+          <button class="qty-circle-btn" type="button" data-action="decrease" aria-label="Disminuir">-</button>
           <span class="qty-circle-value">1</span>
-          <button class="qty-circle-btn" data-action="increase" aria-label="Aumentar">+</button>
-          <button class="btn-remove-item" data-action="delete" aria-label="Eliminar producto">
+          <button class="qty-circle-btn" type="button" data-action="increase" aria-label="Aumentar">+</button>
+          <button class="btn-remove-item" type="button" data-action="delete" aria-label="Eliminar producto">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -2283,56 +2340,14 @@ document.addEventListener('DOMContentLoaded', () => {
     actualizarTotalesOrden();
   });
 
-  // Pre-cargar orden previa guardada en localStorage para la mesa activa en gestion_orden.php
+  // Al iniciar `gestion_orden.php`, preservar siempre los `.active-order-item` precargados por PHP desde MySQL (sin sobrescribir con localStorage)
   if (activeOrderList) {
-    const ordenGuardadaMesa = localStorage.getItem('orden_mesa_' + mesaActivaActual);
-    if (ordenGuardadaMesa) {
-      try {
-        const productosPrevios = JSON.parse(ordenGuardadaMesa);
-        if (Array.isArray(productosPrevios) && productosPrevios.length > 0) {
-          activeOrderList.innerHTML = '';
-          productosPrevios.forEach(prod => {
-            const id = prod.id || '';
-            const nombre = prod.name || prod.nombre || 'Producto';
-            const unitPrice = parseFloat(prod.price ?? prod.unitPrice) || 0;
-            const qty = parseInt(prod.qty, 10) || 1;
-
-            const newItem = document.createElement('div');
-            newItem.className = 'active-order-item';
-            newItem.dataset.id = id;
-            newItem.dataset.unitPrice = unitPrice;
-            newItem.innerHTML = `
-              <div class="active-item-info">
-                <h4 class="active-item-title">${nombre}</h4>
-                <span class="active-item-price">$${(unitPrice * qty).toFixed(2)}</span>
-              </div>
-              <div class="active-item-controls">
-                <button class="qty-circle-btn" data-action="decrease" aria-label="Disminuir">-</button>
-                <span class="qty-circle-value">${qty}</span>
-                <button class="qty-circle-btn" data-action="increase" aria-label="Aumentar">+</button>
-                <button class="btn-remove-item" data-action="delete" aria-label="Eliminar producto">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </button>
-              </div>
-            `;
-            activeOrderList.appendChild(newItem);
-          });
-          actualizarTotalesOrden();
-        }
-      } catch (e) {
-        console.error('Error al precargar orden en gestion_orden:', e);
-      }
-    }
-    // Sincronizar totales y contadores visuales del catálogo al cargar la vista
     actualizarTotalesOrden();
   }
 
   /**
    * ==========================================================================
-   * PANTALLA: CIERRE DE CUENTA (cierre_cuenta.php)
+   * PANTALLA: CIERRE DE CUENTA (cierre_cuenta.php - RNF03, RF09, RF10, RF14)
    * ==========================================================================
    */
   const btnImprimirTicket = document.getElementById('btnImprimirTicket') || document.getElementById('btnGenerarPDF');
@@ -2340,42 +2355,78 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnProcesarPago = document.getElementById('btnProcesarPago');
   const inputMontoRecibido = document.getElementById('inputMontoRecibido');
   const cashChangeValue = document.getElementById('cashChangeValue');
-
-  // Sincronizar número de mesa activa en cierre_cuenta.php
-  const mesaCierre = localStorage.getItem('mesaActiva') || '1';
-  const cierreTitle = document.querySelector('.cierre-main-title');
-  if (cierreTitle && (btnProcesarPago || ticketContainer)) {
-    cierreTitle.textContent = `Cierre de Cuenta – Mesa ${mesaCierre}`;
-  }
-
-  // Alternar selección de método de pago (Efectivo / Tarjeta)
   const cardMetodoEfectivo = document.getElementById('metodoEfectivoCard');
   const cardMetodoTarjeta = document.getElementById('metodoTarjetaCard');
-  const cashDetailCard = document.querySelector('.cash-detail-card');
+  const cashDetailCard = document.getElementById('cashDetailCard') || document.querySelector('.cash-detail-card');
+  const cardTerminalSimBox = document.getElementById('cardTerminalSimBox');
+  const ticketMetodoPagoVal = document.getElementById('ticketMetodoPagoVal');
+  const ticketEfectivoRecibidoVal = document.getElementById('ticketEfectivoRecibidoVal');
+  const ticketCambioVal = document.getElementById('ticketCambioVal');
 
+  const urlParamsCierre = new URLSearchParams(window.location.search);
+  const mesaCierre = btnProcesarPago?.dataset.numeroMesa
+    || urlParamsCierre.get('mesa_id')
+    || urlParamsCierre.get('mesa')
+    || sessionStorage.getItem('mesaActiva')
+    || '1';
+
+  // Sincroniza dinámicamente el cálculo de cambio y los valores en el ticket PDF (#ticketContainer)
+  function sincronizarCobroYTicketCaja() {
+    if (!btnProcesarPago && !inputMontoRecibido) return;
+
+    const saldoBase = parseFloat(btnProcesarPago?.dataset.total || inputMontoRecibido?.dataset.total || '0') || 0;
+    const esTarjeta = Boolean(cardMetodoTarjeta && cardMetodoTarjeta.classList.contains('active'));
+
+    if (esTarjeta) {
+      if (cashChangeValue) cashChangeValue.textContent = '0.00';
+      if (ticketMetodoPagoVal) ticketMetodoPagoVal.textContent = 'Tarjeta';
+      if (ticketEfectivoRecibidoVal) ticketEfectivoRecibidoVal.textContent = `$${saldoBase.toFixed(2)}`;
+      if (ticketCambioVal) ticketCambioVal.textContent = '$0.00';
+    } else {
+      const recibido = parseFloat(inputMontoRecibido?.value || '0') || 0;
+      const cambio = Math.max(0, Math.round((recibido - saldoBase) * 100) / 100);
+      if (cashChangeValue) cashChangeValue.textContent = cambio.toFixed(2);
+      if (ticketMetodoPagoVal) ticketMetodoPagoVal.textContent = 'Efectivo';
+      if (ticketEfectivoRecibidoVal) ticketEfectivoRecibidoVal.textContent = `$${recibido.toFixed(2)}`;
+      if (ticketCambioVal) ticketCambioVal.textContent = `$${cambio.toFixed(2)}`;
+    }
+  }
+
+  // Alternar selección de método de pago (Efectivo / Tarjeta - RNF03)
   if (cardMetodoEfectivo && cardMetodoTarjeta) {
-    function seleccionarMetodo(metodo) {
-      if (metodo === 'efectivo') {
-        cardMetodoEfectivo.classList.add('active');
-        cardMetodoEfectivo.classList.remove('payment-method-card-inactive');
-        cardMetodoTarjeta.classList.remove('active');
-        cardMetodoTarjeta.classList.add('payment-method-card-inactive');
-        if (cashDetailCard) {
-          cashDetailCard.style.display = '';
-        }
-      } else {
+    function seleccionarMetodoCaja(metodo) {
+      if (metodo === 'tarjeta') {
         cardMetodoTarjeta.classList.add('active');
         cardMetodoTarjeta.classList.remove('payment-method-card-inactive');
         cardMetodoEfectivo.classList.remove('active');
-        cardMetodoEfectivo.classList.add('payment-method-card-inactive');
-        if (cashDetailCard) {
-          cashDetailCard.style.display = 'none';
-        }
+        if (cashDetailCard) cashDetailCard.style.display = 'none';
+        if (cardTerminalSimBox) cardTerminalSimBox.classList.add('visible');
+      } else {
+        cardMetodoEfectivo.classList.add('active');
+        cardMetodoEfectivo.classList.remove('payment-method-card-inactive');
+        cardMetodoTarjeta.classList.remove('active');
+        if (cashDetailCard) cashDetailCard.style.display = '';
+        if (cardTerminalSimBox) cardTerminalSimBox.classList.remove('visible');
       }
+      sincronizarCobroYTicketCaja();
     }
 
-    cardMetodoEfectivo.addEventListener('click', () => seleccionarMetodo('efectivo'));
-    cardMetodoTarjeta.addEventListener('click', () => seleccionarMetodo('tarjeta'));
+    cardMetodoEfectivo.addEventListener('click', () => seleccionarMetodoCaja('efectivo'));
+    cardMetodoTarjeta.addEventListener('click', () => seleccionarMetodoCaja('tarjeta'));
+
+    [cardMetodoEfectivo, cardMetodoTarjeta].forEach(cardEl => {
+      cardEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          cardEl.click();
+        }
+      });
+    });
+  }
+
+  if (inputMontoRecibido) {
+    inputMontoRecibido.addEventListener('input', sincronizarCobroYTicketCaja);
+    sincronizarCobroYTicketCaja();
   }
 
   // 1. Botón "Imprimir": exporta el comprobante de venta a PDF mediante html2pdf.js
@@ -2431,18 +2482,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 2. Botón "Procesar Pago & Liberar Mesa"
+  // 2. Botón "Procesar Pago & Liberar Mesa" -> `ServicioController.php?action=cerrar_cuenta` (sin fallback local)
   if (btnProcesarPago) {
-    btnProcesarPago.addEventListener('click', () => {
+    btnProcesarPago.addEventListener('click', async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const mesaActiva = btnProcesarPago.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
-      const inputMonto = document.getElementById('inputMontoRecibido');
-      const esTarjeta = cardMetodoTarjeta && cardMetodoTarjeta.classList.contains('active');
-      const montoRecibido = inputMonto ? parseFloat(inputMonto.value) || 0 : 0;
-      const totalOperacion = parseFloat(btnProcesarPago.dataset.total) || 0;
+      const mesaActiva = btnProcesarPago.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || '1';
+      const numMesaDisplay = btnProcesarPago.dataset.numeroMesa || mesaActiva;
+      const idPedido = btnProcesarPago.dataset.idpedido ? parseInt(btnProcesarPago.dataset.idpedido, 10) : 0;
+      const saldoPendiente = parseFloat(btnProcesarPago.dataset.total || '0') || 0;
 
-      if (!esTarjeta && montoRecibido < totalOperacion) {
-        alert('El monto recibido en efectivo no puede ser menor al total de la operación ($' + totalOperacion.toFixed(2) + ').');
+      if (!idPedido || idPedido <= 0) {
+        alert('No existe una orden activa pendiente de cobro para esta mesa.');
+        return;
+      }
+
+      const esTarjeta = Boolean(cardMetodoTarjeta && cardMetodoTarjeta.classList.contains('active'));
+      const metodoPago = esTarjeta ? 'Tarjeta' : 'Efectivo';
+      const montoRecibido = esTarjeta
+        ? saldoPendiente
+        : (parseFloat(inputMontoRecibido?.value || '0') || 0);
+
+      if (!esTarjeta && (montoRecibido + 0.0001) < saldoPendiente) {
+        alert(`El monto recibido en efectivo ($${montoRecibido.toFixed(2)}) no puede ser menor al saldo pendiente a cobrar en caja ($${saldoPendiente.toFixed(2)}).`);
         return;
       }
 
@@ -2456,52 +2517,54 @@ document.addEventListener('DOMContentLoaded', () => {
       btnProcesarPago.innerHTML = `<span>Procesando pago y liberando mesa...</span>`;
       btnProcesarPago.disabled = true;
 
-      // Llamada AJAX/Fetch al backend para actualizar MySQL (marcar pagado y liberar mesa)
-      fetch('../../controllers/ServicioController.php?action=cerrar_cuenta', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id_mesa: (mesaActiva && !isNaN(parseInt(mesaActiva, 10)) && !mesaActiva.toString().startsWith('M')) ? parseInt(mesaActiva, 10) : mesaActiva,
-          id_pedido: btnProcesarPago.dataset.idpedido ? parseInt(btnProcesarPago.dataset.idpedido, 10) : null,
-          monto_recibido: esTarjeta ? totalOperacion : (montoRecibido > 0 ? montoRecibido : totalOperacion),
-          id_cajero: 1
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Limpiar datos locales de esta mesa
-          localStorage.removeItem('orden_mesa_' + mesaActiva);
-          localStorage.setItem('estado_mesa_' + mesaActiva, 'disponible');
+      try {
+        const res = await fetch('../../controllers/ServicioController.php?action=cerrar_cuenta', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            id_mesa: (!isNaN(parseInt(mesaActiva, 10)) && !String(mesaActiva).startsWith('M')) ? parseInt(mesaActiva, 10) : mesaActiva,
+            id_pedido: idPedido,
+            metodo_pago: metodoPago,
+            monto_recibido: montoRecibido
+          })
+        });
 
-          alert(`¡Pago procesado con éxito para la Mesa ${mesaActiva}!\nLa orden ha sido registrada como 'Pagada' y la mesa ahora está 'Disponible'.`);
-          window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
-        } else {
-          alert('Error al procesar el pago: ' + (data.error || 'Ocurrió un error inesperado'));
-          btnProcesarPago.innerHTML = textoOriginal;
-          btnProcesarPago.disabled = false;
+        const data = await res.json();
+        if (!res.ok || !data || data.success !== true) {
+          throw new Error((data && data.error) ? data.error : 'No fue posible completar el cierre de la cuenta.');
         }
-      })
-      .catch(err => {
-        console.error('Error al contactar api/cerrar_cuenta.php:', err);
-        // Fallback local en caso de desconexión
-        localStorage.removeItem('orden_mesa_' + mesaActiva);
-        localStorage.setItem('estado_mesa_' + mesaActiva, 'disponible');
-        alert(`¡Pago procesado para la Mesa ${mesaActiva}!\nLa mesa ha sido liberada.`);
-        window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
-      });
-    });
-  }
 
-  // Cálculo interactivo del cambio según el monto recibido
-  if (inputMontoRecibido && cashChangeValue) {
-    const total = parseFloat(inputMontoRecibido.dataset.total) || 0;
-    inputMontoRecibido.addEventListener('input', () => {
-      const recibido = parseFloat(inputMontoRecibido.value) || 0;
-      const cambio = Math.max(0, recibido - total);
-      cashChangeValue.textContent = cambio.toFixed(2);
+        // Sincronizar el comprobante con los valores definitivos retornados por el servidor
+        const cierreInfo = data.cierre || data;
+        if (ticketMetodoPagoVal && cierreInfo.metodo_pago) {
+          ticketMetodoPagoVal.textContent = cierreInfo.metodo_pago;
+        }
+        if (ticketEfectivoRecibidoVal && typeof cierreInfo.efectivo_recibido !== 'undefined') {
+          ticketEfectivoRecibidoVal.textContent = `$${Number(cierreInfo.efectivo_recibido).toFixed(2)}`;
+        }
+        if (ticketCambioVal && typeof cierreInfo.cambio !== 'undefined') {
+          ticketCambioVal.textContent = `$${Number(cierreInfo.cambio).toFixed(2)}`;
+        }
+
+        localStorage.removeItem('orden_mesa_' + mesaActiva);
+        localStorage.removeItem('estado_mesa_' + mesaActiva);
+
+        const cambioFinal = Number(cierreInfo.cambio || 0);
+        const notaCambio = (!esTarjeta && cambioFinal > 0)
+          ? `\nCambio a entregar al cliente: $${cambioFinal.toFixed(2)} USD.`
+          : '';
+
+        alert(`¡Pago (${metodoPago}) procesado con éxito para la Mesa ${numMesaDisplay}!${notaCambio}\nLos insumos han sido descontados del inventario y la mesa ahora está 'Disponible'.`);
+        window.location.href = `mesas.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
+      } catch (err) {
+        console.error('Error al cerrar cuenta en MySQL:', err);
+        alert('Error al procesar el pago: ' + (err.message || 'Fallo de conexión con el servidor.'));
+        btnProcesarPago.innerHTML = textoOriginal;
+        btnProcesarPago.disabled = false;
+      }
     });
   }
 
@@ -2519,38 +2582,1312 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         return;
       }
-      localStorage.setItem('mesaActiva', mesaActiva);
+      sessionStorage.setItem('mesaActiva', mesaActiva);
       window.location.href = `cierre_cuenta.php?mesa_id=${encodeURIComponent(mesaActiva)}`;
     });
   }
 
-  // Conexión de botones de "Cerrar Sesión" hacia el Login (index.php)
+  /**
+   * ==========================================================================
+   * PANTALLA: RECEPCIÓN DE PEDIDOS WEB Y ASIGNACIÓN DE MESAS (pedidos_web.php - RF16, RF17)
+   * ==========================================================================
+   */
+  const tbodyPedidosWeb = document.getElementById('tbodyPedidosWeb');
+  if (tbodyPedidosWeb) {
+    const initialJsonEl = document.getElementById('pedidosWebInitialData');
+    const contadorPedidosWebBadge = document.getElementById('contadorPedidosWebBadge');
+    const filterPillsWeb = document.querySelectorAll('.web-order-filter-pill');
+    const inputBuscarPedidoWeb = document.getElementById('inputBuscarPedidoWeb');
+    const btnRefrescarPedidosWeb = document.getElementById('btnRefrescarPedidosWeb');
+
+    // Elementos del panel lateral (#webOrderSidebar)
+    const webOrderEmptyState = document.getElementById('webOrderEmptyState');
+    const webOrderDetailContent = document.getElementById('webOrderDetailContent');
+    const detWebTituloFolio = document.getElementById('detWebTituloFolio');
+    const detWebClienteNombre = document.getElementById('detWebClienteNombre');
+    const detWebClienteTelefono = document.getElementById('detWebClienteTelefono');
+    const detWebClienteCorreo = document.getElementById('detWebClienteCorreo');
+    const detWebModalidad = document.getElementById('detWebModalidad');
+    const detWebMesaAsignada = document.getElementById('detWebMesaAsignada');
+    const detWebBloqueLogistico = document.getElementById('detWebBloqueLogistico');
+    const detWebMunicipio = document.getElementById('detWebMunicipio');
+    const detWebDireccion = document.getElementById('detWebDireccion');
+    const detWebReferencia = document.getElementById('detWebReferencia');
+    const detWebListaProductos = document.getElementById('detWebListaProductos');
+    const selectEstadoPedidoWeb = document.getElementById('selectEstadoPedidoWeb');
+    const btnActualizarEstadoWeb = document.getElementById('btnActualizarEstadoWeb');
+    const detWebSubtotal = document.getElementById('detWebSubtotal');
+    const detWebPropina = document.getElementById('detWebPropina');
+    const detWebTotal = document.getElementById('detWebTotal');
+    const detWebAbono = document.getElementById('detWebAbono');
+    const detWebSaldo = document.getElementById('detWebSaldo');
+    const btnAbrirAsignarMesaWeb = document.getElementById('btnAbrirAsignarMesaWeb');
+    const bloqueAccionesMesaAsignada = document.getElementById('bloqueAccionesMesaAsignada');
+    const btnIrAgregarProductosWeb = document.getElementById('btnIrAgregarProductosWeb');
+    const btnIrCierreCuentaWeb = document.getElementById('btnIrCierreCuentaWeb');
+
+    // Elementos del Modal RF17 (#modalAsignarMesaWeb)
+    const modalAsignarMesaWeb = document.getElementById('modalAsignarMesaWeb');
+    const modalAsignarFolio = document.getElementById('modalAsignarFolio');
+    const modalAsignarCliente = document.getElementById('modalAsignarCliente');
+    const alertaSinMesasDisponibles = document.getElementById('alertaSinMesasDisponibles');
+    const errorAsignarMesaWeb = document.getElementById('errorAsignarMesaWeb');
+    const formAsignarMesaWeb = document.getElementById('formAsignarMesaWeb');
+    const inputIdPedidoAsignarWeb = document.getElementById('inputIdPedidoAsignarWeb');
+    const selectMesaDisponibleWeb = document.getElementById('selectMesaDisponibleWeb');
+    const btnCancelarAsignarMesaWeb = document.getElementById('btnCancelarAsignarMesaWeb');
+    const btnConfirmarAsignarMesaWeb = document.getElementById('btnConfirmarAsignarMesaWeb');
+
+    let pedidosWebCache = [];
+    if (initialJsonEl && initialJsonEl.textContent.trim() !== '') {
+      try {
+        const parsed = JSON.parse(initialJsonEl.textContent);
+        if (Array.isArray(parsed)) {
+          pedidosWebCache = parsed;
+        }
+      } catch (err) {
+        console.error('Error al hidratar JSON inicial de pedidos web:', err);
+      }
+    }
+
+    let filtroModalidadWeb = 'Todos';
+    let terminoBusquedaWeb = '';
+    let idPedidoWebActivo = null;
+
+    function formatearFolioWeb(idPedido) {
+      return '#NIX-' + String(idPedido || 0).padStart(5, '0');
+    }
+
+    function obtenerClaseEstadoPedidoWeb(estado) {
+      const st = String(estado || '').toLowerCase().trim();
+      if (st.includes('prepar')) return 'st-preparacion';
+      if (st.includes('listo')) return 'st-listo';
+      if (st.includes('camino')) return 'st-camino';
+      if (st.includes('entreg') || st.includes('pagad')) return 'st-pagado';
+      return 'st-pendiente';
+    }
+
+    function formatearFechaHoraWeb(fechaStr) {
+      if (!fechaStr) return '---';
+      const normalizada = String(fechaStr).replace(' ', 'T');
+      const d = new Date(normalizada);
+      if (isNaN(d.getTime())) return String(fechaStr);
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function renderizarTablaPedidosWeb() {
+      const q = terminoBusquedaWeb.toLowerCase().trim();
+      const filtrados = pedidosWebCache.filter(ped => {
+        const tipo = String(ped.tipo_orden || '');
+        if (filtroModalidadWeb !== 'Todos' && tipo !== filtroModalidadWeb) {
+          return false;
+        }
+        if (q !== '') {
+          const folio = formatearFolioWeb(ped.id_pedido).toLowerCase();
+          const cliente = `${ped.nombre_cliente || ''} ${ped.apellido_cliente || ''} ${ped.telefono_cliente || ''} ${ped.correo_cliente || ''}`.toLowerCase();
+          if (!folio.includes(q) && !String(ped.id_pedido).includes(q) && !cliente.includes(q)) {
+            return false;
+          }
+        }
+        return true;
+      });
+
+      if (contadorPedidosWebBadge) {
+        contadorPedidosWebBadge.textContent = `${filtrados.length} ${filtrados.length === 1 ? 'Pedido visible' : 'Pedidos visibles'}`;
+      }
+
+      if (filtrados.length === 0) {
+        tbodyPedidosWeb.innerHTML = `
+          <tr id="filaSinPedidosWeb">
+            <td colspan="9" style="text-align: center; padding: 42px 16px; color: var(--color-texto-muted); border: 1.5px dashed var(--color-borde-suave); border-radius: 14px;">
+              No se encontraron pedidos web que coincidan con el filtro seleccionado.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      let html = '';
+      filtrados.forEach(ped => {
+        const idPed = Number(ped.id_pedido);
+        const folio = formatearFolioWeb(idPed);
+        const fechaTxt = formatearFechaHoraWeb(ped.fecha_hora);
+        const nombreCompleto = `${ped.nombre_cliente || ''} ${ped.apellido_cliente || ''}`.trim() || 'Cliente Web';
+        const tel = ped.telefono_cliente || 'Sin teléfono';
+        const tipoOrd = ped.tipo_orden || 'Retiro en el local';
+        const esDom = tipoOrd === 'Envío a domicilio';
+        const numMesa = ped.numero_mesa ?? ped.id_mesa ?? null;
+        const estadoPed = ped.estado_pedido || 'Pendiente';
+        const claseEst = obtenerClaseEstadoPedidoWeb(estadoPed);
+        const total = Number(ped.total_pagar || 0);
+        const abono = Number(ped.monto_abonado || 0);
+        const saldo = Number(ped.saldo_pendiente || 0);
+        const activaCls = idPedidoWebActivo === idPed ? 'active' : '';
+
+        const chipMesa = (numMesa !== null && numMesa !== '' && Number(numMesa) > 0)
+          ? `<span class="mesa-assigned-chip">Mesa ${escaparHtmlServicio(numMesa)}</span>`
+          : `<span class="mesa-unassigned-chip">Sin asignar</span>`;
+
+        html += `
+          <tr class="web-order-row ${activaCls}" data-id-pedido="${idPed}" data-tipo-orden="${escaparHtmlServicio(tipoOrd)}">
+            <td><span class="web-folio-code">${escaparHtmlServicio(folio)}</span></td>
+            <td style="white-space: nowrap; color: #52525B;">${escaparHtmlServicio(fechaTxt)}</td>
+            <td>
+              <div class="web-client-cell">
+                <span class="web-client-name">${escaparHtmlServicio(nombreCompleto)}</span>
+                <span class="web-client-phone">${escaparHtmlServicio(tel)}</span>
+              </div>
+            </td>
+            <td>
+              <span class="modality-pill ${esDom ? 'modality-domicilio' : 'modality-retiro'}">${escaparHtmlServicio(tipoOrd)}</span>
+            </td>
+            <td>${chipMesa}</td>
+            <td style="font-weight: 700;">$${total.toFixed(2)}</td>
+            <td style="color: #059669; font-weight: 600;">$${abono.toFixed(2)}</td>
+            <td style="color: ${saldo > 0 ? '#C52E45' : '#059669'}; font-weight: 700;">$${saldo.toFixed(2)}</td>
+            <td><span class="order-status-pill ${claseEst}">${escaparHtmlServicio(estadoPed)}</span></td>
+          </tr>
+        `;
+      });
+
+      tbodyPedidosWeb.innerHTML = html;
+    }
+
+    function mostrarDetallePedidoWeb(idPedido) {
+      const pedido = pedidosWebCache.find(p => Number(p.id_pedido) === Number(idPedido));
+      if (!pedido) return;
+
+      idPedidoWebActivo = Number(pedido.id_pedido);
+      tbodyPedidosWeb.querySelectorAll('.web-order-row').forEach(tr => {
+        tr.classList.toggle('active', Number(tr.dataset.idPedido) === idPedidoWebActivo);
+      });
+
+      if (webOrderEmptyState) webOrderEmptyState.style.display = 'none';
+      if (webOrderDetailContent) webOrderDetailContent.style.display = 'flex';
+
+      const folio = formatearFolioWeb(pedido.id_pedido);
+      const nombreCompleto = `${pedido.nombre_cliente || ''} ${pedido.apellido_cliente || ''}`.trim() || 'Cliente Web';
+      const tipoOrd = pedido.tipo_orden || 'Retiro en el local';
+      const tieneMesa = pedido.id_mesa !== null && pedido.id_mesa !== undefined && Number(pedido.id_mesa) > 0;
+      const etiquetaMesa = tieneMesa
+        ? `Mesa ${pedido.numero_mesa ?? pedido.id_mesa} (En proceso)`
+        : 'Sin asignar';
+
+      if (detWebTituloFolio) detWebTituloFolio.textContent = folio;
+      if (detWebClienteNombre) detWebClienteNombre.textContent = nombreCompleto;
+      if (detWebClienteTelefono) detWebClienteTelefono.textContent = pedido.telefono_cliente || 'No registrado';
+      if (detWebClienteCorreo) detWebClienteCorreo.textContent = pedido.correo_cliente || 'No registrado';
+      if (detWebModalidad) detWebModalidad.textContent = tipoOrd;
+      if (detWebMesaAsignada) detWebMesaAsignada.textContent = etiquetaMesa;
+
+      if (detWebBloqueLogistico) {
+        if (tipoOrd === 'Envío a domicilio') {
+          detWebBloqueLogistico.style.display = 'flex';
+          if (detWebMunicipio) detWebMunicipio.textContent = pedido.municipio || 'San Salvador';
+          if (detWebDireccion) detWebDireccion.textContent = pedido.direccion || '---';
+          if (detWebReferencia) detWebReferencia.textContent = pedido.punto_referencia || 'Sin punto de referencia';
+        } else {
+          detWebBloqueLogistico.style.display = 'none';
+        }
+      }
+
+      if (detWebListaProductos) {
+        const prods = Array.isArray(pedido.productos) ? pedido.productos : [];
+        if (prods.length === 0) {
+          detWebListaProductos.innerHTML = `<span style="font-size: 0.8rem; color: var(--color-texto-muted);">Sin detalle de productos.</span>`;
+        } else {
+          detWebListaProductos.innerHTML = prods.map(pr => {
+            const cant = parseInt(pr.cantidad, 10) || 1;
+            const sub = Number(pr.subtotal || 0);
+            return `
+              <div class="cuenta-item">
+                <span class="item-qty-badge">${cant}</span>
+                <span class="item-name">${escaparHtmlServicio(pr.nombre_producto || 'Producto')}</span>
+                <span class="item-price">$${sub.toFixed(2)}</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      if (selectEstadoPedidoWeb) {
+        const estActual = String(pedido.estado_pedido || 'Pendiente');
+        const existeOpcion = Array.from(selectEstadoPedidoWeb.options).some(opt => opt.value === estActual);
+        if (!existeOpcion) {
+          const optExtra = document.createElement('option');
+          optExtra.value = estActual;
+          optExtra.textContent = estActual;
+          selectEstadoPedidoWeb.appendChild(optExtra);
+        }
+        selectEstadoPedidoWeb.value = estActual;
+      }
+
+      const subtotal = Number(pedido.subtotal || 0);
+      const porcPropina = Number(pedido.porcentaje_propina || 10);
+      const propina = Math.round(subtotal * (porcPropina / 100) * 100) / 100;
+      const total = Number(pedido.total_pagar ?? (subtotal + propina));
+      const abono = Number(pedido.monto_abonado || 0);
+      const saldo = Number(pedido.saldo_pendiente ?? Math.max(0, total - abono));
+
+      if (detWebSubtotal) detWebSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+      if (detWebPropina) detWebPropina.textContent = `$${propina.toFixed(2)}`;
+      if (detWebTotal) detWebTotal.textContent = `$${total.toFixed(2)}`;
+      if (detWebAbono) detWebAbono.textContent = `$${abono.toFixed(2)}`;
+      if (detWebSaldo) detWebSaldo.textContent = `$${saldo.toFixed(2)}`;
+
+      // Visibilidad de acciones operativas según RF17
+      const estLower = String(pedido.estado_pedido || '').toLowerCase().trim();
+      const cerrado = ['pagado', 'entregado', 'cancelado', 'finalizado'].includes(estLower);
+
+      if (tipoOrd === 'Retiro en el local' && !tieneMesa && !cerrado) {
+        if (btnAbrirAsignarMesaWeb) btnAbrirAsignarMesaWeb.style.display = 'flex';
+        if (bloqueAccionesMesaAsignada) bloqueAccionesMesaAsignada.style.display = 'none';
+      } else if (tieneMesa && !cerrado) {
+        if (btnAbrirAsignarMesaWeb) btnAbrirAsignarMesaWeb.style.display = 'none';
+        if (bloqueAccionesMesaAsignada) bloqueAccionesMesaAsignada.style.display = 'flex';
+        if (btnIrAgregarProductosWeb) {
+          btnIrAgregarProductosWeb.href = `gestion_orden.php?mesa_id=${encodeURIComponent(pedido.id_mesa)}`;
+        }
+        if (btnIrCierreCuentaWeb) {
+          btnIrCierreCuentaWeb.href = `cierre_cuenta.php?mesa_id=${encodeURIComponent(pedido.id_mesa)}`;
+        }
+      } else {
+        if (btnAbrirAsignarMesaWeb) btnAbrirAsignarMesaWeb.style.display = 'none';
+        if (bloqueAccionesMesaAsignada) bloqueAccionesMesaAsignada.style.display = 'none';
+      }
+
+      if (window.innerWidth <= 1024) {
+        abrirDetalleMovil();
+      }
+    }
+
+    async function refrescarPedidosWebDesdeServidor(conservarSeleccion = true) {
+      try {
+        const res = await fetch('../../controllers/ServicioController.php?action=obtener_pedidos_web', {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+        const data = await res.json();
+        if (!res.ok || !data || data.success !== true) {
+          throw new Error((data && data.error) ? data.error : 'No fue posible recargar los pedidos web.');
+        }
+
+        pedidosWebCache = Array.isArray(data.pedidos) ? data.pedidos : [];
+        renderizarTablaPedidosWeb();
+
+        if (conservarSeleccion && idPedidoWebActivo !== null) {
+          const siguePresente = pedidosWebCache.some(p => Number(p.id_pedido) === idPedidoWebActivo);
+          if (siguePresente) {
+            mostrarDetallePedidoWeb(idPedidoWebActivo);
+          }
+        }
+      } catch (err) {
+        console.error('Error al actualizar bandeja de pedidos web:', err);
+      }
+    }
+
+    // Delegación de clic en las filas `.web-order-row`
+    tbodyPedidosWeb.addEventListener('click', (e) => {
+      const fila = e.target.closest('.web-order-row');
+      if (!fila) return;
+      const idPed = parseInt(fila.dataset.idPedido || '0', 10);
+      if (idPed > 0) {
+        mostrarDetallePedidoWeb(idPed);
+      }
+    });
+
+    // Filtros píldora por modalidad
+    filterPillsWeb.forEach(pill => {
+      pill.addEventListener('click', () => {
+        filterPillsWeb.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        filtroModalidadWeb = pill.dataset.filterTipo || 'Todos';
+        renderizarTablaPedidosWeb();
+      });
+    });
+
+    // Búsqueda rápida por folio o cliente
+    if (inputBuscarPedidoWeb) {
+      inputBuscarPedidoWeb.addEventListener('input', () => {
+        terminoBusquedaWeb = inputBuscarPedidoWeb.value || '';
+        renderizarTablaPedidosWeb();
+      });
+    }
+
+    if (btnRefrescarPedidosWeb) {
+      btnRefrescarPedidosWeb.addEventListener('click', () => {
+        refrescarPedidosWebDesdeServidor(true);
+      });
+    }
+
+    // Actualización de estado del pedido web (`cambiar_estado_pedido` - RF08, RF16)
+    if (btnActualizarEstadoWeb && selectEstadoPedidoWeb) {
+      btnActualizarEstadoWeb.addEventListener('click', async () => {
+        if (!idPedidoWebActivo) return;
+        const nuevoEstado = selectEstadoPedidoWeb.value;
+        const txtOrig = btnActualizarEstadoWeb.textContent;
+        btnActualizarEstadoWeb.disabled = true;
+        btnActualizarEstadoWeb.textContent = 'Guardando...';
+
+        try {
+          const res = await fetch('../../controllers/ServicioController.php?action=cambiar_estado_pedido', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              id_pedido: idPedidoWebActivo,
+              estado_pedido: nuevoEstado
+            })
+          });
+          const data = await res.json();
+          if (!res.ok || !data || data.success !== true) {
+            throw new Error((data && data.error) ? data.error : 'No fue posible actualizar el estado del pedido.');
+          }
+
+          await refrescarPedidosWebDesdeServidor(true);
+          btnActualizarEstadoWeb.textContent = '¡Actualizado!';
+          setTimeout(() => {
+            btnActualizarEstadoWeb.textContent = txtOrig;
+            btnActualizarEstadoWeb.disabled = false;
+          }, 1000);
+        } catch (err) {
+          alert('Error al cambiar el estado del pedido: ' + (err.message || 'Fallo de conexión.'));
+          btnActualizarEstadoWeb.textContent = txtOrig;
+          btnActualizarEstadoWeb.disabled = false;
+        }
+      });
+    }
+
+    // Apertura y cierre del Modal RF17 (`#modalAsignarMesaWeb`)
+    function cerrarModalAsignarMesaWeb() {
+      if (!modalAsignarMesaWeb) return;
+      modalAsignarMesaWeb.classList.remove('open');
+      modalAsignarMesaWeb.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    if (btnCancelarAsignarMesaWeb) {
+      btnCancelarAsignarMesaWeb.addEventListener('click', cerrarModalAsignarMesaWeb);
+    }
+
+    if (modalAsignarMesaWeb) {
+      modalAsignarMesaWeb.addEventListener('click', (e) => {
+        if (e.target === modalAsignarMesaWeb) {
+          cerrarModalAsignarMesaWeb();
+        }
+      });
+    }
+
+    if (btnAbrirAsignarMesaWeb && modalAsignarMesaWeb) {
+      btnAbrirAsignarMesaWeb.addEventListener('click', async () => {
+        const pedido = pedidosWebCache.find(p => Number(p.id_pedido) === idPedidoWebActivo);
+        if (!pedido) return;
+
+        const folio = formatearFolioWeb(pedido.id_pedido);
+        const clienteNombre = `${pedido.nombre_cliente || ''} ${pedido.apellido_cliente || ''}`.trim() || 'Cliente Web';
+
+        if (modalAsignarFolio) modalAsignarFolio.textContent = folio;
+        if (modalAsignarCliente) modalAsignarCliente.textContent = clienteNombre;
+        if (inputIdPedidoAsignarWeb) inputIdPedidoAsignarWeb.value = String(pedido.id_pedido);
+        if (errorAsignarMesaWeb) {
+          errorAsignarMesaWeb.style.display = 'none';
+          errorAsignarMesaWeb.textContent = '';
+        }
+        if (alertaSinMesasDisponibles) alertaSinMesasDisponibles.style.display = 'none';
+
+        modalAsignarMesaWeb.classList.add('open');
+        modalAsignarMesaWeb.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+
+        if (selectMesaDisponibleWeb) {
+          selectMesaDisponibleWeb.innerHTML = `<option value="">Consultando disponibilidad en salón...</option>`;
+          selectMesaDisponibleWeb.disabled = true;
+        }
+        if (btnConfirmarAsignarMesaWeb) {
+          btnConfirmarAsignarMesaWeb.disabled = true;
+        }
+
+        // Consultar en vivo `ApiController.php?action=obtener_mesas_disponibles` (RF17)
+        try {
+          const res = await fetch('../../controllers/ApiController.php?action=obtener_mesas_disponibles', {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+          });
+          const data = await res.json();
+          if (!res.ok || !data || data.success !== true) {
+            throw new Error((data && data.error) ? data.error : 'No fue posible consultar las mesas disponibles.');
+          }
+
+          const mesasDisp = Array.isArray(data.mesas) ? data.mesas : [];
+          if (mesasDisp.length === 0) {
+            // Camino Alternativo de RF17
+            if (alertaSinMesasDisponibles) {
+              alertaSinMesasDisponibles.textContent = 'No hay mesas disponibles en este momento. Debe esperar a que se libere una mesa.';
+              alertaSinMesasDisponibles.style.display = 'block';
+            }
+            if (selectMesaDisponibleWeb) {
+              selectMesaDisponibleWeb.innerHTML = `<option value="">Sin mesas disponibles</option>`;
+              selectMesaDisponibleWeb.disabled = true;
+            }
+            if (btnConfirmarAsignarMesaWeb) {
+              btnConfirmarAsignarMesaWeb.disabled = true;
+            }
+          } else {
+            if (alertaSinMesasDisponibles) alertaSinMesasDisponibles.style.display = 'none';
+            if (selectMesaDisponibleWeb) {
+              selectMesaDisponibleWeb.innerHTML = mesasDisp.map(m =>
+                `<option value="${Number(m.id_mesa)}">Mesa ${Number(m.numero_mesa)} — Capacidad: ${Number(m.capacidad || 4)} personas (Disponible)</option>`
+              ).join('');
+              selectMesaDisponibleWeb.disabled = false;
+            }
+            if (btnConfirmarAsignarMesaWeb) {
+              btnConfirmarAsignarMesaWeb.disabled = false;
+            }
+          }
+        } catch (err) {
+          if (errorAsignarMesaWeb) {
+            errorAsignarMesaWeb.textContent = err.message || 'Error al consultar las mesas disponibles.';
+            errorAsignarMesaWeb.style.display = 'block';
+          }
+        }
+      });
+    }
+
+    // Envío del formulario de asignación de mesa (`ServicioController.php?action=asignar_mesa_web` - RF17)
+    if (formAsignarMesaWeb) {
+      formAsignarMesaWeb.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const idPedido = parseInt(inputIdPedidoAsignarWeb?.value || '0', 10);
+        const idMesa = parseInt(selectMesaDisponibleWeb?.value || '0', 10);
+
+        if (!idPedido || !idMesa) {
+          if (errorAsignarMesaWeb) {
+            errorAsignarMesaWeb.textContent = 'Por favor selecciona una mesa disponible válida.';
+            errorAsignarMesaWeb.style.display = 'block';
+          }
+          return;
+        }
+
+        if (errorAsignarMesaWeb) errorAsignarMesaWeb.style.display = 'none';
+        const txtOrig = btnConfirmarAsignarMesaWeb ? btnConfirmarAsignarMesaWeb.textContent : 'Confirmar Asignación';
+        if (btnConfirmarAsignarMesaWeb) {
+          btnConfirmarAsignarMesaWeb.disabled = true;
+          btnConfirmarAsignarMesaWeb.textContent = 'Asignando mesa...';
+        }
+
+        try {
+          const res = await fetch('../../controllers/ServicioController.php?action=asignar_mesa_web', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              id_pedido: idPedido,
+              id_mesa: idMesa
+            })
+          });
+          const data = await res.json();
+          if (!res.ok || !data || data.success !== true) {
+            throw new Error((data && data.error) ? data.error : 'No fue posible asignar la mesa al pedido web.');
+          }
+
+          cerrarModalAsignarMesaWeb();
+          await refrescarPedidosWebDesdeServidor(true);
+        } catch (err) {
+          if (errorAsignarMesaWeb) {
+            errorAsignarMesaWeb.textContent = err.message || 'Error al procesar la asignación de mesa.';
+            errorAsignarMesaWeb.style.display = 'block';
+          }
+        } finally {
+          if (btnConfirmarAsignarMesaWeb) {
+            btnConfirmarAsignarMesaWeb.disabled = false;
+            btnConfirmarAsignarMesaWeb.textContent = txtOrig;
+          }
+        }
+      });
+    }
+
+    // Selección automática de la primera orden disponible al abrir la bandeja si existe
+    if (pedidosWebCache.length > 0) {
+      mostrarDetallePedidoWeb(pedidosWebCache[0].id_pedido);
+    }
+  }
+
+  // Conexión de botones de "Cerrar Sesión" hacia AuthController.php?action=logout (RNF04)
   const botonesCerrarSesion = document.querySelectorAll('#btnCerrarSesion, .btn-logout');
   botonesCerrarSesion.forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    btn.addEventListener('click', async (e) => {
       e.preventDefault();
       sessionStorage.clear();
-      window.location.href = '../../index.php';
+      try {
+        const res = await fetch('/NIXGARU/controllers/AuthController.php?action=logout', {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' }
+        });
+        const data = await res.json().catch(() => null);
+        window.location.href = (data && data.redirect) ? data.redirect : '/NIXGARU/index.php';
+      } catch (err) {
+        window.location.href = '/NIXGARU/index.php';
+      }
     });
   });
 
   /**
    * ==========================================================================
-   * PANTALLA: ADMINISTRACIÓN DE MESAS Y MODAL (admin_mesas.php)
+   * MÓDULO ADMINISTRATIVO CONECTADO A AdminController.php (Paso 3.3)
+   * Cumple con RF04, RF05, RF11, RF12, RF13, RF14, RNF04 y RNF06
+   * ==========================================================================
+   */
+  function escaparHtmlAdmin(valor) {
+    return String(valor ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatearFechaCortaAdmin(isoDate) {
+    if (!isoDate || typeof isoDate !== 'string') return '';
+    const partes = isoDate.trim().split('-');
+    if (partes.length !== 3) return isoDate;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  }
+
+  /**
+   * ==========================================================================
+   * A. PANTALLA: RESUMEN ANALÍTICO Y DEMANDA (admin_dashboard.php) — RF11, RF12
+   * ==========================================================================
+   */
+  const btnDateFilter = document.getElementById('btnDateFilter');
+  const labelRangoFechas = document.getElementById('labelRangoFechas');
+  const dateFilterBar = document.getElementById('dateFilterBar');
+  const inputFechaInicio = document.getElementById('inputFechaInicio');
+  const inputFechaFin = document.getElementById('inputFechaFin');
+  const btnConsultarFechas = document.getElementById('btnConsultarFechas');
+  const btnVerTodoFechas = document.getElementById('btnVerTodoFechas');
+  const kpiCantidadVentas = document.getElementById('kpiCantidadVentas');
+  const kpiTotalVendido = document.getElementById('kpiTotalVendido');
+  const tablaTopProductosBody = document.getElementById('tablaTopProductosBody');
+
+  if (btnDateFilter && dateFilterBar) {
+    btnDateFilter.addEventListener('click', () => {
+      const estaOculto = dateFilterBar.style.display === 'none';
+      dateFilterBar.style.display = estaOculto ? 'flex' : 'none';
+      btnDateFilter.setAttribute('aria-expanded', estaOculto ? 'true' : 'false');
+      if (estaOculto && inputFechaInicio) {
+        inputFechaInicio.focus();
+      }
+    });
+  }
+
+  async function consultarVentasDashboard(fechaInicio = '', fechaFin = '') {
+    const params = new URLSearchParams({ action: 'filtrar_ventas' });
+    if (fechaInicio) params.set('fecha_inicio', fechaInicio);
+    if (fechaFin) params.set('fecha_fin', fechaFin);
+
+    if (btnConsultarFechas) {
+      btnConsultarFechas.disabled = true;
+    }
+
+    try {
+      const res = await fetch(`../../controllers/AdminController.php?${params.toString()}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'No fue posible consultar las estadísticas del período seleccionado.');
+      }
+
+      const fIni = data.fecha_inicio || '';
+      const fFin = data.fecha_fin || '';
+      if (inputFechaInicio) inputFechaInicio.value = fIni;
+      if (inputFechaFin) inputFechaFin.value = fFin;
+
+      let textoRango = 'Histórico general';
+      if (fIni && fFin) {
+        textoRango = `${formatearFechaCortaAdmin(fIni)} – ${formatearFechaCortaAdmin(fFin)}`;
+      } else if (fIni) {
+        textoRango = `Desde ${formatearFechaCortaAdmin(fIni)}`;
+      } else if (fFin) {
+        textoRango = `Hasta ${formatearFechaCortaAdmin(fFin)}`;
+      }
+
+      if (labelRangoFechas) {
+        labelRangoFechas.textContent = textoRango;
+      } else if (btnDateFilter) {
+        const spanBtn = btnDateFilter.querySelector('span');
+        if (spanBtn) spanBtn.textContent = textoRango;
+      }
+
+      const stats = data.estadisticas || data.kpis || {};
+      const cantidadVentas = Number(stats.cantidad_ventas || 0);
+      const totalVendido = Number(stats.total_vendido || 0);
+
+      if (kpiCantidadVentas) {
+        kpiCantidadVentas.textContent = cantidadVentas.toLocaleString('en-US');
+      }
+      if (kpiTotalVendido) {
+        kpiTotalVendido.textContent = `$${totalVendido.toFixed(2)} USD`;
+      }
+
+      if (tablaTopProductosBody) {
+        const topProductos = Array.isArray(data.productos_mas_vendidos)
+          ? data.productos_mas_vendidos
+          : (Array.isArray(data.top_productos) ? data.top_productos : []);
+
+        if (topProductos.length === 0) {
+          tablaTopProductosBody.innerHTML = `
+            <tr>
+              <td colspan="3" style="text-align: center; color: #6C757D; padding: 24px;">No se encontraron ventas registradas para el período consultado.</td>
+            </tr>
+          `;
+        } else {
+          tablaTopProductosBody.innerHTML = topProductos.map((prod, idx) => {
+            const posicion = idx + 1;
+            let badgeClass = 'rank-plain';
+            if (posicion === 1) badgeClass = 'rank-badge rank-gold';
+            else if (posicion === 2) badgeClass = 'rank-badge rank-silver';
+            else if (posicion === 3) badgeClass = 'rank-badge rank-bronze';
+
+            const nombre = escaparHtmlAdmin(prod.nombre_producto || 'Producto');
+            const precio = Number(prod.precio || 0).toFixed(2);
+            const cantidad = parseInt(prod.total_cantidad ?? prod.cantidad_vendida ?? 0, 10) || 0;
+
+            return `
+              <tr>
+                <td class="cell-rank">
+                  <span class="${badgeClass}">${posicion}</span>
+                </td>
+                <td class="cell-product">
+                  <div class="rank-product-info">
+                    <span class="rank-product-name">${nombre}</span>
+                    <span class="rank-product-price">$${precio} USD</span>
+                  </div>
+                </td>
+                <td class="cell-qty">
+                  <span class="rank-qty-val">${cantidad} uds.</span>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    } catch (err) {
+      alert(err.message || 'Error de conexión al consultar el historial de ventas.');
+    } finally {
+      if (btnConsultarFechas) {
+        btnConsultarFechas.disabled = false;
+      }
+    }
+  }
+
+  if (dateFilterBar) {
+    dateFilterBar.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fIni = inputFechaInicio ? inputFechaInicio.value.trim() : '';
+      const fFin = inputFechaFin ? inputFechaFin.value.trim() : '';
+      consultarVentasDashboard(fIni, fFin);
+    });
+  }
+
+  if (btnVerTodoFechas) {
+    btnVerTodoFechas.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (inputFechaInicio) inputFechaInicio.value = '';
+      if (inputFechaFin) inputFechaFin.value = '';
+      consultarVentasDashboard('', '');
+    });
+  }
+
+  /**
+   * ==========================================================================
+   * B. PANTALLA: GESTIÓN DE CATÁLOGO Y MENÚ (admin_catalogo.php) — RF04
+   * ==========================================================================
+   */
+  const catalogFilterPills = document.querySelectorAll('.catalog-filter-pill');
+  const tablaCatalogoBody = document.getElementById('tablaCatalogoBody');
+  const catalogCountBadge = document.getElementById('catalogCountBadge');
+  const catalogFooterCountText = document.getElementById('catalogFooterCountText');
+  const btnAgregarProductoCatalogo = document.getElementById('btnAgregarProductoCatalogo');
+  const modalProductoCatalogo = document.getElementById('modalProductoCatalogo');
+  const tituloModalProductoCatalogo = document.getElementById('tituloModalProductoCatalogo');
+  const errorModalProductoCatalogo = document.getElementById('errorModalProductoCatalogo');
+  const formProductoCatalogo = document.getElementById('formProductoCatalogo');
+  const inputIdProductoCatalogo = document.getElementById('inputIdProductoCatalogo');
+  const inputNombreProductoCatalogo = document.getElementById('inputNombreProductoCatalogo');
+  const selectCategoriaProductoCatalogo = document.getElementById('selectCategoriaProductoCatalogo');
+  const inputPrecioProductoCatalogo = document.getElementById('inputPrecioProductoCatalogo');
+  const inputDescripcionProductoCatalogo = document.getElementById('inputDescripcionProductoCatalogo');
+  const inputArchivoFotoCatalogo = document.getElementById('inputArchivoFotoCatalogo');
+  const inputNombreFotoCatalogo = document.getElementById('inputNombreFotoCatalogo');
+  const selectDisponibilidadProductoCatalogo = document.getElementById('selectDisponibilidadProductoCatalogo');
+  const btnCancelarModalProducto = document.getElementById('btnCancelarModalProducto');
+  const btnGuardarProductoCatalogo = document.getElementById('btnGuardarProductoCatalogo');
+
+  function obtenerSlugCategoriaCatalogo(idCategoria) {
+    switch (Number(idCategoria)) {
+      case 1: return 'calientes';
+      case 2: return 'frias';
+      case 3: return 'postres';
+      case 4: return 'platos';
+      default: return 'otros';
+    }
+  }
+
+  function sincronizarFiltroYContadorCatalogo() {
+    if (!tablaCatalogoBody) return;
+    const pillActiva = document.querySelector('.catalog-filter-pill.active');
+    const filterCat = (pillActiva?.dataset.category || 'todos').toLowerCase();
+    const filas = tablaCatalogoBody.querySelectorAll('tr');
+    let visibles = 0;
+
+    filas.forEach((fila) => {
+      const filaCat = (fila.dataset.category || '').toLowerCase();
+      if (filterCat === 'todos' || filaCat === filterCat) {
+        fila.style.display = '';
+        visibles++;
+      } else {
+        fila.style.display = 'none';
+      }
+    });
+
+    if (catalogCountBadge) {
+      catalogCountBadge.textContent = `Total: ${visibles} productos mostrados`;
+    }
+    if (catalogFooterCountText) {
+      catalogFooterCountText.textContent = `Mostrando ${visibles} de ${filas.length} productos registrados en el menú actual`;
+    }
+  }
+
+  function construirHtmlFilaProductoCatalogo(producto) {
+    const idProd = Number(producto.id_producto || 0);
+    const idCat = Number(producto.id_categoria || 1);
+    const catSlug = obtenerSlugCategoriaCatalogo(idCat);
+    const nombreRaw = String(producto.nombre_producto || '');
+    const descRaw = String(producto.descripcion || '');
+    const precioNum = Number(producto.precio || 0);
+    const precioStr = precioNum.toFixed(2);
+    const dispRaw = String(producto.estado_disponibilidad || 'Disponible');
+    const fotoRaw = String(producto.fotografia || '');
+    const activo = dispRaw.trim().toLowerCase() === 'disponible';
+
+    const nombreEsc = escaparHtmlAdmin(nombreRaw);
+    const descEsc = escaparHtmlAdmin(descRaw);
+    const dispEsc = escaparHtmlAdmin(dispRaw);
+    const fotoEsc = escaparHtmlAdmin(fotoRaw);
+
+    const dataAttrs = `
+      data-id="${idProd}"
+      data-nombre="${nombreEsc}"
+      data-descripcion="${descEsc}"
+      data-precio="${precioStr}"
+      data-id-categoria="${idCat}"
+      data-disponibilidad="${dispEsc}"
+      data-fotografia="${fotoEsc}"
+    `;
+
+    const svgPlaceholder = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+        <polyline points="21 15 16 10 5 21"></polyline>
+      </svg>
+    `;
+
+    const miniaturaHtml = fotoRaw !== ''
+      ? `<img src="../../public/img/${fotoEsc}" alt="${nombreEsc}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 9px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><svg style="display:none;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`
+      : svgPlaceholder;
+
+    const tr = document.createElement('tr');
+    tr.dataset.category = catSlug;
+    tr.dataset.id = String(idProd);
+    tr.dataset.nombre = nombreRaw;
+    tr.dataset.descripcion = descRaw;
+    tr.dataset.precio = precioStr;
+    tr.dataset.idCategoria = String(idCat);
+    tr.dataset.disponibilidad = dispRaw;
+    tr.dataset.fotografia = fotoRaw;
+
+    tr.innerHTML = `
+      <td class="cell-cat-photo">
+        <div class="product-thumb-placeholder" title="Fotografía de ${nombreEsc}">
+          ${miniaturaHtml}
+        </div>
+      </td>
+      <td class="cell-name">${nombreEsc}</td>
+      <td class="cell-cat-desc">${descRaw !== '' ? descEsc : 'Sin descripción'}</td>
+      <td class="cell-cat-price">
+        <span class="catalog-price">$${precioStr}</span>
+      </td>
+      <td class="cell-cat-status">
+        <div class="toggle-switch-wrapper ${activo ? 'active' : ''}" data-product="${nombreEsc}" data-id="${idProd}" data-codigo="${idProd}">
+          <button type="button" class="toggle-switch" aria-label="Cambiar disponibilidad" aria-checked="${activo ? 'true' : 'false'}">
+            <span class="toggle-knob"></span>
+          </button>
+          <span class="toggle-status-label">${dispEsc}</span>
+        </div>
+      </td>
+      <td class="cell-acciones">
+        <button class="btn-action-edit" title="Editar producto" type="button" ${dataAttrs}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button class="btn-action-delete" title="Eliminar producto" type="button" ${dataAttrs}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </td>
+    `;
+    return tr;
+  }
+
+  function mostrarErrorModalCatalogo(mensaje) {
+    if (!errorModalProductoCatalogo) {
+      alert(mensaje);
+      return;
+    }
+    errorModalProductoCatalogo.textContent = mensaje;
+    errorModalProductoCatalogo.style.display = 'block';
+  }
+
+  function abrirModalProductoCatalogo(datos = null) {
+    if (!modalProductoCatalogo) return;
+    if (errorModalProductoCatalogo) {
+      errorModalProductoCatalogo.style.display = 'none';
+      errorModalProductoCatalogo.textContent = '';
+    }
+    if (formProductoCatalogo) {
+      formProductoCatalogo.reset();
+    }
+    if (inputArchivoFotoCatalogo) {
+      inputArchivoFotoCatalogo.value = '';
+    }
+
+    if (datos && datos.id) {
+      if (tituloModalProductoCatalogo) tituloModalProductoCatalogo.textContent = 'Editar Producto';
+      if (inputIdProductoCatalogo) inputIdProductoCatalogo.value = String(datos.id);
+      if (inputNombreProductoCatalogo) inputNombreProductoCatalogo.value = datos.nombre || '';
+      if (selectCategoriaProductoCatalogo && datos.idCategoria) {
+        selectCategoriaProductoCatalogo.value = String(datos.idCategoria);
+      }
+      if (inputPrecioProductoCatalogo) {
+        inputPrecioProductoCatalogo.value = datos.precio ? Number(datos.precio).toFixed(2) : '';
+      }
+      if (inputDescripcionProductoCatalogo) {
+        inputDescripcionProductoCatalogo.value = datos.descripcion || '';
+      }
+      if (inputNombreFotoCatalogo) {
+        inputNombreFotoCatalogo.value = datos.fotografia || '';
+      }
+      if (selectDisponibilidadProductoCatalogo) {
+        selectDisponibilidadProductoCatalogo.value =
+          (String(datos.disponibilidad || '').trim().toLowerCase() === 'inactivo') ? 'Inactivo' : 'Disponible';
+      }
+    } else {
+      if (tituloModalProductoCatalogo) tituloModalProductoCatalogo.textContent = 'Agregar Nuevo Producto';
+      if (inputIdProductoCatalogo) inputIdProductoCatalogo.value = '';
+      if (selectDisponibilidadProductoCatalogo) selectDisponibilidadProductoCatalogo.value = 'Disponible';
+    }
+
+    modalProductoCatalogo.classList.add('show');
+    modalProductoCatalogo.style.display = 'flex';
+    modalProductoCatalogo.setAttribute('aria-hidden', 'false');
+    if (inputNombreProductoCatalogo) {
+      setTimeout(() => inputNombreProductoCatalogo.focus(), 50);
+    }
+  }
+
+  function cerrarModalProductoCatalogo() {
+    if (!modalProductoCatalogo) return;
+    modalProductoCatalogo.classList.remove('show');
+    modalProductoCatalogo.style.display = 'none';
+    modalProductoCatalogo.setAttribute('aria-hidden', 'true');
+    if (errorModalProductoCatalogo) {
+      errorModalProductoCatalogo.style.display = 'none';
+      errorModalProductoCatalogo.textContent = '';
+    }
+    if (formProductoCatalogo) {
+      formProductoCatalogo.reset();
+    }
+  }
+
+  catalogFilterPills.forEach((pill) => {
+    pill.addEventListener('click', () => {
+      catalogFilterPills.forEach((p) => p.classList.remove('active'));
+      pill.classList.add('active');
+      sincronizarFiltroYContadorCatalogo();
+    });
+  });
+
+  if (btnAgregarProductoCatalogo) {
+    btnAgregarProductoCatalogo.addEventListener('click', (e) => {
+      e.preventDefault();
+      abrirModalProductoCatalogo(null);
+    });
+  }
+
+  if (btnCancelarModalProducto) {
+    btnCancelarModalProducto.addEventListener('click', (e) => {
+      e.preventDefault();
+      cerrarModalProductoCatalogo();
+    });
+  }
+
+  if (modalProductoCatalogo) {
+    modalProductoCatalogo.addEventListener('click', (e) => {
+      if (e.target === modalProductoCatalogo) {
+        cerrarModalProductoCatalogo();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalProductoCatalogo && (modalProductoCatalogo.classList.contains('show') || modalProductoCatalogo.style.display === 'flex')) {
+      cerrarModalProductoCatalogo();
+    }
+  });
+
+  if (formProductoCatalogo) {
+    formProductoCatalogo.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (errorModalProductoCatalogo) {
+        errorModalProductoCatalogo.style.display = 'none';
+      }
+
+      const idProd = inputIdProductoCatalogo ? inputIdProductoCatalogo.value.trim() : '';
+      const accion = idProd ? 'actualizar_producto' : 'guardar_producto';
+      const formData = new FormData(formProductoCatalogo);
+
+      if (btnGuardarProductoCatalogo) {
+        btnGuardarProductoCatalogo.disabled = true;
+      }
+
+      try {
+        const res = await fetch(`../../controllers/AdminController.php?action=${accion}`, {
+          method: 'POST',
+          body: formData,
+          headers: { Accept: 'application/json' },
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          mostrarErrorModalCatalogo(data.error || 'No fue posible guardar los datos del producto.');
+          return;
+        }
+
+        if (tablaCatalogoBody && data.producto) {
+          const nuevaFila = construirHtmlFilaProductoCatalogo(data.producto);
+          const filaExistente = tablaCatalogoBody.querySelector(`tr[data-id="${data.producto.id_producto}"]`);
+          if (filaExistente) {
+            filaExistente.replaceWith(nuevaFila);
+          } else {
+            tablaCatalogoBody.appendChild(nuevaFila);
+          }
+          sincronizarFiltroYContadorCatalogo();
+        } else {
+          window.location.reload();
+          return;
+        }
+
+        cerrarModalProductoCatalogo();
+      } catch (err) {
+        mostrarErrorModalCatalogo(err.message || 'Error de red al guardar el producto.');
+      } finally {
+        if (btnGuardarProductoCatalogo) {
+          btnGuardarProductoCatalogo.disabled = false;
+        }
+      }
+    });
+  }
+
+  if (tablaCatalogoBody) {
+    tablaCatalogoBody.addEventListener('click', async (e) => {
+      // 1. Interruptor de Disponibilidad (toggle_disponibilidad)
+      const toggleWrapper = e.target.closest('.toggle-switch-wrapper');
+      if (toggleWrapper) {
+        e.preventDefault();
+        if (toggleWrapper.dataset.busy === '1') return;
+
+        const fila = toggleWrapper.closest('tr');
+        const idProducto = Number(toggleWrapper.dataset.id || fila?.dataset.id || 0);
+        if (idProducto <= 0) return;
+
+        const switchBtn = toggleWrapper.querySelector('.toggle-switch');
+        const label = toggleWrapper.querySelector('.toggle-status-label');
+        const previoActivo = toggleWrapper.classList.contains('active');
+        const textoPrevio = label ? label.textContent : (previoActivo ? 'Disponible' : 'Inactivo');
+        const nuevoActivo = !previoActivo;
+        const nuevoEstado = nuevoActivo ? 'Disponible' : 'Inactivo';
+
+        toggleWrapper.dataset.busy = '1';
+        toggleWrapper.classList.toggle('active', nuevoActivo);
+        if (switchBtn) switchBtn.setAttribute('aria-checked', nuevoActivo ? 'true' : 'false');
+        if (label) label.textContent = nuevoEstado;
+
+        try {
+          const res = await fetch('../../controllers/AdminController.php?action=toggle_disponibilidad', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({
+              id_producto: idProducto,
+              estado: nuevoEstado,
+            }),
+          });
+          const data = await res.json();
+
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Error al actualizar la disponibilidad del producto.');
+          }
+
+          const estadoConfirmado = data.estado_disponibilidad || nuevoEstado;
+          const esDisp = String(estadoConfirmado).trim().toLowerCase() === 'disponible';
+          toggleWrapper.classList.toggle('active', esDisp);
+          if (switchBtn) switchBtn.setAttribute('aria-checked', esDisp ? 'true' : 'false');
+          if (label) label.textContent = estadoConfirmado;
+
+          if (fila) {
+            fila.dataset.disponibilidad = estadoConfirmado;
+            fila.querySelectorAll('.btn-action-edit, .btn-action-delete').forEach((btn) => {
+              btn.dataset.disponibilidad = estadoConfirmado;
+            });
+          }
+        } catch (err) {
+          // Revertir estado visual en caso de fallo
+          toggleWrapper.classList.toggle('active', previoActivo);
+          if (switchBtn) switchBtn.setAttribute('aria-checked', previoActivo ? 'true' : 'false');
+          if (label) label.textContent = textoPrevio;
+          alert(err.message || 'No se pudo cambiar la disponibilidad del producto.');
+        } finally {
+          delete toggleWrapper.dataset.busy;
+        }
+        return;
+      }
+
+      // 2. Botón Editar Producto (.btn-action-edit)
+      const btnEdit = e.target.closest('.btn-action-edit');
+      if (btnEdit) {
+        e.preventDefault();
+        const fila = btnEdit.closest('tr');
+        abrirModalProductoCatalogo({
+          id: btnEdit.dataset.id || fila?.dataset.id || '',
+          nombre: btnEdit.dataset.nombre || fila?.dataset.nombre || '',
+          descripcion: btnEdit.dataset.descripcion || fila?.dataset.descripcion || '',
+          precio: btnEdit.dataset.precio || fila?.dataset.precio || '',
+          idCategoria: btnEdit.dataset.idCategoria || fila?.dataset.idCategoria || '1',
+          disponibilidad: btnEdit.dataset.disponibilidad || fila?.dataset.disponibilidad || 'Disponible',
+          fotografia: btnEdit.dataset.fotografia || fila?.dataset.fotografia || '',
+        });
+        return;
+      }
+
+      // 3. Botón Eliminar Producto (.btn-action-delete -> eliminar_producto)
+      const btnDelete = e.target.closest('.btn-action-delete');
+      if (btnDelete) {
+        e.preventDefault();
+        const fila = btnDelete.closest('tr');
+        const idProducto = Number(btnDelete.dataset.id || fila?.dataset.id || 0);
+        const nombreProd = btnDelete.dataset.nombre || fila?.dataset.nombre || 'este producto';
+        if (idProducto <= 0) return;
+
+        if (!window.confirm(`¿Desea eliminar el producto "${nombreProd}" del catálogo?`)) {
+          return;
+        }
+
+        btnDelete.disabled = true;
+        try {
+          const filasAntes = tablaCatalogoBody.querySelectorAll('tr').length;
+          const res = await fetch('../../controllers/AdminController.php?action=eliminar_producto', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({ id_producto: idProducto }),
+          });
+          const data = await res.json();
+
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'No fue posible eliminar el producto seleccionado.');
+          }
+
+          if (typeof data.total_productos === 'number' && data.total_productos === filasAntes && fila) {
+            // El producto tenía historial en detalle_pedidos y fue desactivado de forma segura
+            const toggle = fila.querySelector('.toggle-switch-wrapper');
+            const switchBtn = fila.querySelector('.toggle-switch');
+            const label = fila.querySelector('.toggle-status-label');
+            if (toggle) toggle.classList.remove('active');
+            if (switchBtn) switchBtn.setAttribute('aria-checked', 'false');
+            if (label) label.textContent = 'Inactivo';
+            fila.dataset.disponibilidad = 'Inactivo';
+            fila.querySelectorAll('.btn-action-edit, .btn-action-delete').forEach((btn) => {
+              btn.dataset.disponibilidad = 'Inactivo';
+            });
+            sincronizarFiltroYContadorCatalogo();
+            alert('El producto tiene ventas históricas asociadas, por lo que se desactivó ("Inactivo") para conservar la trazabilidad de reportes.');
+          } else if (fila) {
+            fila.remove();
+            sincronizarFiltroYContadorCatalogo();
+          }
+        } catch (err) {
+          alert(err.message || 'Error al eliminar el producto.');
+        } finally {
+          btnDelete.disabled = false;
+        }
+      }
+    });
+  }
+
+  /**
+   * ==========================================================================
+   * C. PANTALLA: ADMINISTRACIÓN DE MESAS (admin_mesas.php) — RF05
    * ==========================================================================
    */
   const btnAbrirModalMesa = document.getElementById('btnAbrirModalMesa');
   const modalNuevaMesa = document.getElementById('modalNuevaMesa');
+  const tituloModalMesa = document.getElementById('tituloModalMesa');
+  const errorModalMesa = document.getElementById('errorModalMesa');
   const btnCancelarModal = document.getElementById('btnCancelarModal');
   const formNuevaMesa = document.getElementById('formNuevaMesa');
+  const inputIdMesa = document.getElementById('inputIdMesa');
   const inputNumeroMesa = document.getElementById('inputNumeroMesa');
+  const inputCapacidadMesa = document.getElementById('inputCapacidadMesa');
   const selectEstadoMesa = document.getElementById('selectEstadoMesa');
+  const btnGuardarMesa = document.getElementById('btnGuardarMesa');
   const tablaMesasBody = document.getElementById('tablaMesasBody');
-  const tableCountBadge = document.querySelector('.table-count-badge');
+  const statTotalMesas = document.getElementById('statTotalMesas');
+  const statCapacidadMaxima = document.getElementById('statCapacidadMaxima');
+  const mesasCountBadge = document.getElementById('mesasCountBadge') || document.querySelector('.table-count-badge');
+  const mesasFooterCountText = document.getElementById('mesasFooterCountText');
 
-  // Función para abrir el modal (añade la clase 'show' y asegura display flex)
-  function abrirModalNuevaMesa() {
+  function obtenerClaseEstadoMesaAdmin(estado) {
+    const slug = String(estado || '').trim().toLowerCase();
+    if (slug.includes('ocupad')) return 'status-ocupada';
+    if (slug.includes('proces') || slug.includes('reserv')) return 'status-reservada';
+    if (slug.includes('sin')) return 'status-inactivo';
+    return 'status-libre';
+  }
+
+  function actualizarResumenMesasDOM(totalMesas, capacidadMaxima) {
+    const total = typeof totalMesas === 'number'
+      ? totalMesas
+      : (tablaMesasBody ? tablaMesasBody.querySelectorAll('tr').length : 0);
+
+    let capacidad = capacidadMaxima;
+    if (typeof capacidad !== 'number' && tablaMesasBody) {
+      capacidad = Array.from(tablaMesasBody.querySelectorAll('tr')).reduce(
+        (acc, fila) => acc + (parseInt(fila.dataset.capacidad || '0', 10) || 0),
+        0
+      );
+    }
+
+    if (statTotalMesas) {
+      statTotalMesas.textContent = `${total} Mesas`;
+    }
+    if (typeof capacidad === 'number' && statCapacidadMaxima) {
+      statCapacidadMaxima.textContent = `${capacidad} personas`;
+    }
+    if (mesasCountBadge && tablaMesasBody) {
+      mesasCountBadge.textContent = `Total: ${total} mostradas`;
+    }
+    if (mesasFooterCountText) {
+      mesasFooterCountText.textContent = `Mostrando ${total} de ${total} mesas activas registradas en el sistema`;
+    }
+  }
+
+  function construirFilaMesaAdmin(mesa) {
+    const idMesa = Number(mesa.id_mesa || 0);
+    const numeroMesa = Number(mesa.numero_mesa || idMesa);
+    const capacidad = Number(mesa.capacidad || 4);
+    const estado = String(mesa.estado_mesa || 'Disponible');
+    const estadoEsc = escaparHtmlAdmin(estado);
+    const pillClass = obtenerClaseEstadoMesaAdmin(estado);
+    const idFormateado = String(idMesa).padStart(2, '0');
+
+    const attrs = `
+      data-id="${idMesa}"
+      data-numero="${numeroMesa}"
+      data-capacidad="${capacidad}"
+      data-estado="${estadoEsc}"
+    `;
+
+    const tr = document.createElement('tr');
+    tr.dataset.id = String(idMesa);
+    tr.dataset.numero = String(numeroMesa);
+    tr.dataset.capacidad = String(capacidad);
+    tr.dataset.estado = estado;
+
+    tr.innerHTML = `
+      <td class="cell-id">${idFormateado}</td>
+      <td class="cell-name">Mesa ${escaparHtmlAdmin(numeroMesa)} <span style="font-size:12px; color:#6C757D; font-weight:normal;">(Cap. ${capacidad})</span></td>
+      <td class="cell-estado">
+        <span class="admin-status-pill ${pillClass}">${estadoEsc.toUpperCase()}</span>
+      </td>
+      <td class="cell-acciones">
+        <button class="btn-action-edit" title="Editar mesa" type="button" ${attrs}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button class="btn-action-delete" title="Eliminar mesa" type="button" ${attrs}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </td>
+    `;
+    return tr;
+  }
+
+  function mostrarErrorModalMesa(mensaje) {
+    if (!errorModalMesa) {
+      alert(mensaje);
+      return;
+    }
+    errorModalMesa.textContent = mensaje;
+    errorModalMesa.style.display = 'block';
+  }
+
+  function abrirModalNuevaMesa(datos = null) {
     if (!modalNuevaMesa) return;
+    if (errorModalMesa) {
+      errorModalMesa.style.display = 'none';
+      errorModalMesa.textContent = '';
+    }
+    if (formNuevaMesa) {
+      formNuevaMesa.reset();
+    }
+
+    if (datos && datos.id) {
+      if (tituloModalMesa) tituloModalMesa.textContent = 'Editar Mesa';
+      if (inputIdMesa) inputIdMesa.value = String(datos.id);
+      if (inputNumeroMesa) inputNumeroMesa.value = String(datos.numero || '');
+      if (inputCapacidadMesa) inputCapacidadMesa.value = String(datos.capacidad || 4);
+      if (selectEstadoMesa && datos.estado) {
+        selectEstadoMesa.value = datos.estado;
+      }
+    } else {
+      if (tituloModalMesa) tituloModalMesa.textContent = 'Registrar Nueva Mesa';
+      if (inputIdMesa) inputIdMesa.value = '';
+      if (inputCapacidadMesa) inputCapacidadMesa.value = '4';
+      if (selectEstadoMesa) selectEstadoMesa.value = 'Disponible';
+    }
+
     modalNuevaMesa.classList.add('show');
     modalNuevaMesa.style.display = 'flex';
     modalNuevaMesa.setAttribute('aria-hidden', 'false');
@@ -2559,26 +3896,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Función para cerrar el modal (remueve 'show' y oculta el display)
   function cerrarModalNuevaMesa() {
     if (!modalNuevaMesa) return;
     modalNuevaMesa.classList.remove('show');
     modalNuevaMesa.style.display = 'none';
     modalNuevaMesa.setAttribute('aria-hidden', 'true');
+    if (errorModalMesa) {
+      errorModalMesa.style.display = 'none';
+      errorModalMesa.textContent = '';
+    }
     if (formNuevaMesa) {
       formNuevaMesa.reset();
     }
   }
 
-  // 1. Abrir el modal al hacer clic en "+ Agregar nueva mesa"
   if (btnAbrirModalMesa) {
     btnAbrirModalMesa.addEventListener('click', (e) => {
       e.preventDefault();
-      abrirModalNuevaMesa();
+      abrirModalNuevaMesa(null);
     });
   }
 
-  // 2. Cerrar el modal al hacer clic en "Cancelar"
   if (btnCancelarModal) {
     btnCancelarModal.addEventListener('click', (e) => {
       e.preventDefault();
@@ -2586,7 +3924,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 3. Cerrar el modal al hacer clic fuera de la tarjeta blanca (fondo oscuro del modal)
   if (modalNuevaMesa) {
     modalNuevaMesa.addEventListener('click', (e) => {
       if (e.target === modalNuevaMesa) {
@@ -2595,112 +3932,152 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Cerrar el modal con la tecla Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modalNuevaMesa && (modalNuevaMesa.classList.contains('show') || modalNuevaMesa.style.display === 'flex')) {
       cerrarModalNuevaMesa();
     }
   });
 
-  // Procesar registro de nueva mesa al hacer clic en "Guardar" / submit
   if (formNuevaMesa) {
-    formNuevaMesa.addEventListener('submit', (e) => {
+    formNuevaMesa.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const nombreMesa = inputNumeroMesa?.value.trim() || 'Mesa';
-      const estadoMesa = selectEstadoMesa?.value || 'LIBRE';
-
-      if (tablaMesasBody) {
-        const filasActuales = tablaMesasBody.querySelectorAll('tr').length;
-        const nuevoId = filasActuales + 1;
-        const idFormateado = nuevoId < 10 ? `0${nuevoId}` : `${nuevoId}`;
-
-        let pillClass = 'status-libre';
-        if (estadoMesa === 'OCUPADA') {
-          pillClass = 'status-ocupada';
-        } else if (estadoMesa === 'RESERVADA') {
-          pillClass = 'status-reservada';
-        }
-
-        const nuevaFila = document.createElement('tr');
-        nuevaFila.innerHTML = `
-          <td class="cell-id">${idFormateado}</td>
-          <td class="cell-name">${nombreMesa}</td>
-          <td class="cell-estado">
-            <span class="admin-status-pill ${pillClass}">${estadoMesa}</span>
-          </td>
-          <td class="cell-acciones">
-            <button class="btn-action-edit" title="Editar mesa">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </button>
-            <button class="btn-action-delete" title="Eliminar mesa">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          </td>
-        `;
-
-        tablaMesasBody.appendChild(nuevaFila);
-
-        // Actualizar el contador de mesas mostradas
-        if (tableCountBadge) {
-          tableCountBadge.textContent = `Total: ${nuevoId} mostradas`;
-        }
+      if (errorModalMesa) {
+        errorModalMesa.style.display = 'none';
       }
 
-      // Cerrar y resetear el modal
-      cerrarModalNuevaMesa();
+      const idMesaVal = inputIdMesa ? inputIdMesa.value.trim() : '';
+      const numeroVal = inputNumeroMesa ? inputNumeroMesa.value.trim() : '';
+      const capacidadVal = inputCapacidadMesa ? parseInt(inputCapacidadMesa.value, 10) : 4;
+      const estadoVal = selectEstadoMesa ? selectEstadoMesa.value : 'Disponible';
+
+      if (!numeroVal || Number.isNaN(capacidadVal) || capacidadVal < 1) {
+        mostrarErrorModalMesa('Ingrese un número de mesa y una capacidad válida (mínimo 1 persona).');
+        return;
+      }
+
+      const accion = idMesaVal ? 'actualizar_mesa' : 'crear_mesa';
+      const payload = {
+        numero_mesa: numeroVal,
+        capacidad: capacidadVal,
+        estado_mesa: estadoVal,
+      };
+      if (idMesaVal) {
+        payload.id_mesa = Number(idMesaVal);
+      }
+
+      if (btnGuardarMesa) btnGuardarMesa.disabled = true;
+
+      try {
+        const res = await fetch(`../../controllers/AdminController.php?action=${accion}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          // Camino Alternativo RF05: mostrar error de unicidad o validación sin cerrar el modal
+          mostrarErrorModalMesa(data.error || 'No fue posible guardar la mesa.');
+          return;
+        }
+
+        const mesaGuardada = data.mesa || {
+          id_mesa: data.id_mesa,
+          numero_mesa: data.numero_mesa ?? numeroVal,
+          capacidad: data.capacidad ?? capacidadVal,
+          estado_mesa: data.estado_mesa ?? estadoVal,
+        };
+
+        if (tablaMesasBody) {
+          const nuevaFila = construirFilaMesaAdmin(mesaGuardada);
+          const filaExistente = tablaMesasBody.querySelector(`tr[data-id="${mesaGuardada.id_mesa}"]`);
+          if (filaExistente) {
+            filaExistente.replaceWith(nuevaFila);
+          } else {
+            tablaMesasBody.appendChild(nuevaFila);
+          }
+        }
+
+        actualizarResumenMesasDOM(data.total_mesas, data.capacidad_maxima);
+        cerrarModalNuevaMesa();
+      } catch (err) {
+        mostrarErrorModalMesa(err.message || 'Error de conexión al guardar la mesa.');
+      } finally {
+        if (btnGuardarMesa) btnGuardarMesa.disabled = false;
+      }
     });
   }
 
-  // Delegación de eventos para los botones de acción en la tabla (Eliminar)
   if (tablaMesasBody) {
-    tablaMesasBody.addEventListener('click', (e) => {
+    tablaMesasBody.addEventListener('click', async (e) => {
+      const btnEdit = e.target.closest('.btn-action-edit');
+      if (btnEdit) {
+        e.preventDefault();
+        const fila = btnEdit.closest('tr');
+        abrirModalNuevaMesa({
+          id: btnEdit.dataset.id || fila?.dataset.id || '',
+          numero: btnEdit.dataset.numero || fila?.dataset.numero || '',
+          capacidad: btnEdit.dataset.capacidad || fila?.dataset.capacidad || '4',
+          estado: btnEdit.dataset.estado || fila?.dataset.estado || 'Disponible',
+        });
+        return;
+      }
+
       const btnDelete = e.target.closest('.btn-action-delete');
       if (btnDelete) {
+        e.preventDefault();
         const fila = btnDelete.closest('tr');
-        if (fila) {
-          fila.style.opacity = '0';
-          fila.style.transform = 'translateX(10px)';
-          fila.style.transition = 'all 0.2s ease';
-          setTimeout(() => {
+        const idMesa = Number(btnDelete.dataset.id || fila?.dataset.id || 0);
+        const numeroMesa = btnDelete.dataset.numero || fila?.dataset.numero || idMesa;
+        if (idMesa <= 0) return;
+
+        if (!window.confirm(`¿Está seguro de eliminar la Mesa ${numeroMesa} del salón?`)) {
+          return;
+        }
+
+        btnDelete.disabled = true;
+        try {
+          const res = await fetch('../../controllers/AdminController.php?action=eliminar_mesa', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({ id_mesa: idMesa }),
+          });
+          const data = await res.json();
+
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'No se pudo eliminar la mesa.');
+          }
+
+          if (fila) {
             fila.remove();
-            const totalFilas = tablaMesasBody.querySelectorAll('tr').length;
-            if (tableCountBadge) {
-              tableCountBadge.textContent = `Total: ${totalFilas} mostradas`;
-            }
-          }, 200);
+          }
+          actualizarResumenMesasDOM(data.total_mesas, data.capacidad_maxima);
+        } catch (err) {
+          alert(err.message || 'Error al intentar eliminar la mesa.');
+        } finally {
+          btnDelete.disabled = false;
         }
       }
-    });
-  }
-
-  // Interacción para el filtro de fechas en el Dashboard
-  const btnDateFilter = document.getElementById('btnDateFilter');
-  if (btnDateFilter) {
-    btnDateFilter.addEventListener('click', () => {
-      /* Preparado para conectar con librería de calendario o modal de fechas */
-      console.log('Filtro de fecha clickeado: 01/09/2026 - 12/09/2026');
     });
   }
 
   /**
    * ==========================================================================
-   * PANTALLA: CONTROL DE INVENTARIOS Y AJUSTES (admin_inventario.php)
+   * D. PANTALLA: CONTROL DE INVENTARIOS Y AJUSTES (admin_inventario.php) — RF14
    * ==========================================================================
    */
   const inputBuscarIngrediente = document.getElementById('inputBuscarIngrediente');
   const tablaInventarioBody = document.getElementById('tablaInventarioBody');
   const noResultadosInventario = document.getElementById('noResultadosInventario');
 
-  // Filtrado de búsqueda de ingredientes en tiempo real
   if (inputBuscarIngrediente && tablaInventarioBody) {
-    inputBuscarIngrediente.addEventListener('keyup', () => {
+    const filtrarTablaInventario = () => {
       const filtro = inputBuscarIngrediente.value.trim().toLowerCase();
       const filas = tablaInventarioBody.querySelectorAll('tr');
       let coincidencias = 0;
@@ -2717,54 +4094,250 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      // Mensaje de retroalimentación cuando no hay resultados
       if (noResultadosInventario) {
-        noResultadosInventario.style.display = (coincidencias === 0) ? 'block' : 'none';
+        noResultadosInventario.style.display = coincidencias === 0 ? 'block' : 'none';
       }
-    });
+    };
+
+    inputBuscarIngrediente.addEventListener('input', filtrarTablaInventario);
+    inputBuscarIngrediente.addEventListener('keyup', filtrarTablaInventario);
   }
 
-  // Interacción interactiva para los botones "Guardar" de ajuste manual
   if (tablaInventarioBody) {
-    tablaInventarioBody.addEventListener('click', (e) => {
+    tablaInventarioBody.addEventListener('click', async (e) => {
       const btnGuardar = e.target.closest('.btn-adjust-save');
-      if (btnGuardar) {
-        const fila = btnGuardar.closest('tr');
-        const inputAjuste = fila ? fila.querySelector('.input-adjust') : null;
-        const valorAjuste = inputAjuste ? parseFloat(inputAjuste.value) : 0;
+      if (!btnGuardar) return;
+
+      e.preventDefault();
+      const fila = btnGuardar.closest('tr');
+      const idIngrediente = Number(btnGuardar.dataset.id || fila?.dataset.id || 0);
+      const inputAjuste = fila ? fila.querySelector('.input-adjust') : null;
+      const rawValor = inputAjuste ? inputAjuste.value.trim() : '';
+      const valorAjuste = rawValor !== '' ? Number(rawValor) : NaN;
+
+      // Camino Alternativo RF14: rechazar valores no numéricos o negativos
+      if (idIngrediente <= 0 || Number.isNaN(valorAjuste) || valorAjuste < 0) {
+        alert('Error: Ingrese una cantidad numérica válida mayor o igual a 0.00 para ajustar el inventario.');
+        if (inputAjuste) inputAjuste.focus();
+        return;
+      }
+
+      const textoOriginalBtn = btnGuardar.textContent;
+      btnGuardar.disabled = true;
+      btnGuardar.textContent = 'Guardando...';
+
+      try {
+        const res = await fetch('../../controllers/AdminController.php?action=ajustar_inventario', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            id_ingrediente: idIngrediente,
+            cantidad_estimada: valorAjuste,
+          }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'No fue posible actualizar la existencia del ingrediente.');
+        }
+
+        const nuevaCantidad = Number(data.cantidad_estimada ?? valorAjuste);
+        const esBajo = nuevaCantidad <= 15.0;
+
+        if (fila) {
+          fila.classList.toggle('row-stock-alert', esBajo);
+
+          const cellCode = fila.querySelector('.cell-code');
+          if (cellCode) {
+            cellCode.classList.toggle('text-danger', esBajo);
+          }
+
+          const cellQtyStrong = fila.querySelector('.cell-qty strong');
+          if (cellQtyStrong) {
+            cellQtyStrong.textContent = nuevaCantidad.toFixed(2);
+            cellQtyStrong.className = esBajo ? 'qty-val-danger' : 'qty-val-normal';
+          }
+
+          const cellIngredient = fila.querySelector('.cell-ingredient');
+          if (cellIngredient) {
+            let badgeLow = cellIngredient.querySelector('.badge-stock-low');
+            if (esBajo && !badgeLow) {
+              badgeLow = document.createElement('span');
+              badgeLow.className = 'badge-stock-low';
+              badgeLow.textContent = 'STOCK BAJO';
+              cellIngredient.appendChild(badgeLow);
+            } else if (!esBajo && badgeLow) {
+              badgeLow.remove();
+            }
+          }
+        }
+
+        if (inputAjuste) {
+          inputAjuste.value = nuevaCantidad.toFixed(2);
+        }
 
         btnGuardar.textContent = '¡Listo!';
-        btnGuardar.style.backgroundColor = 'var(--color-secondary)';
+        btnGuardar.style.backgroundColor = '#15803D';
         setTimeout(() => {
-          btnGuardar.textContent = 'Guardar';
+          btnGuardar.textContent = textoOriginalBtn || 'Guardar';
           btnGuardar.style.backgroundColor = '';
-          if (inputAjuste) {
-            inputAjuste.value = '0.00';
-          }
-        }, 800);
+          btnGuardar.disabled = false;
+        }, 850);
+      } catch (err) {
+        btnGuardar.textContent = textoOriginalBtn || 'Guardar';
+        btnGuardar.style.backgroundColor = '';
+        btnGuardar.disabled = false;
+        alert(err.message || 'Error de conexión al ajustar el inventario.');
       }
     });
   }
 
   /**
    * ==========================================================================
-   * PANTALLA: GESTIÓN DE CUENTAS DE PERSONAL Y MODAL (admin_personal.php)
+   * E. PANTALLA: GESTIÓN DE CUENTAS DE PERSONAL (admin_personal.php) — RF13, RNF06
    * ==========================================================================
    */
   const btnAbrirModalEmpleado = document.getElementById('btnAbrirModalEmpleado');
   const modalNuevoEmpleado = document.getElementById('modalNuevoEmpleado');
+  const tituloModalEmpleado = document.getElementById('tituloModalEmpleado');
+  const subtituloModalEmpleado = document.getElementById('subtituloModalEmpleado');
+  const errorModalEmpleado = document.getElementById('errorModalEmpleado');
   const btnCancelarModalEmpleado = document.getElementById('btnCancelarModalEmpleado');
   const formNuevoEmpleado = document.getElementById('formNuevoEmpleado');
+  const inputIdEmpleado = document.getElementById('inputIdEmpleado');
   const inputNombreEmpleado = document.getElementById('inputNombreEmpleado');
   const inputUsuarioEmpleado = document.getElementById('inputUsuarioEmpleado');
   const inputPasswordEmpleado = document.getElementById('inputPasswordEmpleado');
+  const ayudaPasswordEmpleado = document.getElementById('ayudaPasswordEmpleado');
   const selectRolEmpleado = document.getElementById('selectRolEmpleado');
+  const btnGuardarEmpleado = document.getElementById('btnGuardarEmpleado');
   const tablaPersonalBody = document.getElementById('tablaPersonalBody');
+  const statTotalPersonal = document.getElementById('statTotalPersonal');
   const personalCountBadge = document.getElementById('personalCountBadge');
+  const personalFooterCountText = document.getElementById('personalFooterCountText');
 
-  // Función para abrir el modal de nuevo empleado
-  function abrirModalNuevoEmpleado() {
+  function actualizarContadoresPersonalDOM(totalUsuarios) {
+    const total = typeof totalUsuarios === 'number'
+      ? totalUsuarios
+      : (tablaPersonalBody ? tablaPersonalBody.querySelectorAll('tr').length : 0);
+
+    if (statTotalPersonal) {
+      statTotalPersonal.textContent = `${total} Trabajadores`;
+    }
+    if (personalCountBadge) {
+      personalCountBadge.textContent = `Total: ${total} mostrados`;
+    }
+    if (personalFooterCountText) {
+      personalFooterCountText.textContent = `Mostrando ${total} de ${total} cuentas de personal activas`;
+    }
+  }
+
+  function construirFilaPersonalAdmin(emp) {
+    const idUsuario = Number(emp.id_usuario || 0);
+    const nombreRaw = String(emp.nombre_completo || '');
+    const usuarioRaw = String(emp.nombre_usuario || '');
+    const rolRaw = String(emp.nombre_rol || 'Mesero');
+
+    const nombreEsc = escaparHtmlAdmin(nombreRaw);
+    const usuarioEsc = escaparHtmlAdmin(usuarioRaw);
+    const rolEsc = escaparHtmlAdmin(rolRaw);
+
+    const attrs = `
+      data-id="${idUsuario}"
+      data-nombre="${nombreEsc}"
+      data-usuario="${usuarioEsc}"
+      data-rol="${rolEsc}"
+    `;
+
+    const tr = document.createElement('tr');
+    tr.dataset.id = String(idUsuario);
+    tr.dataset.nombre = nombreRaw;
+    tr.dataset.usuario = usuarioRaw;
+    tr.dataset.rol = rolRaw;
+
+    tr.innerHTML = `
+      <td class="cell-id">${idUsuario}</td>
+      <td class="cell-name">${nombreEsc}</td>
+      <td class="cell-user">${usuarioEsc}</td>
+      <td class="cell-role">
+        <span class="role-pill">${rolEsc}</span>
+      </td>
+      <td class="cell-acciones">
+        <button class="btn-action-edit" title="Editar empleado" type="button" ${attrs}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button class="btn-action-delete" title="Eliminar empleado" type="button" ${attrs}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </td>
+    `;
+    return tr;
+  }
+
+  function mostrarErrorModalEmpleado(mensaje) {
+    if (!errorModalEmpleado) {
+      alert(mensaje);
+      return;
+    }
+    errorModalEmpleado.textContent = mensaje;
+    errorModalEmpleado.style.display = 'block';
+  }
+
+  function abrirModalNuevoEmpleado(datos = null) {
     if (!modalNuevoEmpleado) return;
+    if (errorModalEmpleado) {
+      errorModalEmpleado.style.display = 'none';
+      errorModalEmpleado.textContent = '';
+    }
+    if (formNuevoEmpleado) {
+      formNuevoEmpleado.reset();
+    }
+
+    if (datos && datos.id) {
+      if (tituloModalEmpleado) tituloModalEmpleado.textContent = 'Editar Cuenta de Personal';
+      if (subtituloModalEmpleado) subtituloModalEmpleado.textContent = 'Modifica las credenciales o el rol asignado al trabajador.';
+      if (inputIdEmpleado) inputIdEmpleado.value = String(datos.id);
+      if (inputNombreEmpleado) inputNombreEmpleado.value = datos.nombre || '';
+      if (inputUsuarioEmpleado) inputUsuarioEmpleado.value = datos.usuario || '';
+      if (inputPasswordEmpleado) {
+        inputPasswordEmpleado.value = '';
+        inputPasswordEmpleado.required = false;
+      }
+      if (ayudaPasswordEmpleado) {
+        ayudaPasswordEmpleado.style.display = 'block';
+      }
+      if (selectRolEmpleado && datos.rol) {
+        const existeOpcion = Array.from(selectRolEmpleado.options).some((opt) => opt.value === datos.rol);
+        if (!existeOpcion) {
+          const nuevaOpt = document.createElement('option');
+          nuevaOpt.value = datos.rol;
+          nuevaOpt.textContent = datos.rol;
+          selectRolEmpleado.appendChild(nuevaOpt);
+        }
+        selectRolEmpleado.value = datos.rol;
+      }
+    } else {
+      if (tituloModalEmpleado) tituloModalEmpleado.textContent = 'Nueva Cuenta';
+      if (subtituloModalEmpleado) subtituloModalEmpleado.textContent = 'Registra un nuevo empleado asignando credenciales de acceso.';
+      if (inputIdEmpleado) inputIdEmpleado.value = '';
+      if (inputPasswordEmpleado) {
+        inputPasswordEmpleado.value = '';
+        inputPasswordEmpleado.required = true;
+      }
+      if (ayudaPasswordEmpleado) {
+        ayudaPasswordEmpleado.style.display = 'none';
+      }
+    }
+
     modalNuevoEmpleado.classList.add('show');
     modalNuevoEmpleado.style.display = 'flex';
     modalNuevoEmpleado.setAttribute('aria-hidden', 'false');
@@ -2773,26 +4346,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Función para cerrar el modal de nuevo empleado
   function cerrarModalNuevoEmpleado() {
     if (!modalNuevoEmpleado) return;
     modalNuevoEmpleado.classList.remove('show');
     modalNuevoEmpleado.style.display = 'none';
     modalNuevoEmpleado.setAttribute('aria-hidden', 'true');
+    if (errorModalEmpleado) {
+      errorModalEmpleado.style.display = 'none';
+      errorModalEmpleado.textContent = '';
+    }
     if (formNuevoEmpleado) {
       formNuevoEmpleado.reset();
     }
   }
 
-  // 1. Abrir modal al hacer clic en "+ Agregar Empleado"
   if (btnAbrirModalEmpleado) {
     btnAbrirModalEmpleado.addEventListener('click', (e) => {
       e.preventDefault();
-      abrirModalNuevoEmpleado();
+      abrirModalNuevoEmpleado(null);
     });
   }
 
-  // 2. Cerrar modal al hacer clic en "Cancelar"
   if (btnCancelarModalEmpleado) {
     btnCancelarModalEmpleado.addEventListener('click', (e) => {
       e.preventDefault();
@@ -2800,7 +4374,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 3. Cerrar modal al hacer clic en el fondo oscuro
   if (modalNuevoEmpleado) {
     modalNuevoEmpleado.addEventListener('click', (e) => {
       if (e.target === modalNuevoEmpleado) {
@@ -2809,153 +4382,146 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Cerrar modal con la tecla Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modalNuevoEmpleado && (modalNuevoEmpleado.classList.contains('show') || modalNuevoEmpleado.style.display === 'flex')) {
       cerrarModalNuevoEmpleado();
     }
   });
 
-  // Procesar registro de nuevo empleado al hacer submit
   if (formNuevoEmpleado) {
-    formNuevoEmpleado.addEventListener('submit', (e) => {
+    formNuevoEmpleado.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const nombre = inputNombreEmpleado?.value.trim() || 'Empleado';
-      const usuario = inputUsuarioEmpleado?.value.trim() || 'usuario';
-      const rol = selectRolEmpleado?.value || 'Personal de servicio';
-
-      if (tablaPersonalBody) {
-        const totalFilas = tablaPersonalBody.querySelectorAll('tr').length + 1;
-        const idFormateado = totalFilas < 10 ? `U0${totalFilas}` : `U${totalFilas}`;
-
-        const nuevaFila = document.createElement('tr');
-        nuevaFila.innerHTML = `
-          <td class="cell-id">${idFormateado}</td>
-          <td class="cell-name">${nombre}</td>
-          <td class="cell-user">${usuario}</td>
-          <td class="cell-role">
-            <span class="role-pill">${rol}</span>
-          </td>
-          <td class="cell-acciones">
-            <button class="btn-action-edit" title="Editar empleado">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-              </svg>
-            </button>
-            <button class="btn-action-delete" title="Eliminar empleado">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          </td>
-        `;
-
-        tablaPersonalBody.appendChild(nuevaFila);
-
-        if (personalCountBadge) {
-          personalCountBadge.textContent = `Total: ${totalFilas} mostrados`;
-        }
+      if (errorModalEmpleado) {
+        errorModalEmpleado.style.display = 'none';
       }
 
-      cerrarModalNuevoEmpleado();
+      const idUsuarioVal = inputIdEmpleado ? inputIdEmpleado.value.trim() : '';
+      const nombre = inputNombreEmpleado ? inputNombreEmpleado.value.trim() : '';
+      const usuario = inputUsuarioEmpleado ? inputUsuarioEmpleado.value.trim() : '';
+      const password = inputPasswordEmpleado ? inputPasswordEmpleado.value : '';
+      const rol = selectRolEmpleado ? selectRolEmpleado.value : '';
+
+      if (!nombre || !usuario || !rol || (!idUsuarioVal && !password)) {
+        mostrarErrorModalEmpleado('Complete todos los campos obligatorios de la cuenta.');
+        return;
+      }
+
+      const accion = idUsuarioVal ? 'actualizar_usuario' : 'crear_usuario';
+      const payload = {
+        nombre_completo: nombre,
+        nombre_usuario: usuario,
+        rol,
+      };
+      if (idUsuarioVal) {
+        payload.id_usuario = Number(idUsuarioVal);
+      }
+      if (password !== '') {
+        payload.password = password;
+      }
+
+      if (btnGuardarEmpleado) btnGuardarEmpleado.disabled = true;
+
+      try {
+        const res = await fetch(`../../controllers/AdminController.php?action=${accion}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          // Camino Alternativo RF13: usuario duplicado u otro error de validación sin cerrar el modal
+          mostrarErrorModalEmpleado(data.error || 'No fue posible guardar la cuenta de personal.');
+          return;
+        }
+
+        const empGuardado = data.usuario || {
+          id_usuario: data.id_usuario,
+          nombre_completo: nombre,
+          nombre_usuario: usuario,
+          nombre_rol: rol,
+        };
+
+        if (tablaPersonalBody) {
+          const nuevaFila = construirFilaPersonalAdmin(empGuardado);
+          const filaExistente = tablaPersonalBody.querySelector(`tr[data-id="${empGuardado.id_usuario}"]`);
+          if (filaExistente) {
+            filaExistente.replaceWith(nuevaFila);
+          } else {
+            tablaPersonalBody.appendChild(nuevaFila);
+          }
+        }
+
+        actualizarContadoresPersonalDOM(data.total_usuarios);
+        cerrarModalNuevoEmpleado();
+      } catch (err) {
+        mostrarErrorModalEmpleado(err.message || 'Error de conexión al guardar la cuenta de personal.');
+      } finally {
+        if (btnGuardarEmpleado) btnGuardarEmpleado.disabled = false;
+      }
     });
   }
 
-  // Delegación de eventos para eliminar empleado de la tabla
   if (tablaPersonalBody) {
-    tablaPersonalBody.addEventListener('click', (e) => {
-      const btnDelete = e.target.closest('.btn-action-delete');
-      if (btnDelete) {
-        const fila = btnDelete.closest('tr');
-        if (fila) {
-          fila.style.opacity = '0';
-          fila.style.transform = 'translateX(10px)';
-          fila.style.transition = 'all 0.2s ease';
-          setTimeout(() => {
-            fila.remove();
-            const total = tablaPersonalBody.querySelectorAll('tr').length;
-            if (personalCountBadge) {
-              personalCountBadge.textContent = `Total: ${total} mostrados`;
-            }
-          }, 200);
-        }
-      }
-    });
-  }
-
-  /**
-   * ==========================================================================
-   * PANTALLA: GESTIÓN DE CATÁLOGO Y MENÚ (admin_catalogo.php)
-   * ==========================================================================
-   */
-  // 1. Filtros de Categorías (Píldoras)
-  const catalogFilterPills = document.querySelectorAll('.catalog-filter-pill');
-  catalogFilterPills.forEach((pill) => {
-    pill.addEventListener('click', () => {
-      catalogFilterPills.forEach((p) => p.classList.remove('active'));
-      pill.classList.add('active');
-
-      const filterCat = (pill.dataset.category || 'todos').toLowerCase();
-      const filas = document.querySelectorAll('#tablaCatalogoBody tr');
-      let visibles = 0;
-
-      filas.forEach(fila => {
-        const filaCat = (fila.dataset.category || '').toLowerCase();
-        if (filterCat === 'todos' || filaCat === filterCat) {
-          fila.style.display = '';
-          visibles++;
-        } else {
-          fila.style.display = 'none';
-        }
-      });
-
-      if (catalogCountBadge) {
-        catalogCountBadge.textContent = `Total: ${visibles} productos mostrados`;
-      }
-    });
-  });
-
-  // 2. Interactividad del Interruptor (Toggle Switch) de Disponibilidad y Acciones
-  const tablaCatalogoBody = document.getElementById('tablaCatalogoBody');
-  const catalogCountBadge = document.getElementById('catalogCountBadge');
-
-  if (tablaCatalogoBody) {
-    tablaCatalogoBody.addEventListener('click', (e) => {
-      // Cambio de estado en el toggle switch
-      const toggleWrapper = e.target.closest('.toggle-switch-wrapper');
-      if (toggleWrapper) {
+    tablaPersonalBody.addEventListener('click', async (e) => {
+      const btnEdit = e.target.closest('.btn-action-edit');
+      if (btnEdit) {
         e.preventDefault();
-        const estaActivo = toggleWrapper.classList.toggle('active');
-        const switchBtn = toggleWrapper.querySelector('.toggle-switch');
-        const label = toggleWrapper.querySelector('.toggle-status-label');
-
-        if (switchBtn) {
-          switchBtn.setAttribute('aria-checked', estaActivo ? 'true' : 'false');
-        }
-
-        if (label) {
-          label.textContent = estaActivo ? 'Activo' : 'Inactivo';
-        }
+        const fila = btnEdit.closest('tr');
+        abrirModalNuevoEmpleado({
+          id: btnEdit.dataset.id || fila?.dataset.id || '',
+          nombre: btnEdit.dataset.nombre || fila?.dataset.nombre || '',
+          usuario: btnEdit.dataset.usuario || fila?.dataset.usuario || '',
+          rol: btnEdit.dataset.rol || fila?.dataset.rol || '',
+        });
+        return;
       }
 
-      // Eliminar fila de producto
       const btnDelete = e.target.closest('.btn-action-delete');
       if (btnDelete) {
+        e.preventDefault();
         const fila = btnDelete.closest('tr');
-        if (fila) {
-          fila.style.opacity = '0';
-          fila.style.transform = 'translateX(10px)';
-          fila.style.transition = 'all 0.2s ease';
-          setTimeout(() => {
+        const idUsuario = Number(btnDelete.dataset.id || fila?.dataset.id || 0);
+        const nombreEmp = btnDelete.dataset.nombre || fila?.dataset.nombre || 'este empleado';
+        if (idUsuario <= 0) return;
+
+        const idSesionActual = Number(document.body?.dataset?.currentUserId || 0);
+        if (idSesionActual > 0 && idSesionActual === idUsuario) {
+          alert('No puede eliminar su propia cuenta con una sesión activa en curso.');
+          return;
+        }
+
+        if (!window.confirm(`¿Desea eliminar permanentemente la cuenta de "${nombreEmp}"?`)) {
+          return;
+        }
+
+        btnDelete.disabled = true;
+        try {
+          const res = await fetch('../../controllers/AdminController.php?action=eliminar_usuario', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({ id_usuario: idUsuario }),
+          });
+          const data = await res.json();
+
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'No fue posible eliminar la cuenta de personal.');
+          }
+
+          if (fila) {
             fila.remove();
-            const total = tablaCatalogoBody.querySelectorAll('tr').length;
-            if (catalogCountBadge) {
-              catalogCountBadge.textContent = `Total: ${total} productos mostrados`;
-            }
-          }, 200);
+          }
+          actualizarContadoresPersonalDOM(data.total_usuarios);
+        } catch (err) {
+          alert(err.message || 'Error al eliminar la cuenta de personal.');
+        } finally {
+          btnDelete.disabled = false;
         }
       }
     });
@@ -3326,7 +4892,7 @@ function cargarUsuario(nombre, rol) {
   }
 }
 
-// Llamada de prueba inicial para verificar la inyección dinámica de datos
-cargarUsuario("Carlos Méndez", "Mesero");
+// Nota: La identidad del empleado autenticado (`#nombreUsuario`, `#rolUsuario`, `#avatarUsuario`)
+// se renderiza directamente desde `$_SESSION` en `views/layouts/header.php` (RNF04).
 
 

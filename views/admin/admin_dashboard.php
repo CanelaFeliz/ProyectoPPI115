@@ -1,13 +1,44 @@
 <?php
+/**
+ * ==============================================================================
+ * NIXGARU – Cafetería | Módulo Administrativo
+ * Pantalla: Resumen Analítico de Ventas y Demanda (admin_dashboard.php)
+ * Cumple con RF11 (Consulta histórica de ventas) y RF12 (Productos más demandados)
+ * ==============================================================================
+ */
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Pedido.php';
 
-$pedidoModel = new Pedido($pdo);
-$estadisticas = $pedidoModel->obtenerEstadisticasVentas();
-$productosMasVendidos = $pedidoModel->obtenerProductosMasVendidos(5);
+$fechaInicioFiltro = isset($_GET['fecha_inicio']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', trim((string)$_GET['fecha_inicio']))
+    ? trim((string)$_GET['fecha_inicio'])
+    : null;
+$fechaFinFiltro = isset($_GET['fecha_fin']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', trim((string)$_GET['fecha_fin']))
+    ? trim((string)$_GET['fecha_fin'])
+    : null;
+
+if ($fechaInicioFiltro !== null && $fechaFinFiltro !== null && $fechaInicioFiltro > $fechaFinFiltro) {
+    [$fechaInicioFiltro, $fechaFinFiltro] = [$fechaFinFiltro, $fechaInicioFiltro];
+}
+
+try {
+    $pedidoModel = new Pedido($pdo);
+    $estadisticas = $pedidoModel->obtenerEstadisticasVentas($fechaInicioFiltro, $fechaFinFiltro);
+    $productosMasVendidos = $pedidoModel->obtenerProductosMasVendidos(5, $fechaInicioFiltro, $fechaFinFiltro);
+} catch (PDOException $e) {
+    die("Error al consultar estadísticas de ventas: " . $e->getMessage());
+}
+
+$etiquetaRangoInicial = 'Histórico general';
+if ($fechaInicioFiltro && $fechaFinFiltro) {
+    $etiquetaRangoInicial = date('d/m/Y', strtotime($fechaInicioFiltro)) . ' – ' . date('d/m/Y', strtotime($fechaFinFiltro));
+} elseif ($fechaInicioFiltro) {
+    $etiquetaRangoInicial = 'Desde ' . date('d/m/Y', strtotime($fechaInicioFiltro));
+} elseif ($fechaFinFiltro) {
+    $etiquetaRangoInicial = 'Hasta ' . date('d/m/Y', strtotime($fechaFinFiltro));
+}
 
 $pageTitle = 'NIXGARU – Resumen Analítico';
-require_once '../layouts/sidebar.php';
+require_once __DIR__ . '/../layouts/sidebar.php';
 ?>
 
     <!-- ÁREA DE CONTENIDO PRINCIPAL -->
@@ -18,20 +49,56 @@ require_once '../layouts/sidebar.php';
         <div class="admin-content-header">
           <div class="admin-title-group">
             <h1 class="admin-page-title">Resumen Analítico</h1>
-            <p class="admin-page-subtitle">Rendimiento general y productos destacados del mes</p>
+            <p class="admin-page-subtitle">Rendimiento general y productos destacados por período</p>
           </div>
           
-          <!-- Botón Filtro de Rango de Fechas -->
-          <button class="btn-date-range" id="btnDateFilter" type="button" title="Seleccionar rango de fechas">
+          <!-- Botón Activador / Indicador de Rango de Fechas -->
+          <button class="btn-date-range" id="btnDateFilter" type="button" title="Mostrar u ocultar selector de rango de fechas" aria-expanded="true" aria-controls="dateFilterBar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="16" y1="2" x2="16" y2="6"></line>
               <line x1="8" y1="2" x2="8" y2="6"></line>
               <line x1="3" y1="10" x2="21" y2="10"></line>
             </svg>
-            <span>01/09/2026 – 12/09/2026</span>
+            <span id="labelRangoFechas"><?php echo htmlspecialchars($etiquetaRangoInicial); ?></span>
           </button>
         </div>
+
+        <!-- Barra Compacta Interactiva de Filtro por Rango de Fechas (RF11, RF12) -->
+        <form id="dateFilterBar" class="date-filter-toolbar" style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; background-color: #FAFAFA; border: 1px solid var(--color-borde-suave); border-radius: 14px; padding: 14px 18px; margin-bottom: 24px;">
+          <div style="display: flex; flex-direction: column; gap: 5px; flex: 1 1 170px; min-width: 155px;">
+            <label for="inputFechaInicio" class="form-label" style="font-size: 0.76rem; color: var(--color-texto-muted); margin: 0;">Fecha de inicio</label>
+            <input
+              type="date"
+              id="inputFechaInicio"
+              name="fecha_inicio"
+              class="form-input"
+              style="padding: 9px 12px; background-color: var(--color-blanco); font-size: 0.85rem;"
+              value="<?php echo htmlspecialchars($fechaInicioFiltro ?? ''); ?>"
+            >
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 5px; flex: 1 1 170px; min-width: 155px;">
+            <label for="inputFechaFin" class="form-label" style="font-size: 0.76rem; color: var(--color-texto-muted); margin: 0;">Fecha de fin</label>
+            <input
+              type="date"
+              id="inputFechaFin"
+              name="fecha_fin"
+              class="form-input"
+              style="padding: 9px 12px; background-color: var(--color-blanco); font-size: 0.85rem;"
+              value="<?php echo htmlspecialchars($fechaFinFiltro ?? ''); ?>"
+            >
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <button type="submit" class="btn-admin-primary" id="btnConsultarFechas" style="padding: 9px 20px; font-size: 0.85rem;">
+              <span>Consultar</span>
+            </button>
+            <button type="button" class="btn-modal-cancel" id="btnVerTodoFechas" style="padding: 9px 18px; font-size: 0.85rem;">
+              <span>Ver todo</span>
+            </button>
+          </div>
+        </form>
 
         <!-- Tarjetas KPI Superiores (Grid 2 columnas) -->
         <div class="kpi-grid">
@@ -48,7 +115,7 @@ require_once '../layouts/sidebar.php';
               </div>
             </div>
             <div class="kpi-value-group">
-              <span class="kpi-value text-kpi-primary"><?php echo number_format($estadisticas['cantidad_ventas'] ?? 0); ?></span>
+              <span class="kpi-value text-kpi-primary" id="kpiCantidadVentas"><?php echo number_format((int)($estadisticas['cantidad_ventas'] ?? 0)); ?></span>
               <p class="kpi-subtext">Órdenes completadas con éxito</p>
             </div>
           </div>
@@ -66,7 +133,7 @@ require_once '../layouts/sidebar.php';
               </div>
             </div>
             <div class="kpi-value-group">
-              <span class="kpi-value text-kpi-highlight">$<?php echo number_format((float)($estadisticas['total_vendido'] ?? 0), 2); ?> USD</span>
+              <span class="kpi-value text-kpi-highlight" id="kpiTotalVendido">$<?php echo number_format((float)($estadisticas['total_vendido'] ?? 0), 2); ?> USD</span>
               <p class="kpi-subtext">Ingresos brutos acumulados</p>
             </div>
           </div>
@@ -94,7 +161,7 @@ require_once '../layouts/sidebar.php';
                   <th class="col-qty">Cantidad vendida</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="tablaTopProductosBody">
                 <?php if (!empty($productosMasVendidos)): ?>
                   <?php foreach ($productosMasVendidos as $index => $prod): 
                     $posicion = $index + 1;
@@ -111,7 +178,7 @@ require_once '../layouts/sidebar.php';
                       </td>
                       <td class="cell-product">
                         <div class="rank-product-info">
-                          <span class="rank-product-name"><?php echo htmlspecialchars($prod['nombre_producto']); ?></span>
+                          <span class="rank-product-name"><?php echo htmlspecialchars((string)$prod['nombre_producto']); ?></span>
                           <span class="rank-product-price">$<?php echo number_format((float)$prod['precio'], 2); ?> USD</span>
                         </div>
                       </td>
@@ -122,16 +189,16 @@ require_once '../layouts/sidebar.php';
                   <?php endforeach; ?>
                 <?php else: ?>
                   <tr>
-                    <td colspan="3" style="text-align: center; color: #6C757D; padding: 24px;">No hay registros de ventas finalizadas.</td>
+                    <td colspan="3" style="text-align: center; color: #6C757D; padding: 24px;">No se encontraron ventas registradas para el período consultado.</td>
                   </tr>
                 <?php endif; ?>
               </tbody>
             </table>
           </div>
 
-          <!-- Pie del Card: Enlace centrado a reporte detallado -->
+          <!-- Pie del Card: Enlace centrado a reporte detallado de inventario -->
           <div class="ranking-footer-link">
-            <a href="#" class="link-detail-report">
+            <a href="admin_inventario.php" class="link-detail-report">
               <span>Ver reporte de inventario detallado</span>
               <span class="link-arrow">&rarr;</span>
             </a>
@@ -147,4 +214,3 @@ require_once '../layouts/sidebar.php';
   <script src="../../public/js/main.js?v=<?php echo file_exists(__DIR__ . '/../../public/js/main.js') ? filemtime(__DIR__ . '/../../public/js/main.js') : time(); ?>"></script>
 </body>
 </html>
-

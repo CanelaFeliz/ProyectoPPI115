@@ -7,7 +7,7 @@
  */
 
 // Iniciar sesión para recuperar datos del administrador si existe
-if (session_status() === PHP_SESSION_NONE) {
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
@@ -15,6 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
 $currentPage = $currentPage ?? basename($_SERVER['PHP_SELF']);
 
 // Datos del usuario administrador en sesión
+$idUsuarioSesion = isset($_SESSION['id_usuario']) ? (int)$_SESSION['id_usuario'] : 0;
 $nombreUsuario = $_SESSION['nombre'] ?? ($nombreUsuario ?? 'María López');
 $rolUsuario = $_SESSION['rol'] ?? ($rolUsuario ?? 'Administradora');
 
@@ -82,7 +83,7 @@ if (!isset($pageTitle)) {
     })();
   </script>
 </head>
-<body class="admin-body">
+<body class="admin-body" data-current-user-id="<?php echo $idUsuarioSesion; ?>">
 
   <div class="admin-layout" id="adminLayout">
 

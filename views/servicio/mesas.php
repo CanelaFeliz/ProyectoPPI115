@@ -4,15 +4,22 @@
  * NIXGARU – Cafetería | Personal de Servicio
  * Pantalla: Plano de Mesas y Consulta Dinámica de Pedidos (mesas.php)
  * Conexión dinámica con PDO a la base de datos nixgaru_db mediante modelos MVC
+ * Requerimientos: RNF04, RF06, RF08, RF09
  * ==============================================================================
  */
+if (session_status() === PHP_SESSION_NONE) {
+    if (!headers_sent()) {
+        session_start();
+    }
+}
+
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Mesa.php';
 require_once __DIR__ . '/../../models/Pedido.php';
 
 // 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id= o ?mesa=)
 $idMesaParam = isset($_GET['mesa_id']) ? trim((string)$_GET['mesa_id']) : (isset($_GET['mesa']) ? trim((string)$_GET['mesa']) : null);
-$idMesaSeleccionada = (!empty($idMesaParam) && $idMesaParam !== '') ? $idMesaParam : null;
+$idMesaSeleccionada = ($idMesaParam !== null && $idMesaParam !== '') ? $idMesaParam : null;
 
 try {
     // 2. Consulta de todas las mesas registradas en la base de datos mediante el modelo Mesa
@@ -29,7 +36,7 @@ try {
             ['id_mesa' => 5, 'numero_mesa' => 5, 'capacidad' => 4, 'estado_mesa' => 'Disponible'],
             ['id_mesa' => 6, 'numero_mesa' => 6, 'capacidad' => 2, 'estado_mesa' => 'Disponible'],
             ['id_mesa' => 7, 'numero_mesa' => 7, 'capacidad' => 2, 'estado_mesa' => 'Disponible'],
-            ['id_mesa' => 8, 'numero_mesa' => 8, 'capacidad' => 4, 'estado_mesa' => 'Disponible']
+            ['id_mesa' => 8, 'numero_mesa' => 8, 'capacidad' => 4, 'estado_mesa' => 'Disponible'],
         ];
     }
 
@@ -37,7 +44,7 @@ try {
     $mesaActivaInfo = null;
     if ($idMesaSeleccionada !== null) {
         foreach ($mesas as $m) {
-            if ((string)$m['id_mesa'] === (string)$idMesaSeleccionada || 
+            if ((string)$m['id_mesa'] === (string)$idMesaSeleccionada ||
                 (string)$m['numero_mesa'] === (string)$idMesaSeleccionada ||
                 (is_numeric($idMesaSeleccionada) && (int)$m['id_mesa'] === (int)$idMesaSeleccionada)) {
                 $mesaActivaInfo = $m;
@@ -54,19 +61,26 @@ try {
     $pedidoModel = new Pedido($pdo);
     $consumosPorMesa = $pedidoModel->obtenerConsumosActivosPorMesa();
 
-    // 4. Consulta de platillos reales y cálculo de totales solo si hay mesa activa
+    // 4. Consulta de platillos reales y cálculo de totales, abono web y saldo pendiente (RF09)
     $detallesOrden = [];
     $subtotal = 0.00;
     $propina = 0.00;
     $total = 0.00;
+    $montoAbonado = 0.00;
+    $saldoPendiente = 0.00;
 
     if ($idMesaActiva !== null) {
         $detallesOrden = $pedidoModel->obtenerCuentaActivaPorMesa($idMesaActiva);
         foreach ($detallesOrden as $item) {
             $subtotal += (float)$item['subtotal'];
+            if ($montoAbonado <= 0 && !empty($item['monto_abonado'])) {
+                $montoAbonado = round((float)$item['monto_abonado'], 2);
+            }
         }
+        $subtotal = round($subtotal, 2);
         $propina = round($subtotal * 0.10, 2);
         $total = round($subtotal + $propina, 2);
+        $saldoPendiente = max(0.00, round($total - $montoAbonado, 2));
 
         // Configuración de la píldora de estado de la mesa activa
         $estadoRaw = strtolower(trim($mesaActivaInfo['estado_mesa'] ?? 'Disponible'));
@@ -92,18 +106,16 @@ try {
         $badgeDot = 'dot-sin-servicio';
         $badgeTexto = 'Sin selección';
     }
-
 } catch (PDOException $e) {
     die("Error al consultar el plano de mesas: " . $e->getMessage());
 }
 
-// Variables dinámicas para el layout del encabezado
-$nombreUsuario = 'Carlos Méndez';
-$rolUsuario = 'Personal de servicio';
+// Variables dinámicas para el layout del encabezado (sesión real resuelta en header.php)
+$currentPage = 'mesas.php';
 $pageTitle = 'NIXGARU – Plano de Mesas | Personal de Servicio';
 $headerTitle = 'Plano de Mesas';
 
-require_once '../layouts/header.php';
+require_once __DIR__ . '/../layouts/header.php';
 ?>
 
   <!-- Layout Principal: 70% Plano de Mesas / 30% Cuenta -->
@@ -149,7 +161,8 @@ require_once '../layouts/header.php';
             $idM = (int)$mesa['id_mesa'];
             $esActiva = ((string)$mesa['id_mesa'] === (string)$idMesaActiva || (string)$mesa['numero_mesa'] === (string)$numeroMesaActiva);
             $consumoSub = $consumosPorMesa[$idM] ?? 0.00;
-            $consumoMesa = $consumoSub > 0 ? ($consumoSub * 1.10) : 0.00;
+            $consumoPropina = round($consumoSub * 0.10, 2);
+            $consumoMesa = $consumoSub > 0 ? round($consumoSub + $consumoPropina, 2) : 0.00;
             
             $st = strtolower(trim($mesa['estado_mesa']));
             if (str_contains($st, 'ocupad')) {
@@ -183,11 +196,11 @@ require_once '../layouts/header.php';
             <div class="table-card-body">
               <div class="table-data-row">
                 <span class="data-label">Consumo:</span>
-                <span class="data-value">$<?php echo number_format($consumoMesa, 2); ?></span>
+                <span class="data-value table-consumo-val">$<?php echo number_format($consumoMesa, 2); ?></span>
               </div>
               <div class="table-data-row">
-                <span class="data-label">Tiempo:</span>
-                <span class="data-value"><?php echo $consumoMesa > 0 ? '15 min' : '0 min'; ?></span>
+                <span class="data-label">Estado cuenta:</span>
+                <span class="data-value table-orden-status"><?php echo $consumoMesa > 0 ? 'Activa' : 'Sin orden'; ?></span>
               </div>
             </div>
 
@@ -235,7 +248,7 @@ require_once '../layouts/header.php';
             <polyline points="1 20 1 14 7 14"></polyline>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
           </svg>
-          <span>ACTUALIZADO EN TIEMPO REAL</span>
+          <span>SINCRONIZADO CON MYSQL</span>
         </div>
       </footer>
 
@@ -249,7 +262,7 @@ require_once '../layouts/header.php';
         <div class="cuenta-header">
           <div class="cuenta-header-left">
             <h2 class="cuenta-title" id="cuentaMesaTitulo">
-              <?php echo $idMesaActiva !== null ? (stripos((string)$numeroMesaActiva, 'mesa') === 0 ? htmlspecialchars($numeroMesaActiva) : 'Mesa ' . htmlspecialchars($numeroMesaActiva)) : 'Detalle de Cuenta'; ?>
+              <?php echo $idMesaActiva !== null ? (stripos((string)$numeroMesaActiva, 'mesa') === 0 ? htmlspecialchars((string)$numeroMesaActiva) : 'Mesa ' . htmlspecialchars((string)$numeroMesaActiva)) : 'Detalle de Cuenta'; ?>
             </h2>
             <span class="cuenta-status-badge <?php echo $badgeClase; ?>" id="cuentaMesaEstado" title="<?php echo htmlspecialchars($badgeTexto); ?>" style="<?php echo $idMesaActiva !== null ? 'display: inline-flex;' : 'display: none;'; ?>">
               <span class="status-dot <?php echo $badgeDot; ?>"></span>
@@ -265,7 +278,7 @@ require_once '../layouts/header.php';
           </button>
         </div>
 
-        <!-- Contenedor Dinámico de la Cuenta Activa (Productos y Totales) -->
+        <!-- Contenedor Dinámico de la Cuenta Activa (Productos, Abono Web y Saldo Pendiente) -->
         <div id="cuentaDetalleContainer" class="cuenta-detalle-container" style="<?php echo $idMesaActiva !== null ? 'display: flex; flex-direction: column;' : 'display: none;'; ?> width: 100%; min-width: 0;">
           <!-- Sección de Productos -->
           <div class="cuenta-section-label">PRODUCTOS</div>
@@ -291,7 +304,7 @@ require_once '../layouts/header.php';
             <?php endif; ?>
           </div>
 
-          <!-- Totales de la Cuenta -->
+          <!-- Totales de la Cuenta + Abono Web / Saldo Pendiente (RF09) -->
           <div class="cuenta-totals">
             <div class="totals-line">
               <span>Subtotal</span>
@@ -304,6 +317,16 @@ require_once '../layouts/header.php';
             <div class="totals-line total-highlight">
               <span class="total-text">Total</span>
               <span class="total-amount" id="cuentaTotal">$<?php echo number_format($total, 2); ?></span>
+            </div>
+
+            <!-- Filas condicionales cuando la mesa tiene un pedido web con abono anticipado -->
+            <div class="totals-line" id="filaCuentaAbonoWeb" style="<?php echo $montoAbonado > 0 ? 'display: flex;' : 'display: none;'; ?> color: #059669; font-weight: 600; margin-top: 2px;">
+              <span>Abono Web</span>
+              <span id="cuentaAbonoWeb">-$<?php echo number_format($montoAbonado, 2); ?></span>
+            </div>
+            <div class="totals-line" id="filaCuentaSaldoPendiente" style="<?php echo $montoAbonado > 0 ? 'display: flex;' : 'display: none;'; ?> font-weight: 800; color: var(--color-rojo-frambuesa); border-top: 1px dashed var(--color-borde-suave); padding-top: 8px; margin-top: 2px;">
+              <span>Saldo Pendiente</span>
+              <span id="cuentaSaldoPendiente" style="font-size: 1.15rem;">$<?php echo number_format($saldoPendiente, 2); ?></span>
             </div>
           </div>
         </div>
@@ -324,15 +347,15 @@ require_once '../layouts/header.php';
         <?php 
           $estaDeshabilitado = ($idMesaActiva === null);
           $disabledStyle = $estaDeshabilitado ? 'pointer-events: none; opacity: 0.5; cursor: not-allowed; text-decoration: none;' : 'text-decoration: none;';
-          $urlAgregar = $estaDeshabilitado ? '#' : 'gestion_orden.php?mesa_id=' . urlencode($idMesaActiva);
-          $urlCerrar = $estaDeshabilitado ? '#' : 'cierre_cuenta.php?mesa_id=' . urlencode($idMesaActiva);
+          $urlAgregar = $estaDeshabilitado ? '#' : 'gestion_orden.php?mesa_id=' . urlencode((string)$idMesaActiva);
+          $urlCerrar = $estaDeshabilitado ? '#' : 'cierre_cuenta.php?mesa_id=' . urlencode((string)$idMesaActiva);
         ?>
         <div class="cuenta-actions">
           <a href="<?php echo $urlAgregar; ?>" 
              class="btn-account-add" 
              id="btnAgregarProducto" 
-             data-mesa="<?php echo htmlspecialchars($idMesaActiva ?? ''); ?>" 
-             data-numero-mesa="<?php echo htmlspecialchars($numeroMesaActiva ?? ''); ?>" 
+             data-mesa="<?php echo htmlspecialchars((string)($idMesaActiva ?? '')); ?>" 
+             data-numero-mesa="<?php echo htmlspecialchars((string)($numeroMesaActiva ?? '')); ?>" 
              style="<?php echo $disabledStyle; ?>"
              <?php echo $estaDeshabilitado ? 'tabindex="-1" aria-disabled="true"' : ''; ?>>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -346,8 +369,8 @@ require_once '../layouts/header.php';
           <a href="<?php echo $urlCerrar; ?>" 
              class="btn-account-close" 
              id="btnCerrarCuenta" 
-             data-mesa="<?php echo htmlspecialchars($idMesaActiva ?? ''); ?>" 
-             data-numero-mesa="<?php echo htmlspecialchars($numeroMesaActiva ?? ''); ?>" 
+             data-mesa="<?php echo htmlspecialchars((string)($idMesaActiva ?? '')); ?>" 
+             data-numero-mesa="<?php echo htmlspecialchars((string)($numeroMesaActiva ?? '')); ?>" 
              style="<?php echo $disabledStyle; ?>"
              <?php echo $estaDeshabilitado ? 'tabindex="-1" aria-disabled="true"' : ''; ?>>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

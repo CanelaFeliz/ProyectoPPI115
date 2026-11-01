@@ -1,14 +1,21 @@
 <?php
 /**
  * ==============================================================================
- * NIXGARU – Cafetería | Personal de Servicio
+ * NIXGARU – Cafetería | Personal de Servicio y Cajero
  * Pantalla: Cierre de Cuenta y Facturación (cierre_cuenta.php)
  * Conexión dinámica con PDO a la base de datos nixgaru_db
+ * Requerimientos: RNF03, RNF04, RF09, RF10, RF14
  * ==============================================================================
  */
-require_once '../../config/database.php';
-require_once '../../models/Pedido.php';
-require_once '../../models/Mesa.php';
+if (session_status() === PHP_SESSION_NONE) {
+    if (!headers_sent()) {
+        session_start();
+    }
+}
+
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/Pedido.php';
+require_once __DIR__ . '/../../models/Mesa.php';
 
 // 1. Detección de la mesa seleccionada mediante parámetro GET (?mesa_id=1 por defecto o ?mesa=1)
 $idMesaSeleccionada = isset($_GET['mesa_id']) ? $_GET['mesa_id'] : (isset($_GET['mesa']) ? $_GET['mesa'] : 1);
@@ -18,18 +25,20 @@ try {
     $mesaModel = new Mesa($pdo);
     $mesaInfo = $mesaModel->obtenerPorId($idMesaSeleccionada);
 
-    $numeroMesa = $mesaInfo ? $mesaInfo['numero_mesa'] : (string)$idMesaSeleccionada;
+    $numeroMesa = $mesaInfo ? (string)$mesaInfo['numero_mesa'] : (string)$idMesaSeleccionada;
     $idMesaReal = $mesaInfo ? (int)$mesaInfo['id_mesa'] : (int)$idMesaSeleccionada;
 
     // 3. Consulta de la orden activa mediante el modelo Pedido
     $pedidoModel = new Pedido($pdo);
     $detallesOrden = $pedidoModel->obtenerCuentaActivaPorMesa($idMesaReal);
 
-    // 4. Cálculo dinámico de Subtotal, Propina (10%) y Total general
+    // 4. Cálculo diferencial de Subtotal, Propina (10%), Total, Monto Abonado (Web) y Saldo Pendiente (RF09, RF10)
     $subtotal = 0.00;
     $idPedido = 0;
     $fechaHoraPedido = null;
-    $nombreAtendio = 'Ana López';
+    $nombreAtendio = $_SESSION['nombre'] ?? 'Personal de servicio';
+    $montoAbonado = 0.00;
+    $tipoOrden = 'Consumo en local';
 
     foreach ($detallesOrden as $item) {
         $subtotal += (float)$item['subtotal'];
@@ -40,30 +49,88 @@ try {
             $fechaHoraPedido = $item['fecha_hora'];
         }
         if (!empty($item['nombre_completo'])) {
-            $nombreAtendio = $item['nombre_completo'];
+            $nombreAtendio = (string)$item['nombre_completo'];
+        }
+        if ($montoAbonado <= 0 && isset($item['monto_abonado'])) {
+            $montoAbonado = (float)$item['monto_abonado'];
+        }
+        if (!empty($item['tipo_orden'])) {
+            $tipoOrden = (string)$item['tipo_orden'];
         }
     }
 
-    $propina = $subtotal * 0.10;
-    $total = $subtotal + $propina;
+    $subtotal = round($subtotal, 2);
+    $montoAbonado = round($montoAbonado, 2);
+    $propina = round($subtotal * 0.10, 2);
+    $total = round($subtotal + $propina, 2);
+    $saldoPendiente = max(0.00, round($total - $montoAbonado, 2));
 
-    // Formatos de fecha y hora
-    $fechaTexto = $fechaHoraPedido ? date('d M Y', strtotime($fechaHoraPedido)) : date('d M Y');
-    $horaTexto = $fechaHoraPedido ? date('H:i', strtotime($fechaHoraPedido)) : date('H:i');
-    $folioTexto = '#NIX-' . str_pad($idPedido > 0 ? $idPedido : 1, 5, '0', STR_PAD_LEFT);
-
+    // Formatos de fecha, hora y folio
+    $fechaTexto = $fechaHoraPedido ? date('d M Y', strtotime((string)$fechaHoraPedido)) : date('d M Y');
+    $horaTexto = $fechaHoraPedido ? date('H:i', strtotime((string)$fechaHoraPedido)) : date('H:i');
+    $folioTexto = '#NIX-' . str_pad((string)($idPedido > 0 ? $idPedido : 1), 5, '0', STR_PAD_LEFT);
 } catch (PDOException $e) {
     die("Error al consultar cierre de cuenta: " . $e->getMessage());
 }
 
-// Variables dinámicas para el layout del encabezado
-$nombreUsuario = $nombreAtendio;
-$rolUsuario = 'Personal de servicio';
+// Variables dinámicas para el layout del encabezado (sesión real prioritaria RNF04)
+$currentPage = 'cierre_cuenta.php';
+$nombreUsuario = $_SESSION['nombre'] ?? $nombreAtendio;
+$rolUsuario = $_SESSION['rol'] ?? 'Personal de servicio';
 $pageTitle = 'NIXGARU – Cierre de Cuenta | Personal de Servicio';
-$headerTitle = 'Cierre de Cuenta - Mesa ' . ($numeroMesa ?? $idMesaSeleccionada);
+$headerTitle = 'Cierre de Cuenta - Mesa ' . $numeroMesa;
 
-require_once '../layouts/header.php';
+require_once __DIR__ . '/../layouts/header.php';
 ?>
+  <style>
+    /* Estilos complementarios para el desglose diferencial y simulación de tarjeta en Caja */
+    .cierre-differential-box {
+      background-color: #FFFFFF;
+      border: 1px solid var(--color-borde-suave);
+      border-radius: 14px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-size: 0.86rem;
+    }
+    .cierre-diff-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--color-texto-muted);
+    }
+    .cierre-diff-row.total-cuenta {
+      font-weight: 700;
+      color: var(--color-negro-suave);
+      border-top: 1px solid #F3F4F6;
+      padding-top: 6px;
+    }
+    .cierre-diff-row.abono-web {
+      color: #059669;
+      font-weight: 700;
+    }
+    .cierre-diff-row.saldo-caja {
+      font-size: 0.96rem;
+      font-weight: 800;
+      color: var(--color-rojo-frambuesa);
+      border-top: 1.5px dashed var(--color-borde-suave);
+      padding-top: 8px;
+      margin-top: 2px;
+    }
+    .card-terminal-sim-box {
+      border: 1.5px solid #D1D5DB;
+      background-color: #F9FAFB;
+      border-radius: 16px;
+      padding: 18px 22px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .card-terminal-sim-box.visible {
+      display: flex;
+    }
+  </style>
 
   <!-- Layout Principal de Cierre de Cuenta -->
   <main class="cierre-layout">
@@ -71,25 +138,55 @@ require_once '../layouts/header.php';
     <!-- COLUMNA PRINCIPAL (IZQUIERDA): Procesamiento y Método de Pago -->
     <section class="cierre-payment-panel">
       
-      <!-- Tarjeta Superior: Monto Total de Operación -->
+      <!-- Tarjeta Superior: Monto Total de Operación / Saldo Pendiente a Pagar en Caja -->
       <div class="payment-total-card">
         <div class="payment-total-info">
-          <h3 class="payment-total-title">Monto Total de Operación</h3>
-          <p class="payment-total-subtitle">Mesa <?php echo htmlspecialchars($numeroMesa); ?> · Incluye propuesta de propina</p>
+          <h3 class="payment-total-title">
+            <?php echo $montoAbonado > 0 ? 'Saldo Pendiente a Pagar en Caja' : 'Monto Total de Operación'; ?>
+          </h3>
+          <p class="payment-total-subtitle">
+            Mesa <?php echo htmlspecialchars($numeroMesa); ?> · <?php echo htmlspecialchars($tipoOrden); ?> · Total de la Cuenta: $<?php echo number_format($total, 2); ?>
+          </p>
         </div>
         <div class="payment-total-display">
-          <span class="total-big-number" id="displayTotalOperacion">$<?php echo number_format($total, 2); ?></span>
+          <span class="total-big-number" id="displayTotalOperacion">$<?php echo number_format($saldoPendiente, 2); ?></span>
           <span class="total-big-currency">USD</span>
         </div>
       </div>
 
-      <!-- Selección de Método de Pago -->
+      <!-- Desglose Diferencial de Cobro (Subtotal, Propina 10%, Total de la Cuenta, Abono Web y Saldo en Caja) -->
+      <div class="cierre-differential-box" aria-label="Desglose financiero de la cuenta">
+        <div class="cierre-diff-row">
+          <span><?php echo $montoAbonado > 0 ? 'Nuevo Subtotal de Productos:' : 'Subtotal de Productos:'; ?></span>
+          <strong>$<?php echo number_format($subtotal, 2); ?> USD</strong>
+        </div>
+        <div class="cierre-diff-row">
+          <span>Propina sugerida (10%):</span>
+          <strong>$<?php echo number_format($propina, 2); ?> USD</strong>
+        </div>
+        <div class="cierre-diff-row total-cuenta">
+          <span>Total de la Cuenta:</span>
+          <strong id="resumenTotalCuentaCaja">$<?php echo number_format($total, 2); ?> USD</strong>
+        </div>
+        <?php if ($montoAbonado > 0): ?>
+          <div class="cierre-diff-row abono-web">
+            <span>Monto Abonado (Web):</span>
+            <strong id="resumenAbonoWebCaja">-$<?php echo number_format($montoAbonado, 2); ?> USD</strong>
+          </div>
+          <div class="cierre-diff-row saldo-caja">
+            <span>Saldo Pendiente a Pagar en Caja:</span>
+            <strong id="resumenSaldoPendienteCaja">$<?php echo number_format($saldoPendiente, 2); ?> USD</strong>
+          </div>
+        <?php endif; ?>
+      </div>
+
+      <!-- Selección de Método de Pago (Efectivo o Tarjeta habilitados - RNF03) -->
       <div class="payment-method-section">
         <h3 class="section-title">Método de Pago</h3>
         
         <div class="payment-methods-grid">
           <!-- Opción 1: Efectivo -->
-          <div class="payment-method-card active" id="metodoEfectivoCard" role="button" tabindex="0">
+          <div class="payment-method-card active" id="metodoEfectivoCard" data-metodo="Efectivo" role="button" tabindex="0">
             <div class="payment-method-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="6" width="20" height="12" rx="2"></rect>
@@ -100,8 +197,8 @@ require_once '../layouts/header.php';
             <span class="payment-method-text">Efectivo</span>
           </div>
 
-          <!-- Opción 2: Tarjeta (por ahora sin función) -->
-          <div class="payment-method-card payment-method-card-inactive" id="metodoTarjetaCard" role="button" tabindex="0" title="Pago con tarjeta próximamente">
+          <!-- Opción 2: Tarjeta (Habilitada para cobro simulado en terminal POS - RNF03) -->
+          <div class="payment-method-card" id="metodoTarjetaCard" data-metodo="Tarjeta" role="button" tabindex="0" title="Cobrar con tarjeta en terminal POS">
             <div class="payment-method-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
@@ -113,20 +210,27 @@ require_once '../layouts/header.php';
         </div>
       </div>
 
-      <!-- Tarjeta: Detalle de Efectivo -->
-      <div class="cash-detail-card">
+      <!-- Tarjeta: Detalle de Efectivo (Base de validación: $saldoPendiente) -->
+      <div class="cash-detail-card" id="cashDetailCard">
         <div class="cash-detail-header">
           <h3 class="cash-detail-title">Detalle de Efectivo</h3>
-          <span class="exact-badge" id="sugeridoExactoBadge">Sugerido Exacto: $<?php echo number_format($total, 2); ?></span>
+          <span class="exact-badge" id="sugeridoExactoBadge">Sugerido Exacto: $<?php echo number_format($saldoPendiente, 2); ?></span>
         </div>
 
         <div class="cash-inputs-row">
           <!-- Monto Recibido -->
           <div class="cash-input-group">
-            <label for="inputMontoRecibido" class="cash-label">Monto Recibido</label>
+            <label for="inputMontoRecibido" class="cash-label">Monto Recibido en Caja</label>
             <div class="cash-input-box active-focus">
               <span class="currency-symbol">$</span>
-              <input type="number" step="0.01" id="inputMontoRecibido" class="cash-input-field" value="<?php echo number_format($total, 2, '.', ''); ?>" data-total="<?php echo number_format($total, 2, '.', ''); ?>" aria-label="Monto Recibido">
+              <input type="number"
+                     step="0.01"
+                     min="0"
+                     id="inputMontoRecibido"
+                     class="cash-input-field"
+                     value="<?php echo number_format($saldoPendiente, 2, '.', ''); ?>"
+                     data-total="<?php echo number_format($saldoPendiente, 2, '.', ''); ?>"
+                     aria-label="Monto Recibido">
             </div>
           </div>
 
@@ -141,6 +245,17 @@ require_once '../layouts/header.php';
         </div>
       </div>
 
+      <!-- Tarjeta informativa para cobro simulado con Tarjeta (RNF03) -->
+      <div class="card-terminal-sim-box" id="cardTerminalSimBox">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <strong style="font-size: 0.9rem; color: var(--color-negro-suave);">Terminal POS Bancaria (Simulación RNF03)</strong>
+          <span style="font-size: 0.78rem; font-weight: 700; color: #059669; background: #ECFDF5; padding: 3px 10px; border-radius: 999px;">Cargo Exacto</span>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--color-texto-muted); margin: 0;">
+          Se procesará un cargo simulado por exactamente <strong>$<?php echo number_format($saldoPendiente, 2); ?> USD</strong> sin generación de cambio en efectivo.
+        </p>
+      </div>
+
       <!-- Confirmación de Mesa Desocupada -->
       <div class="table-confirm-box">
         <label class="checkbox-container">
@@ -153,7 +268,15 @@ require_once '../layouts/header.php';
       <!-- Botones de Acción Finales -->
       <div class="cierre-actions">
         <!-- Botón Procesar Pago & Liberar Mesa -->
-        <button class="btn-process-payment" id="btnProcesarPago" type="button" data-mesa="<?php echo htmlspecialchars($idMesaReal); ?>" data-numero-mesa="<?php echo htmlspecialchars($numeroMesa); ?>" data-total="<?php echo number_format($total, 2, '.', ''); ?>" data-idpedido="<?php echo $idPedido; ?>">
+        <button class="btn-process-payment"
+                id="btnProcesarPago"
+                type="button"
+                data-mesa="<?php echo (int)$idMesaReal; ?>"
+                data-numero-mesa="<?php echo htmlspecialchars($numeroMesa); ?>"
+                data-total="<?php echo number_format($saldoPendiente, 2, '.', ''); ?>"
+                data-total-cuenta="<?php echo number_format($total, 2, '.', ''); ?>"
+                data-abono="<?php echo number_format($montoAbonado, 2, '.', ''); ?>"
+                data-idpedido="<?php echo (int)$idPedido; ?>">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
             <line x1="1" y1="10" x2="23" y2="10"></line>
@@ -178,7 +301,7 @@ require_once '../layouts/header.php';
         </button>
       </div>
 
-      <!-- Contenedor del Ticket que se convertirá a PDF -->
+      <!-- Contenedor del Ticket que se convertirá a PDF mediante html2pdf.js -->
       <div class="ticket-card" id="ticketContainer">
         
         <!-- Cabecera del Ticket -->
@@ -195,8 +318,11 @@ require_once '../layouts/header.php';
             <span>Hora: <?php echo htmlspecialchars($horaTexto); ?></span>
           </div>
           <div class="ticket-meta-row">
-            <span>Mesa: <?php echo str_pad($numeroMesa, 2, '0', STR_PAD_LEFT); ?> (Servicio)</span>
-            <span>Folio: <?php echo htmlspecialchars($folioTexto); ?></span>
+            <span>Mesa: <?php echo htmlspecialchars(str_pad($numeroMesa, 2, '0', STR_PAD_LEFT)); ?> (Servicio)</span>
+            <span>Folio: <span id="ticketFolioVal"><?php echo htmlspecialchars($folioTexto); ?></span></span>
+          </div>
+          <div class="ticket-meta-row">
+            <span>Modalidad: <span id="ticketModalidadVal"><?php echo htmlspecialchars($tipoOrden); ?></span></span>
           </div>
           <div class="ticket-meta-row">
             <span>Atendió: <?php echo htmlspecialchars($nombreAtendio); ?></span>
@@ -222,25 +348,49 @@ require_once '../layouts/header.php';
         <!-- Separador de Guiones -->
         <div class="ticket-separator">------------------------------------------------</div>
 
-        <!-- Subtotales y Propina -->
+        <!-- Subtotales, Propina, Total de la Cuenta y Abono Web -->
         <div class="ticket-totals-section">
           <div class="ticket-subtotal-row">
-            <span>Subtotal</span>
+            <span><?php echo $montoAbonado > 0 ? 'Nuevo Subtotal' : 'Subtotal'; ?></span>
             <span id="ticketSubtotalVal">$<?php echo number_format($subtotal, 2); ?></span>
           </div>
           <div class="ticket-subtotal-row">
             <span>Propina sugerida (10%)</span>
             <span id="ticketPropinaVal">$<?php echo number_format($propina, 2); ?></span>
           </div>
+          <div class="ticket-subtotal-row" style="font-weight: 700; color: #111827;">
+            <span>TOTAL DE LA CUENTA</span>
+            <span id="ticketTotalCuentaVal">$<?php echo number_format($total, 2); ?></span>
+          </div>
+          <div class="ticket-subtotal-row">
+            <span>Monto abonado vía web</span>
+            <span id="ticketAbonoWebVal"><?php echo $montoAbonado > 0 ? '-$' . number_format($montoAbonado, 2) : '$0.00'; ?></span>
+          </div>
         </div>
 
-        <!-- Total Destacado -->
+        <!-- Saldo Pendiente Cobrado Destacado -->
         <div class="ticket-grand-total">
           <div class="grand-total-row">
-            <span class="grand-total-label">TOTAL A PAGAR</span>
-            <span class="grand-total-amount" id="ticketTotalVal">$<?php echo number_format($total, 2); ?></span>
+            <span class="grand-total-label">SALDO PENDIENTE COBRADO</span>
+            <span class="grand-total-amount" id="ticketTotalVal">$<?php echo number_format($saldoPendiente, 2); ?></span>
           </div>
           <span class="grand-total-currency">Dólar de los Estados Unidos (USD)</span>
+        </div>
+
+        <!-- Desglose Dinámico de Cobro en Caja (Método, Efectivo Recibido y Cambio) -->
+        <div class="ticket-totals-section" style="border-top: 1px dashed #D1D5DB; padding-top: 10px; margin-bottom: 14px;">
+          <div class="ticket-subtotal-row">
+            <span>Método de pago</span>
+            <span id="ticketMetodoPagoVal">Efectivo</span>
+          </div>
+          <div class="ticket-subtotal-row">
+            <span>Efectivo recibido</span>
+            <span id="ticketEfectivoRecibidoVal">$<?php echo number_format($saldoPendiente, 2); ?></span>
+          </div>
+          <div class="ticket-subtotal-row">
+            <span>Cambio</span>
+            <span id="ticketCambioVal">$0.00</span>
+          </div>
         </div>
 
         <!-- Pie del Ticket -->
