@@ -1,195 +1,279 @@
 <?php
 /**
  * ==============================================================================
- * NIXGARU – Modelo: Inventario
- * models/Inventario.php
- * Gestiona el inventario de insumos en la tabla `Inventarios` y su relación
- * técnica con `Recetas` y `Productos`
+ * NIXGARU – Sistema de Gestión de Cafetería (MVC)
+ * Modelo: Inventario (`models/Inventario.php`)
+ * Tablas: `inventarios`, `recetas`, `detalle_pedidos`
  * ==============================================================================
  */
 
-class Inventario {
+class Inventario
+{
     protected PDO $pdo;
 
-    public function __construct(PDO $pdo) {
+    public function __construct(PDO $pdo)
+    {
         $this->pdo = $pdo;
     }
 
     /**
-     * Obtiene la lista completa de ingredientes y cantidades estimadas desde `Inventarios`
+     * Retorna todos los ingredientes e insumos registrados en `inventarios`
+     * ordenados por `id_ingrediente ASC`.
      *
-     * @return array
+     * @return array<int, array{id_ingrediente: int, nombre_ingrediente: string, cantidad_estimada: float}>
      */
-    public function obtenerTodos(): array {
+    public function obtenerTodos(): array
+    {
         $stmt = $this->pdo->prepare("
-            SELECT 
-                id_ingrediente,
-                nombre_ingrediente,
-                cantidad_estimada
-            FROM Inventarios
+            SELECT id_ingrediente, nombre_ingrediente, cantidad_estimada
+            FROM inventarios
             ORDER BY id_ingrediente ASC
         ");
         $stmt->execute();
-        return $stmt->fetchAll();
+
+        return array_map([$this, 'formatearFila'], $stmt->fetchAll());
     }
 
     /**
-     * Obtiene la información de un ingrediente específico por su id_ingrediente
+     * Obtiene un ingrediente por su identificador primario (`id_ingrediente`).
      *
-     * @param int|string $idIngrediente
-     * @return array|false
+     * @param int $idIngrediente
+     * @return array{id_ingrediente: int, nombre_ingrediente: string, cantidad_estimada: float}|null
      */
-    public function obtenerPorId($idIngrediente) {
-        $idInt = is_numeric($idIngrediente) ? (int)$idIngrediente : (int)preg_replace('/\D/', '', (string)$idIngrediente);
+    public function obtenerPorId(int $idIngrediente): ?array
+    {
+        if ($idIngrediente <= 0) {
+            return null;
+        }
 
         $stmt = $this->pdo->prepare("
-            SELECT 
-                id_ingrediente,
-                nombre_ingrediente,
-                cantidad_estimada
-            FROM Inventarios
+            SELECT id_ingrediente, nombre_ingrediente, cantidad_estimada
+            FROM inventarios
             WHERE id_ingrediente = :id_ingrediente
             LIMIT 1
         ");
-        $stmt->bindValue(':id_ingrediente', $idInt, PDO::PARAM_INT);
+        $stmt->bindValue(':id_ingrediente', $idIngrediente, PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetch();
+
+        $fila = $stmt->fetch();
+        return $fila ? $this->formatearFila($fila) : null;
     }
 
     /**
-     * Alias de obtenerPorId para compatibilidad
+     * Valida que `$cantidadReal >= 0` y actualiza `cantidad_estimada` en `inventarios` (RF14).
      *
-     * @param int|string $idIngrediente
-     * @return array|false
-     */
-    public function obtenerPorCodigo($idIngrediente) {
-        return $this->obtenerPorId($idIngrediente);
-    }
-
-    /**
-     * Obtiene los nombres de los ingredientes de la receta de un producto
-     * uniendo `Inventarios` y `Recetas` mediante id_ingrediente e id_producto
-     *
-     * @param int|string $idProducto
-     * @return array Lista de nombres de ingredientes
-     */
-    public function obtenerPorProducto($idProducto): array {
-        $idInt = is_numeric($idProducto) ? (int)$idProducto : (int)preg_replace('/\D/', '', (string)$idProducto);
-
-        $stmt = $this->pdo->prepare("
-            SELECT i.nombre_ingrediente 
-            FROM Inventarios i 
-            INNER JOIN Recetas r ON i.id_ingrediente = r.id_ingrediente 
-            WHERE r.id_producto = :id_producto
-            ORDER BY i.nombre_ingrediente ASC
-        ");
-        $stmt->bindValue(':id_producto', $idInt, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
-    }
-
-    /**
-     * Obtiene el detalle completo de la receta de un producto (insumos y cantidad_necesaria)
-     *
-     * @param int $idProducto
-     * @return array
-     */
-    public function obtenerRecetaDetalladaPorProducto(int $idProducto): array {
-        $stmt = $this->pdo->prepare("
-            SELECT 
-                r.id_receta,
-                r.cantidad_necesaria,
-                r.id_producto,
-                r.id_ingrediente,
-                i.nombre_ingrediente,
-                i.cantidad_estimada
-            FROM Recetas r
-            INNER JOIN Inventarios i ON r.id_ingrediente = r.id_ingrediente
-            WHERE r.id_producto = :id_producto
-            ORDER BY i.id_ingrediente ASC
-        ");
-        $stmt->bindValue(':id_producto', $idProducto, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetchAll();
-    }
-
-    /**
-     * Actualiza la cantidad estimada de un ingrediente en la tabla `Inventarios`
-     *
-     * @param int|string $idIngrediente
-     * @param float $nuevaCantidad
+     * @param int $idIngrediente
+     * @param float $cantidadReal
      * @return bool
      */
-    public function actualizarStock($idIngrediente, float $nuevaCantidad): bool {
-        $idInt = is_numeric($idIngrediente) ? (int)$idIngrediente : (int)preg_replace('/\D/', '', (string)$idIngrediente);
+    public function ajustarCantidad(int $idIngrediente, float $cantidadReal): bool
+    {
+        if ($idIngrediente <= 0) {
+            throw new InvalidArgumentException('El identificador de ingrediente no es válido.');
+        }
+
+        if ($cantidadReal < 0) {
+            throw new InvalidArgumentException('La cantidad en inventario no puede ser negativa.');
+        }
+
+        $cantidadFormateada = number_format(round($cantidadReal, 2), 2, '.', '');
 
         $stmt = $this->pdo->prepare("
-            UPDATE Inventarios 
+            UPDATE inventarios
             SET cantidad_estimada = :cantidad_estimada
             WHERE id_ingrediente = :id_ingrediente
         ");
-        $stmt->bindValue(':cantidad_estimada', number_format($nuevaCantidad, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->bindValue(':id_ingrediente', $idInt, PDO::PARAM_INT);
-        return $stmt->execute();
-    }
-
-    /**
-     * Registra un nuevo ingrediente en la tabla `Inventarios`
-     *
-     * @param string $nombreIngrediente
-     * @param float $cantidadEstimada
-     * @return int ID del ingrediente insertado
-     */
-    public function crear(string $nombreIngrediente, float $cantidadEstimada = 0.00): int {
-        $stmt = $this->pdo->prepare("
-            INSERT INTO Inventarios (
-                nombre_ingrediente, 
-                cantidad_estimada
-            ) VALUES (
-                :nombre_ingrediente, 
-                :cantidad_estimada
-            )
-        ");
-        $stmt->bindValue(':nombre_ingrediente', trim($nombreIngrediente), PDO::PARAM_STR);
-        $stmt->bindValue(':cantidad_estimada', number_format($cantidadEstimada, 2, '.', ''), PDO::PARAM_STR);
-        $stmt->execute();
-
-        return (int)$this->pdo->lastInsertId();
-    }
-
-    /**
-     * Actualiza la información de un ingrediente existente en `Inventarios`
-     *
-     * @param int $idIngrediente
-     * @param string $nombreIngrediente
-     * @param float $cantidadEstimada
-     * @return bool
-     */
-    public function actualizar(int $idIngrediente, string $nombreIngrediente, float $cantidadEstimada): bool {
-        $stmt = $this->pdo->prepare("
-            UPDATE Inventarios 
-            SET nombre_ingrediente = :nombre_ingrediente,
-                cantidad_estimada = :cantidad_estimada
-            WHERE id_ingrediente = :id_ingrediente
-        ");
-        $stmt->bindValue(':nombre_ingrediente', trim($nombreIngrediente), PDO::PARAM_STR);
-        $stmt->bindValue(':cantidad_estimada', number_format($cantidadEstimada, 2, '.', ''), PDO::PARAM_STR);
+        $stmt->bindValue(':cantidad_estimada', $cantidadFormateada, PDO::PARAM_STR);
         $stmt->bindValue(':id_ingrediente', $idIngrediente, PDO::PARAM_INT);
 
         return $stmt->execute();
     }
 
     /**
-     * Elimina un ingrediente por su id_ingrediente
+     * Alias de compatibilidad hacia `ajustarCantidad` usado por controladores existentes.
      *
      * @param int|string $idIngrediente
+     * @param float $nuevaCantidad
      * @return bool
      */
-    public function eliminar($idIngrediente): bool {
-        $idInt = is_numeric($idIngrediente) ? (int)$idIngrediente : (int)preg_replace('/\D/', '', (string)$idIngrediente);
+    public function actualizarStock($idIngrediente, float $nuevaCantidad): bool
+    {
+        $idInt = is_numeric($idIngrediente)
+            ? (int)$idIngrediente
+            : (int)preg_replace('/\D+/', '', (string)$idIngrediente);
 
-        $stmt = $this->pdo->prepare("DELETE FROM Inventarios WHERE id_ingrediente = :id_ingrediente");
-        $stmt->bindValue(':id_ingrediente', $idInt, PDO::PARAM_INT);
+        return $this->ajustarCantidad($idInt, $nuevaCantidad);
+    }
+
+    /**
+     * Descuenta automáticamente del inventario los insumos utilizados en un pedido
+     * según su formulación en `recetas` y cantidades en `detalle_pedidos` (RF14).
+     * Agrupa por ingrediente para acumular consumos cuando varios platillos del mismo
+     * pedido comparten un insumo.
+     *
+     * @param int $idPedido
+     * @return bool
+     */
+    public function descontarPorPedido(int $idPedido): bool
+    {
+        if ($idPedido <= 0) {
+            return false;
+        }
+
+        $stmt = $this->pdo->prepare("
+            UPDATE inventarios i
+            INNER JOIN (
+                SELECT
+                    r.id_ingrediente,
+                    SUM(r.cantidad_necesaria * dp.cantidad) AS total_consumido
+                FROM recetas r
+                INNER JOIN detalle_pedidos dp ON dp.id_producto = r.id_producto
+                WHERE dp.id_pedido = :id_pedido
+                GROUP BY r.id_ingrediente
+            ) consumo ON i.id_ingrediente = consumo.id_ingrediente
+            SET i.cantidad_estimada = GREATEST(0, ROUND(i.cantidad_estimada - consumo.total_consumido, 2))
+        ");
+        $stmt->bindValue(':id_pedido', $idPedido, PDO::PARAM_INT);
+
         return $stmt->execute();
+    }
+
+    /**
+     * Retorna la lista de nombres de ingredientes de un producto (`ApiController`).
+     *
+     * @param int|string $idProducto
+     * @return array<int, string>
+     */
+    public function obtenerPorProducto($idProducto): array
+    {
+        $idInt = is_numeric($idProducto)
+            ? (int)$idProducto
+            : (int)preg_replace('/\D+/', '', (string)$idProducto);
+
+        if ($idInt <= 0) {
+            return [];
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT i.nombre_ingrediente
+            FROM inventarios i
+            INNER JOIN recetas r ON i.id_ingrediente = r.id_ingrediente
+            WHERE r.id_producto = :id_producto
+            ORDER BY i.nombre_ingrediente ASC
+        ");
+        $stmt->bindValue(':id_producto', $idInt, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * Crea un nuevo insumo en `inventarios`.
+     *
+     * @param string $nombreIngrediente
+     * @param float $cantidadEstimada
+     * @return int
+     */
+    public function crear(string $nombreIngrediente, float $cantidadEstimada = 0.00): int
+    {
+        $nombreLimpio = trim($nombreIngrediente);
+        if ($nombreLimpio === '') {
+            throw new InvalidArgumentException('El nombre del ingrediente es obligatorio.');
+        }
+        if ($cantidadEstimada < 0) {
+            throw new InvalidArgumentException('La cantidad inicial no puede ser negativa.');
+        }
+
+        $stmt = $this->pdo->prepare("
+            INSERT INTO inventarios (nombre_ingrediente, cantidad_estimada)
+            VALUES (:nombre_ingrediente, :cantidad_estimada)
+        ");
+        $stmt->bindValue(':nombre_ingrediente', $nombreLimpio, PDO::PARAM_STR);
+        $stmt->bindValue(':cantidad_estimada', number_format(round($cantidadEstimada, 2), 2, '.', ''), PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int)$this->pdo->lastInsertId();
+    }
+
+    /**
+     * Actualiza nombre y cantidad de un ingrediente existente.
+     *
+     * @param int $idIngrediente
+     * @param string $nombreIngrediente
+     * @param float $cantidadEstimada
+     * @return bool
+     */
+    public function actualizar(int $idIngrediente, string $nombreIngrediente, float $cantidadEstimada): bool
+    {
+        $nombreLimpio = trim($nombreIngrediente);
+        if ($idIngrediente <= 0 || $nombreLimpio === '' || $cantidadEstimada < 0) {
+            throw new InvalidArgumentException('Datos de ingrediente inválidos para actualizar.');
+        }
+
+        $stmt = $this->pdo->prepare("
+            UPDATE inventarios
+            SET nombre_ingrediente = :nombre_ingrediente,
+                cantidad_estimada  = :cantidad_estimada
+            WHERE id_ingrediente = :id_ingrediente
+        ");
+        $stmt->bindValue(':nombre_ingrediente', $nombreLimpio, PDO::PARAM_STR);
+        $stmt->bindValue(':cantidad_estimada', number_format(round($cantidadEstimada, 2), 2, '.', ''), PDO::PARAM_STR);
+        $stmt->bindValue(':id_ingrediente', $idIngrediente, PDO::PARAM_INT);
+
+        return $stmt->execute();
+    }
+
+    /**
+     * Elimina un ingrediente de `inventarios` limpiando primero sus vínculos en `recetas`.
+     *
+     * @param int $idIngrediente
+     * @return bool
+     */
+    public function eliminar(int $idIngrediente): bool
+    {
+        if ($idIngrediente <= 0) {
+            return false;
+        }
+
+        $transaccionPropia = !$this->pdo->inTransaction();
+        if ($transaccionPropia) {
+            $this->pdo->beginTransaction();
+        }
+
+        try {
+            $stmtRec = $this->pdo->prepare("DELETE FROM recetas WHERE id_ingrediente = :id_ingrediente");
+            $stmtRec->bindValue(':id_ingrediente', $idIngrediente, PDO::PARAM_INT);
+            $stmtRec->execute();
+
+            $stmt = $this->pdo->prepare("DELETE FROM inventarios WHERE id_ingrediente = :id_ingrediente");
+            $stmt->bindValue(':id_ingrediente', $idIngrediente, PDO::PARAM_INT);
+            $resultado = $stmt->execute();
+
+            if ($transaccionPropia) {
+                $this->pdo->commit();
+            }
+
+            return $resultado;
+        } catch (Throwable $e) {
+            if ($transaccionPropia && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Normaliza los tipos numéricos de una fila de `inventarios`.
+     *
+     * @param array<string, mixed> $fila
+     * @return array{id_ingrediente: int, nombre_ingrediente: string, cantidad_estimada: float}
+     */
+    private function formatearFila(array $fila): array
+    {
+        return [
+            'id_ingrediente'     => (int)$fila['id_ingrediente'],
+            'nombre_ingrediente' => (string)$fila['nombre_ingrediente'],
+            'cantidad_estimada'  => round((float)$fila['cantidad_estimada'], 2),
+        ];
     }
 }

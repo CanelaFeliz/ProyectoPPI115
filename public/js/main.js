@@ -86,10 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.innerWidth > 1024) {
       if (cartBackdrop) {
         cartBackdrop.classList.remove('active', 'open');
-      cartBackdrop.setAttribute('aria-hidden', 'true');
+        cartBackdrop.setAttribute('aria-hidden', 'true');
       }
-      const productModal = document.getElementById('product-modal');
-      if (!productModal || !productModal.classList.contains('active')) {
+      const productModalEl = document.getElementById('product-modal');
+      const checkoutModalEl = document.getElementById('modal-checkout-cliente');
+      const exitoModalEl = document.getElementById('modal-pedido-exito');
+      const hayModalAbierto =
+        (productModalEl && (productModalEl.classList.contains('active') || productModalEl.getAttribute('aria-hidden') === 'false')) ||
+        (checkoutModalEl && checkoutModalEl.getAttribute('aria-hidden') === 'false') ||
+        (exitoModalEl && exitoModalEl.getAttribute('aria-hidden') === 'false');
+      if (!hayModalAbierto) {
         document.body.style.overflow = '';
       }
     }
@@ -190,8 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    const propina = subtotal * 0.10;
-    const total = subtotal + propina;
+    subtotal = Math.round(subtotal * 100) / 100;
+    const propina = Math.round(subtotal * 0.10 * 100) / 100;
+    const total = Math.round((subtotal + propina) * 100) / 100;
 
     if (cartBadge) {
       cartBadge.textContent = `${totalItems} Items`;
@@ -432,170 +439,603 @@ document.addEventListener('DOMContentLoaded', () => {
     return items;
   }
 
-  // 3. Modal visual atractivo de éxito para la confirmación del pedido
-  function mostrarModalExitoPedido(numeroMesa, callbackAceptar) {
-    let modalExito = document.getElementById('modal-pedido-exito');
-    
-    // Crear el modal dinámicamente si no existiera en el DOM
-    if (!modalExito) {
-      modalExito = document.createElement('div');
-      modalExito.id = 'modal-pedido-exito';
-      modalExito.className = 'modal-backdrop';
-      modalExito.setAttribute('aria-hidden', 'true');
-      modalExito.innerHTML = `
-        <div class="modal-dialog modal-dialog-success" role="dialog" aria-modal="true" style="max-width: 440px; text-align: center; padding: 36px 28px; background: #ffffff; border-radius: 20px; box-shadow: 0 20px 45px rgba(0,0,0,0.25);">
-          <div style="width: 72px; height: 72px; background: rgba(25, 135, 84, 0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; color: #198754;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          </div>
-          <h3 style="font-size: 22px; font-weight: 700; color: #212529; margin: 0 0 10px 0;">¡Pedido recibido con éxito!</h3>
-          <p style="font-size: 15px; color: #6C757D; line-height: 1.5; margin: 0 0 24px 0;">
-            Su orden ha sido enviada a cocina.<br>
-            <span id="modalExitoMesaText" style="font-weight: 600; color: #198754;">Mesa ${numeroMesa}</span>
-          </p>
-          <button type="button" id="btnAceptarPedidoExito" style="background-color: #0D6EFD; color: #ffffff; font-weight: 600; font-size: 15px; padding: 12px 36px; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s ease;">Aceptar</button>
-        </div>
-      `;
-      document.body.appendChild(modalExito);
-    }
-
-    const mesaTextEl = modalExito.querySelector('#modalExitoMesaText');
-    if (mesaTextEl) {
-      mesaTextEl.textContent = `Mesa ${numeroMesa}`;
-    }
-
-    // Activar modal
-    modalExito.classList.add('active');
-    modalExito.setAttribute('aria-hidden', 'false');
-
-    const btnAceptar = modalExito.querySelector('#btnAceptarPedidoExito');
-    
-    const cerrarYConfirmar = () => {
-      modalExito.classList.remove('active');
-      modalExito.setAttribute('aria-hidden', 'true');
-      if (typeof callbackAceptar === 'function') {
-        callbackAceptar();
-      }
-    };
-
-    if (btnAceptar) {
-      btnAceptar.onclick = cerrarYConfirmar;
-    }
-
-    // Cerrar también si hace clic en el fondo semitransparente
-    modalExito.onclick = (e) => {
-      if (e.target === modalExito) {
-        cerrarYConfirmar();
-      }
-    };
+  // 3. Utilidad de escape HTML para inyección segura en el comprobante del cliente
+  function escaparHtmlCliente(valor) {
+    return String(valor ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
-  // 3.5 Sincronización del selector dinámico de mesas en la vista de cliente
-  const selectMesaCliente = document.getElementById('selectMesaCliente');
-  if (selectMesaCliente) {
-    const urlParams = new URLSearchParams(window.location.search);
-    // Si no se pasó mesa por URL pero el usuario ya tenía una mesa guardada en localStorage, sincronizar
-    if (!urlParams.get('mesa_id') && !urlParams.get('mesa')) {
-      const storedMesa = localStorage.getItem('mesaActiva');
-      if (storedMesa && selectMesaCliente.querySelector(`option[value="${storedMesa}"]`)) {
-        selectMesaCliente.value = storedMesa;
-        const cartTableIndicator = document.getElementById('cartTableIndicator');
-        if (cartTableIndicator) cartTableIndicator.textContent = `(Mesa ${storedMesa})`;
-        const btnConfirmar = document.getElementById('btnConfirmarPedido');
-        if (btnConfirmar) btnConfirmar.dataset.mesa = storedMesa;
-      }
+  // 4. Calcular desglose financiero exacto del carrito actual (Subtotal, Propina 10%, Total)
+  function calcularMontosCarrito(items) {
+    let subtotal = 0;
+    items.forEach((item) => {
+      const unitPrice = parseFloat(item.price) || 0;
+      const qty = parseInt(item.qty, 10) || 0;
+      subtotal += Math.round(unitPrice * qty * 100) / 100;
+    });
+    subtotal = Math.round(subtotal * 100) / 100;
+    const propina = Math.round(subtotal * 0.10 * 100) / 100;
+    const total = Math.round((subtotal + propina) * 100) / 100;
+    return { subtotal, propina, total };
+  }
+
+  // 5. Referencias del flujo de Checkout Web (#modal-checkout-cliente) y Comprobante PDF (#modal-pedido-exito)
+  const btnConfirmarPedido = document.getElementById('btnConfirmarPedido');
+  const modalCheckoutCliente = document.getElementById('modal-checkout-cliente');
+  const formCheckoutCliente = document.getElementById('formCheckoutCliente');
+  const btnCerrarModalCheckout = document.getElementById('btnCerrarModalCheckout');
+  const btnCancelarCheckout = document.getElementById('btnCancelarCheckout');
+  const btnSubmitCheckout = document.getElementById('btnSubmitCheckout');
+  const checkoutErrorAlert = document.getElementById('checkoutErrorAlert');
+  const checkoutErrorText = document.getElementById('checkoutErrorText');
+
+  const inputNombreCliente = document.getElementById('inputNombreCliente');
+  const inputApellidoCliente = document.getElementById('inputApellidoCliente');
+  const inputTelefonoCliente = document.getElementById('inputTelefonoCliente');
+  const inputCorreoCliente = document.getElementById('inputCorreoCliente');
+
+  const radiosTipoOrden = document.querySelectorAll('input[name="tipo_orden"]');
+  const pillTipoDomicilio = document.getElementById('pillTipoDomicilio');
+  const pillTipoRetiro = document.getElementById('pillTipoRetiro');
+  const bloqueDatosLogisticos = document.getElementById('bloqueDatosLogisticos');
+  const selectMunicipioCliente = document.getElementById('selectMunicipioCliente');
+  const inputDireccionCliente = document.getElementById('inputDireccionCliente');
+  const inputReferenciaCliente = document.getElementById('inputReferenciaCliente');
+
+  const checkoutSubtotalEl = document.getElementById('checkoutSubtotal');
+  const checkoutPropinaEl = document.getElementById('checkoutPropina');
+  const checkoutTotalEl = document.getElementById('checkoutTotal');
+  const checkoutMontoAbonadoInfoEl = document.getElementById('checkoutMontoAbonadoInfo');
+
+  const radiosMetodoPago = document.querySelectorAll('input[name="metodo_pago"]');
+  const pillMetodoEfectivo = document.getElementById('pillMetodoEfectivo');
+  const pillMetodoTarjeta = document.getElementById('pillMetodoTarjeta');
+  const bloquePagoTarjetaSimulado = document.getElementById('bloquePagoTarjetaSimulado');
+  const inputTarjetaNumero = document.getElementById('inputTarjetaNumero');
+  const inputTarjetaVencimiento = document.getElementById('inputTarjetaVencimiento');
+  const inputTarjetaCvv = document.getElementById('inputTarjetaCvv');
+
+  const modalPedidoExito = document.getElementById('modal-pedido-exito');
+  const clientTicketContainer = document.getElementById('clientTicketContainer');
+  const btnDescargarTicketCliente = document.getElementById('btnDescargarTicketCliente');
+  const btnAceptarPedidoExito = document.getElementById('btnAceptarPedidoExito');
+
+  let procesandoCheckoutCliente = false;
+  let ultimoIdPedidoCliente = null;
+
+  function mostrarErrorCheckout(mensaje) {
+    if (checkoutErrorText) {
+      checkoutErrorText.textContent = mensaje;
+    }
+    if (checkoutErrorAlert) {
+      checkoutErrorAlert.classList.add('visible');
+      checkoutErrorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      alert(mensaje);
+    }
+  }
+
+  function ocultarErrorCheckout() {
+    if (checkoutErrorAlert) {
+      checkoutErrorAlert.classList.remove('visible');
+    }
+  }
+
+  function obtenerTipoOrdenSeleccionado() {
+    const seleccionado = document.querySelector('input[name="tipo_orden"]:checked');
+    return seleccionado ? seleccionado.value : 'Envío a domicilio';
+  }
+
+  function obtenerMetodoPagoSeleccionado() {
+    const seleccionado = document.querySelector('input[name="metodo_pago"]:checked');
+    return seleccionado ? seleccionado.value : 'Efectivo';
+  }
+
+  // Alternar visibilidad y atributo required de los datos logísticos según tipo_orden (RF15)
+  function sincronizarModalidadOrden() {
+    const tipoOrden = obtenerTipoOrdenSeleccionado();
+    const esDomicilio = (tipoOrden === 'Envío a domicilio');
+
+    if (pillTipoDomicilio) {
+      pillTipoDomicilio.classList.toggle('active', esDomicilio);
+    }
+    if (pillTipoRetiro) {
+      pillTipoRetiro.classList.toggle('active', !esDomicilio);
     }
 
-    selectMesaCliente.addEventListener('change', (e) => {
-      const nuevaMesa = e.target.value;
-      const cartTableIndicator = document.getElementById('cartTableIndicator');
-      if (cartTableIndicator) {
-        cartTableIndicator.textContent = `(Mesa ${nuevaMesa})`;
+    if (bloqueDatosLogisticos) {
+      bloqueDatosLogisticos.classList.toggle('is-hidden', !esDomicilio);
+    }
+    if (selectMunicipioCliente) {
+      selectMunicipioCliente.required = esDomicilio;
+      if (esDomicilio) {
+        selectMunicipioCliente.value = 'San Salvador';
       }
-      const btnConfirmar = document.getElementById('btnConfirmarPedido');
-      if (btnConfirmar) {
-        btnConfirmar.dataset.mesa = nuevaMesa;
+    }
+    if (inputDireccionCliente) {
+      inputDireccionCliente.required = esDomicilio;
+    }
+    if (inputReferenciaCliente) {
+      inputReferenciaCliente.required = esDomicilio;
+    }
+  }
+
+  // Alternar visibilidad y atributo required de los campos simulados de tarjeta según metodo_pago (RNF03)
+  function sincronizarMetodoPagoCliente() {
+    const metodoPago = obtenerMetodoPagoSeleccionado();
+    const esTarjeta = (metodoPago === 'Tarjeta');
+
+    if (pillMetodoEfectivo) {
+      pillMetodoEfectivo.classList.toggle('active', !esTarjeta);
+    }
+    if (pillMetodoTarjeta) {
+      pillMetodoTarjeta.classList.toggle('active', esTarjeta);
+    }
+
+    if (bloquePagoTarjetaSimulado) {
+      bloquePagoTarjetaSimulado.classList.toggle('is-hidden', !esTarjeta);
+    }
+    if (inputTarjetaNumero) {
+      inputTarjetaNumero.required = esTarjeta;
+    }
+    if (inputTarjetaVencimiento) {
+      inputTarjetaVencimiento.required = esTarjeta;
+    }
+    if (inputTarjetaCvv) {
+      inputTarjetaCvv.required = esTarjeta;
+    }
+  }
+
+  function abrirModalCheckoutCliente(items) {
+    if (!modalCheckoutCliente) return;
+
+    const { subtotal, propina, total } = calcularMontosCarrito(items);
+    if (checkoutSubtotalEl) checkoutSubtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+    if (checkoutPropinaEl) checkoutPropinaEl.textContent = `$${propina.toFixed(2)}`;
+    if (checkoutTotalEl) checkoutTotalEl.textContent = `$${total.toFixed(2)}`;
+    if (checkoutMontoAbonadoInfoEl) checkoutMontoAbonadoInfoEl.textContent = `$${total.toFixed(2)}`;
+
+    ocultarErrorCheckout();
+    sincronizarModalidadOrden();
+    sincronizarMetodoPagoCliente();
+
+    modalCheckoutCliente.classList.add('active', 'open');
+    modalCheckoutCliente.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(() => {
+      if (inputNombreCliente && !inputNombreCliente.value.trim()) {
+        inputNombreCliente.focus();
       }
-      const modalExitoMesaText = document.getElementById('modalExitoMesaText');
-      if (modalExitoMesaText) {
-        modalExitoMesaText.textContent = `Mesa ${nuevaMesa}`;
+    }, 80);
+  }
+
+  function cerrarModalCheckoutCliente(forzar = false) {
+    if (!modalCheckoutCliente) return;
+    if (procesandoCheckoutCliente && !forzar) return;
+
+    modalCheckoutCliente.classList.remove('active', 'open');
+    modalCheckoutCliente.setAttribute('aria-hidden', 'true');
+    ocultarErrorCheckout();
+
+    const exitoAbierto = modalPedidoExito && modalPedidoExito.getAttribute('aria-hidden') === 'false';
+    const carritoMovilAbierto = window.innerWidth <= 1024 && cartSidebar && cartSidebar.classList.contains('open');
+    if (!exitoAbierto && !carritoMovilAbierto) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  function cerrarModalExitoPedido() {
+    if (!modalPedidoExito) return;
+    modalPedidoExito.classList.remove('active', 'open');
+    modalPedidoExito.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  // Rellenar dinámicamente #clientTicketContainer con los datos reales devueltos por el backend (RF10, RF15)
+  function poblarComprobanteCliente(datosPedido, payloadEnviado, itemsComprados) {
+    const idPedido = parseInt(datosPedido.id_pedido ?? 0, 10) || 0;
+    ultimoIdPedidoCliente = idPedido;
+
+    if (btnDescargarTicketCliente) {
+      btnDescargarTicketCliente.dataset.idPedido = String(idPedido);
+    }
+
+    const folioFormateado = `#NIX-${String(idPedido).padStart(5, '0')}`;
+    const ahora = new Date();
+    const fechaStr = ahora.toLocaleDateString('es-SV', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const horaStr = ahora.toLocaleTimeString('es-SV', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    const modalidadReal = datosPedido.tipo_orden || payloadEnviado.tipo_orden || 'Retiro en el local';
+    const esDomicilio = (modalidadReal === 'Envío a domicilio');
+    const nombreCompleto = `${payloadEnviado.nombre_cliente || ''} ${payloadEnviado.apellido_cliente || ''}`.trim();
+
+    const subtotalNum = Number(datosPedido.subtotal ?? 0);
+    const propinaNum = Number(datosPedido.propina ?? 0);
+    const totalNum = Number(datosPedido.total_pagar ?? 0);
+    const metodoPagoReal = datosPedido.metodo_pago || payloadEnviado.metodo_pago || 'Efectivo';
+    const montoAbonadoNum = Number(datosPedido.monto_abonado ?? 0);
+    const saldoPendienteNum = Number(datosPedido.saldo_pendiente ?? 0);
+
+    const folioEl = document.getElementById('ticketFolioCliente');
+    const fechaHoraEl = document.getElementById('ticketFechaHoraCliente');
+    const modalidadEl = document.getElementById('ticketModalidadCliente');
+    const nombreEl = document.getElementById('ticketNombreCliente');
+    const telefonoEl = document.getElementById('ticketTelefonoCliente');
+    const bloqueEntregaEl = document.getElementById('ticketBloqueEntrega');
+    const municipioEl = document.getElementById('ticketMunicipioCliente');
+    const direccionEl = document.getElementById('ticketDireccionCliente');
+    const referenciaEl = document.getElementById('ticketReferenciaCliente');
+    const itemsBodyEl = document.getElementById('ticketItemsCliente');
+    const subtotalEl = document.getElementById('ticketSubtotalCliente');
+    const propinaEl = document.getElementById('ticketPropinaCliente');
+    const totalEl = document.getElementById('ticketTotalCliente');
+    const metodoEl = document.getElementById('ticketMetodoPagoCliente');
+    const abonadoEl = document.getElementById('ticketMontoAbonadoCliente');
+    const saldoEl = document.getElementById('ticketSaldoPendienteCliente');
+
+    if (folioEl) folioEl.textContent = folioFormateado;
+    if (fechaHoraEl) fechaHoraEl.textContent = `${fechaStr} ${horaStr}`;
+    if (modalidadEl) modalidadEl.textContent = modalidadReal;
+    if (nombreEl) nombreEl.textContent = nombreCompleto || 'Cliente Web';
+    if (telefonoEl) telefonoEl.textContent = payloadEnviado.telefono_cliente || 'N/D';
+
+    if (bloqueEntregaEl) {
+      bloqueEntregaEl.classList.toggle('is-hidden', !esDomicilio);
+    }
+    if (esDomicilio) {
+      if (municipioEl) municipioEl.textContent = payloadEnviado.municipio || 'San Salvador';
+      if (direccionEl) direccionEl.textContent = payloadEnviado.direccion || '';
+      if (referenciaEl) referenciaEl.textContent = payloadEnviado.punto_referencia || 'Sin referencia adicional';
+    }
+
+    if (itemsBodyEl) {
+      itemsBodyEl.innerHTML = itemsComprados.map((item) => {
+        const qty = parseInt(item.qty, 10) || 1;
+        const unit = parseFloat(item.price) || 0;
+        const lineSub = Math.round(qty * unit * 100) / 100;
+        return `
+          <tr>
+            <td class="ct-col-qty">${qty}x</td>
+            <td>${escaparHtmlCliente(item.name)}</td>
+            <td class="ct-col-unit">$${unit.toFixed(2)}</td>
+            <td class="ct-col-sub">$${lineSub.toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    if (subtotalEl) subtotalEl.textContent = `$${subtotalNum.toFixed(2)}`;
+    if (propinaEl) propinaEl.textContent = `$${propinaNum.toFixed(2)}`;
+    if (totalEl) totalEl.textContent = `$${totalNum.toFixed(2)}`;
+    if (metodoEl) {
+      metodoEl.textContent = metodoPagoReal === 'Tarjeta'
+        ? 'Tarjeta (Pago en línea)'
+        : 'Efectivo (Contra entrega / caja)';
+    }
+    if (abonadoEl) abonadoEl.textContent = `$${montoAbonadoNum.toFixed(2)}`;
+    if (saldoEl) saldoEl.textContent = `$${saldoPendienteNum.toFixed(2)}`;
+  }
+
+  // Formateo amigable para los campos sandbox de tarjeta simulada y teléfono
+  if (inputTarjetaNumero) {
+    inputTarjetaNumero.addEventListener('input', () => {
+      const soloDigitos = inputTarjetaNumero.value.replace(/\D/g, '').substring(0, 16);
+      const grupos = soloDigitos.match(/.{1,4}/g);
+      inputTarjetaNumero.value = grupos ? grupos.join(' ') : '';
+    });
+  }
+  if (inputTarjetaVencimiento) {
+    inputTarjetaVencimiento.addEventListener('input', () => {
+      const soloDigitos = inputTarjetaVencimiento.value.replace(/\D/g, '').substring(0, 4);
+      if (soloDigitos.length >= 3) {
+        inputTarjetaVencimiento.value = `${soloDigitos.substring(0, 2)}/${soloDigitos.substring(2, 4)}`;
+      } else {
+        inputTarjetaVencimiento.value = soloDigitos;
       }
-      localStorage.setItem('mesaActiva', nuevaMesa);
+    });
+  }
+  if (inputTarjetaCvv) {
+    inputTarjetaCvv.addEventListener('input', () => {
+      inputTarjetaCvv.value = inputTarjetaCvv.value.replace(/\D/g, '').substring(0, 4);
     });
   }
 
-  // 4. Conexión del botón "Confirmar Pedido" con la API y persistencia
-  const btnConfirmarPedido = document.getElementById('btnConfirmarPedido');
+  radiosTipoOrden.forEach((radio) => {
+    radio.addEventListener('change', () => {
+      ocultarErrorCheckout();
+      sincronizarModalidadOrden();
+    });
+  });
+
+  radiosMetodoPago.forEach((radio) => {
+    radio.addEventListener('change', () => {
+      ocultarErrorCheckout();
+      sincronizarMetodoPagoCliente();
+    });
+  });
+
+  // 1) Apertura de #modal-checkout-cliente al hacer clic en #btnConfirmarPedido
   if (btnConfirmarPedido) {
     btnConfirmarPedido.addEventListener('click', () => {
-      // a) Comprobar que el carrito tenga productos
       const items = obtenerProductosDelCarrito();
       if (items.length === 0) {
         alert('Tu carrito está vacío. Por favor selecciona al menos un producto antes de confirmar el pedido.');
         return;
       }
-
-      // b) Asociar el pedido a la mesa activa (prioridad: selector rápido de mesa > dataset mesa > URL param > localStorage > 1)
-      const selectMesaEl = document.getElementById('selectMesaCliente');
-      const mesaSeleccionada = selectMesaEl ? selectMesaEl.value : null;
-      const urlParams = new URLSearchParams(window.location.search);
-      const mesaActiva = mesaSeleccionada || btnConfirmarPedido.dataset.mesa || urlParams.get('mesa_id') || urlParams.get('mesa') || localStorage.getItem('mesaActiva') || '1';
-
-      // Feedback visual mientras procesa
-      const textoOriginal = btnConfirmarPedido.innerHTML;
-      btnConfirmarPedido.innerHTML = `<span>Enviando pedido a cocina...</span>`;
-      btnConfirmarPedido.disabled = true;
-
-      // c) Enviar datos del carrito a la base de datos (pedidos y detalles_pedido) vía ServicioController.php
-      fetch('../../controllers/ServicioController.php?action=guardar_orden', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id_mesa: (mesaActiva && !isNaN(parseInt(mesaActiva, 10)) && !mesaActiva.toString().startsWith('M')) ? parseInt(mesaActiva, 10) : mesaActiva,
-          productos: items,
-          estado_mesa: 'En proceso',
-          estado_pedido: 'En preparación'
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Sincronizar en localStorage para consistencia inmediata
-          localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(items));
-          localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
-
-          // Mostrar mensaje modal de éxito atractivo
-          mostrarModalExitoPedido(mesaActiva, () => {
-            // Vaciar carrito y restablecer totales a $0.00
-            vaciarCarritoCliente();
-            if (window.innerWidth <= 1024) {
-              closeCart();
-            }
-          });
-        } else {
-          alert('Error al enviar el pedido: ' + (data.error || 'Intente nuevamente'));
-        }
-      })
-      .catch(err => {
-        console.error('Error al enviar pedido del cliente:', err);
-        // Fallback local
-        localStorage.setItem('orden_mesa_' + mesaActiva, JSON.stringify(items));
-        localStorage.setItem('estado_mesa_' + mesaActiva, 'proceso');
-
-        mostrarModalExitoPedido(mesaActiva, () => {
-          vaciarCarritoCliente();
-        });
-      })
-      .finally(() => {
-        btnConfirmarPedido.innerHTML = textoOriginal;
-        btnConfirmarPedido.disabled = false;
-      });
+      abrirModalCheckoutCliente(items);
     });
   }
+
+  if (btnCerrarModalCheckout) {
+    btnCerrarModalCheckout.addEventListener('click', () => cerrarModalCheckoutCliente());
+  }
+  if (btnCancelarCheckout) {
+    btnCancelarCheckout.addEventListener('click', () => cerrarModalCheckoutCliente());
+  }
+  if (modalCheckoutCliente) {
+    modalCheckoutCliente.addEventListener('click', (e) => {
+      if (e.target === modalCheckoutCliente) {
+        cerrarModalCheckoutCliente();
+      }
+    });
+  }
+
+  // 2) Envío asíncrono (fetch) de #formCheckoutCliente a ServicioController.php?action=guardar_orden
+  if (formCheckoutCliente) {
+    formCheckoutCliente.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (procesandoCheckoutCliente) return;
+
+      ocultarErrorCheckout();
+
+      const items = obtenerProductosDelCarrito();
+      if (items.length === 0) {
+        mostrarErrorCheckout('Tu carrito está vacío. Agrega al menos un producto para continuar.');
+        return;
+      }
+
+      const nombreCliente = (inputNombreCliente?.value || '').trim();
+      const apellidoCliente = (inputApellidoCliente?.value || '').trim();
+      const telefonoCliente = (inputTelefonoCliente?.value || '').trim();
+      const correoCliente = (inputCorreoCliente?.value || '').trim();
+      const tipoOrden = obtenerTipoOrdenSeleccionado();
+      const esDomicilio = (tipoOrden === 'Envío a domicilio');
+      const municipio = esDomicilio ? ((selectMunicipioCliente?.value || 'San Salvador').trim() || 'San Salvador') : null;
+      const direccion = esDomicilio ? (inputDireccionCliente?.value || '').trim() : null;
+      const puntoReferencia = esDomicilio ? (inputReferenciaCliente?.value || '').trim() : null;
+      const metodoPago = obtenerMetodoPagoSeleccionado();
+      const esTarjeta = (metodoPago === 'Tarjeta');
+
+      // Validaciones de campos obligatorios (RF15, RNF03)
+      if (!nombreCliente) {
+        mostrarErrorCheckout('Por favor ingresa tu nombre.');
+        inputNombreCliente?.focus();
+        return;
+      }
+      if (!apellidoCliente) {
+        mostrarErrorCheckout('Por favor ingresa tu apellido.');
+        inputApellidoCliente?.focus();
+        return;
+      }
+      if (!telefonoCliente || telefonoCliente.replace(/\D/g, '').length < 8) {
+        mostrarErrorCheckout('Por favor ingresa un número de teléfono válido (ej. 7000-0000).');
+        inputTelefonoCliente?.focus();
+        return;
+      }
+      const patronCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!correoCliente || !patronCorreo.test(correoCliente)) {
+        mostrarErrorCheckout('Por favor ingresa un correo electrónico válido.');
+        inputCorreoCliente?.focus();
+        return;
+      }
+
+      if (esDomicilio) {
+        if (municipio !== 'San Salvador') {
+          mostrarErrorCheckout('El servicio a domicilio está disponible exclusivamente para el municipio de San Salvador.');
+          selectMunicipioCliente?.focus();
+          return;
+        }
+        if (!direccion) {
+          mostrarErrorCheckout('La dirección exacta de entrega es obligatoria para pedidos a domicilio.');
+          inputDireccionCliente?.focus();
+          return;
+        }
+        if (!puntoReferencia) {
+          mostrarErrorCheckout('Por favor indica un punto de referencia para facilitar la entrega.');
+          inputReferenciaCliente?.focus();
+          return;
+        }
+      }
+
+      if (esTarjeta) {
+        const digitosTarjeta = (inputTarjetaNumero?.value || '').replace(/\D/g, '');
+        const vencimiento = (inputTarjetaVencimiento?.value || '').trim();
+        const cvv = (inputTarjetaCvv?.value || '').replace(/\D/g, '');
+
+        if (digitosTarjeta.length < 13 || digitosTarjeta.length > 16) {
+          mostrarErrorCheckout('Ingresa un número de tarjeta de prueba válido (13 a 16 dígitos).');
+          inputTarjetaNumero?.focus();
+          return;
+        }
+        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(vencimiento)) {
+          mostrarErrorCheckout('Ingresa una fecha de vencimiento válida en formato MM/AA.');
+          inputTarjetaVencimiento?.focus();
+          return;
+        }
+        if (cvv.length < 3 || cvv.length > 4) {
+          mostrarErrorCheckout('Ingresa un código CVV de prueba válido (3 o 4 dígitos).');
+          inputTarjetaCvv?.focus();
+          return;
+        }
+      }
+
+      const payload = {
+        id_mesa: null,
+        tipo_orden: tipoOrden,
+        nombre_cliente: nombreCliente,
+        apellido_cliente: apellidoCliente,
+        telefono_cliente: telefonoCliente,
+        correo_cliente: correoCliente,
+        municipio: esDomicilio ? 'San Salvador' : null,
+        direccion: esDomicilio ? direccion : null,
+        punto_referencia: esDomicilio ? puntoReferencia : null,
+        metodo_pago: metodoPago,
+        productos: items
+      };
+
+      procesandoCheckoutCliente = true;
+      const htmlOriginalBoton = btnSubmitCheckout ? btnSubmitCheckout.innerHTML : '';
+      if (btnSubmitCheckout) {
+        btnSubmitCheckout.disabled = true;
+        btnSubmitCheckout.innerHTML = '<span>Procesando pedido...</span>';
+      }
+
+      try {
+        const res = await fetch('../../controllers/ServicioController.php?action=guardar_orden', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = null;
+        }
+
+        if (!res.ok || !data || data.success !== true) {
+          const mensajeError = (data && data.error)
+            ? data.error
+            : `No se pudo registrar el pedido (Error HTTP ${res.status}). Intenta nuevamente.`;
+          mostrarErrorCheckout(mensajeError);
+          return;
+        }
+
+        const datosPedido = data.pedido || {
+          id_pedido: data.id_pedido || 0,
+          tipo_orden: tipoOrden,
+          metodo_pago: metodoPago
+        };
+
+        // Cerrar modal de checkout, poblar comprobante real, abrir modal de éxito y vaciar carrito
+        cerrarModalCheckoutCliente(true);
+        poblarComprobanteCliente(datosPedido, payload, items);
+
+        if (modalPedidoExito) {
+          modalPedidoExito.classList.add('active', 'open');
+          modalPedidoExito.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+        }
+
+        vaciarCarritoCliente();
+        formCheckoutCliente.reset();
+        sincronizarModalidadOrden();
+        sincronizarMetodoPagoCliente();
+
+        if (window.innerWidth <= 1024) {
+          closeCart();
+          document.body.style.overflow = 'hidden';
+        }
+      } catch (err) {
+        console.error('Error de comunicación al registrar el pedido web:', err);
+        mostrarErrorCheckout('No fue posible conectar con el servidor para registrar tu pedido. Verifica tu conexión e inténtalo de nuevo.');
+      } finally {
+        procesandoCheckoutCliente = false;
+        if (btnSubmitCheckout) {
+          btnSubmitCheckout.disabled = false;
+          btnSubmitCheckout.innerHTML = htmlOriginalBoton;
+        }
+      }
+    });
+  }
+
+  // 3) Exportación del Comprobante PDF mediante html2pdf.js (RF10, RF15)
+  if (btnDescargarTicketCliente && clientTicketContainer) {
+    btnDescargarTicketCliente.addEventListener('click', () => {
+      const idPedidoPdf = btnDescargarTicketCliente.dataset.idPedido || ultimoIdPedidoCliente || '0';
+      const nombreArchivo = `Comprobante_NIXGARU_Pedido_${idPedidoPdf}.pdf`;
+
+      const opcionesPdf = {
+        margin: [10, 10, 10, 10],
+        filename: nombreArchivo,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          backgroundColor: '#ffffff',
+          scrollY: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      const htmlOriginalDescarga = btnDescargarTicketCliente.innerHTML;
+      btnDescargarTicketCliente.disabled = true;
+      btnDescargarTicketCliente.innerHTML = '<span>Generando PDF...</span>';
+
+      if (typeof html2pdf !== 'undefined') {
+        html2pdf()
+          .set(opcionesPdf)
+          .from(clientTicketContainer)
+          .save()
+          .then(() => {
+            btnDescargarTicketCliente.innerHTML = '<span>¡Comprobante descargado!</span>';
+            setTimeout(() => {
+              btnDescargarTicketCliente.disabled = false;
+              btnDescargarTicketCliente.innerHTML = htmlOriginalDescarga;
+            }, 1600);
+          })
+          .catch((err) => {
+            console.error('Error al generar el comprobante PDF del cliente:', err);
+            btnDescargarTicketCliente.disabled = false;
+            btnDescargarTicketCliente.innerHTML = htmlOriginalDescarga;
+            alert('Ocurrió un inconveniente al generar el archivo PDF. Intenta nuevamente.');
+          });
+      } else {
+        window.print();
+        btnDescargarTicketCliente.disabled = false;
+        btnDescargarTicketCliente.innerHTML = htmlOriginalDescarga;
+      }
+    });
+  }
+
+  if (btnAceptarPedidoExito) {
+    btnAceptarPedidoExito.addEventListener('click', () => cerrarModalExitoPedido());
+  }
+  if (modalPedidoExito) {
+    modalPedidoExito.addEventListener('click', (e) => {
+      if (e.target === modalPedidoExito) {
+        cerrarModalExitoPedido();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (modalPedidoExito && modalPedidoExito.getAttribute('aria-hidden') === 'false') {
+        cerrarModalExitoPedido();
+      } else if (modalCheckoutCliente && modalCheckoutCliente.getAttribute('aria-hidden') === 'false') {
+        cerrarModalCheckoutCliente();
+      }
+    }
+  });
 
   /**
    * ==========================================================================
@@ -1360,8 +1800,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Restaurar scroll de body si no hay otros modales abiertos
       const productModal = document.getElementById('product-modal');
       const cartBackdropEl = document.getElementById('cart-backdrop');
+      const checkoutModalEl = document.getElementById('modal-checkout-cliente');
+      const exitoModalEl = document.getElementById('modal-pedido-exito');
       if ((!productModal || !productModal.classList.contains('active')) &&
-          (!cartBackdropEl || !cartBackdropEl.classList.contains('active'))) {
+          (!cartBackdropEl || !cartBackdropEl.classList.contains('active')) &&
+          (!checkoutModalEl || checkoutModalEl.getAttribute('aria-hidden') !== 'false') &&
+          (!exitoModalEl || exitoModalEl.getAttribute('aria-hidden') !== 'false')) {
         document.body.style.overflow = '';
       }
     }
