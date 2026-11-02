@@ -1904,7 +1904,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 2. Comportamiento del Panel de Detalle en Escritorio y Móviles (mesas.php, pedidos_web.php, gestion_orden.php y cierre_cuenta.php)
   const btnToggleDetalle = document.getElementById('btnToggleDetalle');
-  const panelSidebar = document.querySelector('aside.cuenta-panel, aside.web-order-sidebar, aside.active-order-sidebar, aside.ticket-sidebar, aside.cierre-ticket-panel');
+  const ariaControlsTarget = btnToggleDetalle ? btnToggleDetalle.getAttribute('aria-controls') : null;
+  const panelSidebar = (ariaControlsTarget ? document.getElementById(ariaControlsTarget) : null)
+    || document.querySelector('#cuentaPanel, #activeOrderSidebar, #ticketSidebar, #webOrderSidebar, aside.cuenta-panel, aside.web-order-sidebar, aside.active-order-sidebar, aside.ticket-sidebar, aside.cierre-ticket-panel');
   const layoutContainer = document.querySelector('.mesas-layout, .web-orders-layout, .order-layout, .cierre-layout');
   const closeBtns = document.querySelectorAll('#cuentaCloseBtn, #webOrderCloseBtn, #activeOrderCloseBtn, #ticketCloseBtn, .cuenta-close-btn, .ticket-close-btn');
   const backdrops = document.querySelectorAll('#cuentaBackdrop, #webOrderBackdrop, #activeOrderBackdrop, #cierreBackdrop, .cuenta-backdrop');
@@ -1948,6 +1950,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.abrirDetalleMovil = abrirDetalleMovil;
   window.cerrarDetalleMovil = cerrarDetalleMovil;
+
+  // En pantallas móviles (<= 1024px), los drawers laterales inician cerrados por defecto al cargar la página
+  if (window.innerWidth <= 1024) {
+    cerrarDetalleMovil();
+  }
 
   if (btnToggleDetalle && panelSidebar) {
     btnToggleDetalle.addEventListener('click', (e) => {
@@ -2882,7 +2889,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const tel = ped.telefono_cliente || 'Sin teléfono';
         const tipoOrd = ped.tipo_orden || 'Retiro en el local';
         const esDom = tipoOrd === 'Envío a domicilio';
+        const modalidadCorta = esDom ? 'Domicilio' : 'Retiro';
         const numMesa = ped.numero_mesa ?? ped.id_mesa ?? null;
+        const tieneMesaAsig = (numMesa !== null && numMesa !== '' && Number(numMesa) > 0);
         const estadoPed = ped.estado_pedido || 'Pendiente';
         const claseEst = obtenerClaseEstadoPedidoWeb(estadoPed);
         const total = Number(ped.total_pagar || 0);
@@ -2890,28 +2899,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const saldo = Number(ped.saldo_pendiente || 0);
         const activaCls = idPedidoWebActivo === idPed ? 'active' : '';
 
-        const chipMesa = (numMesa !== null && numMesa !== '' && Number(numMesa) > 0)
+        const chipMesa = tieneMesaAsig
           ? `<span class="mesa-assigned-chip">Mesa ${escaparHtmlServicio(numMesa)}</span>`
           : `<span class="mesa-unassigned-chip">Sin asignar</span>`;
 
+        const metaMesaMovil = tieneMesaAsig
+          ? `<span class="mobile-meta-mesa">Mesa ${escaparHtmlServicio(numMesa)}</span>`
+          : '';
+
         html += `
           <tr class="web-order-row ${activaCls}" data-id-pedido="${idPed}" data-tipo-orden="${escaparHtmlServicio(tipoOrd)}">
-            <td><span class="web-folio-code">${escaparHtmlServicio(folio)}</span></td>
-            <td style="white-space: nowrap; color: #52525B;">${escaparHtmlServicio(fechaTxt)}</td>
-            <td>
+            <td class="col-web-folio"><span class="web-folio-code">${escaparHtmlServicio(folio)}</span></td>
+            <td class="col-web-fecha" style="white-space: nowrap; color: #52525B;">${escaparHtmlServicio(fechaTxt)}</td>
+            <td class="col-web-cliente">
               <div class="web-client-cell">
                 <span class="web-client-name">${escaparHtmlServicio(nombreCompleto)}</span>
                 <span class="web-client-phone">${escaparHtmlServicio(tel)}</span>
+                <div class="web-client-mobile-meta">
+                  <span class="mobile-meta-chip ${esDom ? 'modality-domicilio' : 'modality-retiro'}">${escaparHtmlServicio(modalidadCorta)}</span>
+                  ${metaMesaMovil}
+                </div>
               </div>
             </td>
-            <td>
+            <td class="col-web-modalidad">
               <span class="modality-pill ${esDom ? 'modality-domicilio' : 'modality-retiro'}">${escaparHtmlServicio(tipoOrd)}</span>
             </td>
-            <td>${chipMesa}</td>
-            <td style="font-weight: 700;">$${total.toFixed(2)}</td>
-            <td style="color: #059669; font-weight: 600;">$${abono.toFixed(2)}</td>
-            <td style="color: ${saldo > 0 ? '#C52E45' : '#059669'}; font-weight: 700;">$${saldo.toFixed(2)}</td>
-            <td><span class="order-status-pill ${claseEst}">${escaparHtmlServicio(estadoPed)}</span></td>
+            <td class="col-web-mesa">${chipMesa}</td>
+            <td class="col-web-total" style="font-weight: 700;">$${total.toFixed(2)}</td>
+            <td class="col-web-abono" style="color: #059669; font-weight: 600;">$${abono.toFixed(2)}</td>
+            <td class="col-web-saldo" style="color: ${saldo > 0 ? '#C52E45' : '#059669'}; font-weight: 700;">$${saldo.toFixed(2)}</td>
+            <td class="col-web-estado"><span class="order-status-pill ${claseEst}">${escaparHtmlServicio(estadoPed)}</span></td>
           </tr>
         `;
       });
@@ -2919,7 +2936,77 @@ document.addEventListener('DOMContentLoaded', () => {
       tbodyPedidosWeb.innerHTML = html;
     }
 
-    function mostrarDetallePedidoWeb(idPedido) {
+    const webOrderSidebar = document.getElementById('webOrderSidebar');
+    const webOrderBackdrop = document.getElementById('webOrderBackdrop');
+    const webOrderCloseBtn = document.getElementById('webOrderCloseBtn');
+    const webOrdersLayout = document.getElementById('webOrdersLayout') || document.querySelector('.web-orders-layout');
+
+    function abrirDrawerPedidoWeb() {
+      if (!webOrderSidebar) return;
+      webOrderSidebar.classList.add('open', 'active');
+      webOrderSidebar.classList.remove('hidden');
+      webOrderSidebar.setAttribute('aria-hidden', 'false');
+
+      if (webOrdersLayout) {
+        webOrdersLayout.classList.remove('detail-hidden');
+      }
+
+      if (btnToggleDetalle) {
+        btnToggleDetalle.classList.add('active');
+        btnToggleDetalle.classList.remove('panel-closed');
+        btnToggleDetalle.setAttribute('aria-expanded', 'true');
+      }
+
+      if (window.innerWidth <= 1024) {
+        if (webOrderBackdrop) {
+          webOrderBackdrop.classList.add('open', 'active');
+          webOrderBackdrop.setAttribute('aria-hidden', 'false');
+        }
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function cerrarDrawerPedidoWeb() {
+      if (!webOrderSidebar) return;
+      webOrderSidebar.classList.remove('open', 'active');
+      webOrderSidebar.setAttribute('aria-hidden', 'true');
+
+      if (webOrderBackdrop) {
+        webOrderBackdrop.classList.remove('open', 'active');
+        webOrderBackdrop.setAttribute('aria-hidden', 'true');
+      }
+
+      if (btnToggleDetalle) {
+        btnToggleDetalle.classList.remove('active');
+        btnToggleDetalle.classList.add('panel-closed');
+        btnToggleDetalle.setAttribute('aria-expanded', 'false');
+      }
+
+      document.body.style.overflow = '';
+    }
+
+    window.abrirDrawerPedidoWeb = abrirDrawerPedidoWeb;
+    window.cerrarDrawerPedidoWeb = cerrarDrawerPedidoWeb;
+
+    if (webOrderCloseBtn) {
+      webOrderCloseBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        cerrarDrawerPedidoWeb();
+      });
+    }
+
+    if (webOrderBackdrop) {
+      webOrderBackdrop.addEventListener('click', () => {
+        cerrarDrawerPedidoWeb();
+      });
+    }
+
+    // Estado inicial en móvil (<= 1024px): #webOrderSidebar inicia cerrado al cargar la página
+    if (window.innerWidth <= 1024) {
+      cerrarDrawerPedidoWeb();
+    }
+
+    function mostrarDetallePedidoWeb(idPedido, abrirDrawerEnMovil = true) {
       const pedido = pedidosWebCache.find(p => Number(p.id_pedido) === Number(idPedido));
       if (!pedido) return;
 
@@ -3022,8 +3109,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bloqueAccionesMesaAsignada) bloqueAccionesMesaAsignada.style.display = 'none';
       }
 
-      if (window.innerWidth <= 1024) {
-        abrirDetalleMovil();
+      if (abrirDrawerEnMovil) {
+        abrirDrawerPedidoWeb();
       }
     }
 
@@ -3044,7 +3131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (conservarSeleccion && idPedidoWebActivo !== null) {
           const siguePresente = pedidosWebCache.some(p => Number(p.id_pedido) === idPedidoWebActivo);
           if (siguePresente) {
-            mostrarDetallePedidoWeb(idPedidoWebActivo);
+            mostrarDetallePedidoWeb(idPedidoWebActivo, false);
           }
         }
       } catch (err) {
@@ -3058,7 +3145,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!fila) return;
       const idPed = parseInt(fila.dataset.idPedido || '0', 10);
       if (idPed > 0) {
-        mostrarDetallePedidoWeb(idPed);
+        mostrarDetallePedidoWeb(idPed, true);
       }
     });
 
@@ -3131,7 +3218,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!modalAsignarMesaWeb) return;
       modalAsignarMesaWeb.classList.remove('open');
       modalAsignarMesaWeb.setAttribute('aria-hidden', 'true');
-      document.body.style.overflow = '';
+      const drawerAbierto = window.innerWidth <= 1024 && panelSidebar && (panelSidebar.classList.contains('open') || panelSidebar.classList.contains('active'));
+      document.body.style.overflow = drawerAbierto ? 'hidden' : '';
     }
 
     if (btnCancelarAsignarMesaWeb) {
@@ -3276,9 +3364,9 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Selección automática de la primera orden disponible al abrir la bandeja si existe
+    // Selección automática de la primera orden disponible al abrir la bandeja (sin abrir el drawer automáticamente en móvil)
     if (pedidosWebCache.length > 0) {
-      mostrarDetallePedidoWeb(pedidosWebCache[0].id_pedido);
+      mostrarDetallePedidoWeb(pedidosWebCache[0].id_pedido, false);
     }
   }
 

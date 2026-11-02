@@ -82,55 +82,6 @@ $headerTitle = 'Cierre de Cuenta - Mesa ' . $numeroMesa;
 
 require_once __DIR__ . '/../layouts/header.php';
 ?>
-  <style>
-    /* Estilos complementarios para el desglose diferencial y simulación de tarjeta en Caja */
-    .cierre-differential-box {
-      background-color: #FFFFFF;
-      border: 1px solid var(--color-borde-suave);
-      border-radius: 14px;
-      padding: 14px 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      font-size: 0.86rem;
-    }
-    .cierre-diff-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--color-texto-muted);
-    }
-    .cierre-diff-row.total-cuenta {
-      font-weight: 700;
-      color: var(--color-negro-suave);
-      border-top: 1px solid #F3F4F6;
-      padding-top: 6px;
-    }
-    .cierre-diff-row.abono-web {
-      color: #059669;
-      font-weight: 700;
-    }
-    .cierre-diff-row.saldo-caja {
-      font-size: 0.96rem;
-      font-weight: 800;
-      color: var(--color-rojo-frambuesa);
-      border-top: 1.5px dashed var(--color-borde-suave);
-      padding-top: 8px;
-      margin-top: 2px;
-    }
-    .card-terminal-sim-box {
-      border: 1.5px solid #D1D5DB;
-      background-color: #F9FAFB;
-      border-radius: 16px;
-      padding: 18px 22px;
-      display: none;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .card-terminal-sim-box.visible {
-      display: flex;
-    }
-  </style>
 
   <!-- Layout Principal de Cierre de Cuenta -->
   <main class="cierre-layout">

@@ -129,12 +129,48 @@
   text-overflow: ellipsis;
 }
 
-/* Ocultar el título mediante container query cuando el encabezado no disponga de espacio suficiente */
-@container (max-width: 768px) {
-  .header-center-title,
-  .cierre-main-title {
-    display: none !important;
-  }
+
+/* Botones de navegación rápida en Header de Servicio (Plano de Mesas / Pedidos Web) */
+.service-nav-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-header-nav {
+  background-color: var(--color-blanco);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-pill);
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-negro-suave);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-header-nav:hover {
+  background-color: var(--color-gris-superficie);
+  border-color: var(--color-gris-claro);
+  color: var(--color-negro-suave);
+}
+
+.btn-header-nav.active {
+  background-color: var(--color-rojo-frambuesa);
+  border-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  box-shadow: 0 3px 10px rgba(197, 46, 69, 0.22);
+}
+
+.btn-header-nav.active svg {
+  stroke: var(--color-blanco);
 }
 
 /* Acciones de Usuario a la Derecha */
@@ -446,6 +482,9 @@
   flex-direction: column;
   gap: 22px;
   box-shadow: var(--sombra-card);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-header {
@@ -2166,16 +2205,552 @@ aside.ticket-sidebar {
   box-shadow: 0 6px 18px rgba(197, 46, 69, 0.35);
 }
 
+
+/* Estilos complementarios para el desglose diferencial y simulación de tarjeta en Caja (cierre_cuenta.php) */
+.cierre-differential-box {
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.86rem;
+}
+
+.cierre-diff-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--color-texto-muted);
+  gap: 8px;
+}
+
+.cierre-diff-row.total-cuenta {
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  border-top: 1px solid #F3F4F6;
+  padding-top: 6px;
+}
+
+.cierre-diff-row.abono-web {
+  color: #059669;
+  font-weight: 700;
+}
+
+.cierre-diff-row.saldo-caja {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--color-rojo-frambuesa);
+  border-top: 1.5px dashed var(--color-borde-suave);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+
+.card-terminal-sim-box {
+  border: 1.5px solid #D1D5DB;
+  background-color: #F9FAFB;
+  border-radius: 16px;
+  padding: 18px 22px;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-terminal-sim-box.visible {
+  display: flex;
+}
+
 /* ==========================================================================
-   8. Diseño Adaptativo y Responsivo (@media queries)
+   8. Vista: Bandeja de Recepción de Pedidos Web (pedidos_web.php)
+   ========================================================================== */
+.web-orders-layout {
+  max-width: 1440px;
+  margin: 28px auto;
+  padding: 0 32px 36px 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 24px;
+  align-items: start;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.web-orders-layout.detail-hidden {
+  grid-template-columns: 1fr;
+}
+
+.web-orders-layout.detail-hidden .web-order-sidebar,
+.web-order-sidebar.hidden {
+  display: none !important;
+}
+
+.web-orders-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-borde-suave);
+}
+
+.web-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.web-order-filter-pill {
+  border: 1px solid var(--color-borde-suave);
+  background-color: var(--color-blanco);
+  color: var(--color-negro-suave);
+  border-radius: var(--radio-pill);
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.web-order-filter-pill:hover {
+  background-color: var(--color-gris-superficie);
+  border-color: var(--color-gris-claro);
+}
+
+.web-order-filter-pill.active {
+  background-color: #3C2F2F;
+  color: var(--color-blanco);
+  border-color: #3C2F2F;
+  box-shadow: 0 2px 8px rgba(60, 47, 47, 0.18);
+}
+
+.web-search-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 340px;
+  min-width: 220px;
+}
+
+.web-search-box {
+  position: relative;
+  flex: 1;
+}
+
+.web-search-box svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-texto-muted);
+  pointer-events: none;
+}
+
+.web-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1.5px solid var(--color-borde-suave);
+  border-radius: var(--radio-pill);
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--color-negro-suave);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.web-search-input:focus {
+  border-color: var(--color-terracota);
+}
+
+.btn-refresh-web {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--color-borde-suave);
+  background-color: var(--color-blanco);
+  color: var(--color-negro-suave);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.btn-refresh-web:hover {
+  background-color: var(--color-gris-superficie);
+  color: var(--color-rojo-frambuesa);
+}
+
+/* Tabla interactiva de Pedidos Web */
+.web-orders-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.web-orders-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+  font-size: 0.82rem;
+}
+
+.web-orders-table thead th {
+  text-align: left;
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-texto-muted);
+  white-space: nowrap;
+}
+
+.web-order-row {
+  background-color: var(--color-blanco);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.web-order-row td {
+  padding: 13px 12px;
+  border-top: 1.5px solid var(--color-borde-suave);
+  border-bottom: 1.5px solid var(--color-borde-suave);
+  vertical-align: middle;
+}
+
+.web-order-row td:first-child {
+  border-left: 1.5px solid var(--color-borde-suave);
+  border-radius: 12px 0 0 12px;
+}
+
+.web-order-row td:last-child {
+  border-right: 1.5px solid var(--color-borde-suave);
+  border-radius: 0 12px 12px 0;
+}
+
+.web-order-row:hover td {
+  background-color: #FAF9F8;
+  border-color: var(--color-gris-claro);
+}
+
+.web-order-row.active td {
+  background-color: #FDF7F5;
+  border-color: #6E4F42;
+}
+
+.web-folio-code {
+  font-family: var(--fuente-mono);
+  font-weight: 700;
+  color: var(--color-rojo-frambuesa);
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+
+.web-client-cell {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 120px;
+}
+
+.web-client-name {
+  font-weight: 700;
+  color: var(--color-negro-suave);
+}
+
+.web-client-phone {
+  font-size: 0.74rem;
+  color: var(--color-texto-muted);
+}
+
+.web-client-mobile-meta {
+  display: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.mobile-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--radio-pill);
+  font-size: 0.68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mobile-meta-mesa {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background-color: #EBFDF5;
+  color: #047857;
+  white-space: nowrap;
+}
+
+.modality-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radio-pill);
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.modality-domicilio {
+  background-color: rgba(198, 111, 80, 0.14);
+  color: #9A482B;
+}
+
+.modality-retiro {
+  background-color: rgba(60, 47, 47, 0.1);
+  color: #3C2F2F;
+}
+
+.mesa-assigned-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #EBFDF5;
+  color: #047857;
+  white-space: nowrap;
+}
+
+.mesa-unassigned-chip {
+  font-size: 0.75rem;
+  color: var(--color-texto-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.order-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radio-pill);
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.st-pendiente { background-color: #FEF3C7; color: #B45309; }
+.st-preparacion { background-color: #DBEAFE; color: #1D4ED8; }
+.st-listo { background-color: #D1FAE5; color: #047857; }
+.st-camino { background-color: #E0E7FF; color: #4338CA; }
+.st-entregado, .st-pagado { background-color: #ECFDF5; color: #059669; }
+
+/* Panel Lateral Derecho (#webOrderSidebar) */
+#webOrderDetailContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.web-detail-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.web-info-box {
+  background-color: #F9FAFB;
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.web-info-box.logistics {
+  background-color: #FDF8F6;
+  border-color: rgba(198, 111, 80, 0.4);
+}
+
+.web-info-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-texto-muted);
+  margin-bottom: 2px;
+}
+
+.web-info-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-negro-suave);
+}
+
+.web-info-line span:first-child {
+  color: var(--color-texto-muted);
+  flex-shrink: 0;
+}
+
+.web-info-line strong {
+  text-align: right;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.web-status-control-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.web-status-select {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1.5px solid var(--color-borde-suave);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-negro-suave);
+  background-color: var(--color-blanco);
+  outline: none;
+}
+
+.btn-save-web-status {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: none;
+  background-color: #3C2F2F;
+  color: var(--color-blanco);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.btn-save-web-status:hover {
+  background-color: var(--color-terracota);
+}
+
+.btn-assign-mesa-web {
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: 12px;
+  border: none;
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  font-size: 0.9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(197, 46, 69, 0.24);
+  transition: all 0.2s ease;
+}
+
+.btn-assign-mesa-web:hover {
+  background-color: #AE2439;
+  transform: translateY(-1px);
+}
+
+/* Modal Asignar Pedido Web a Mesa Disponible (#modalAsignarMesaWeb) */
+.service-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1200;
+}
+
+.service-modal-backdrop.open {
+  display: flex;
+}
+
+.service-modal-card {
+  background-color: var(--color-blanco);
+  border-radius: 22px;
+  width: 100%;
+  max-width: 460px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22);
+  position: relative;
+}
+
+.rf17-empty-alert {
+  display: none;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: #FEF3C7;
+  border: 1px solid #F59E0B;
+  color: #92400E;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 14px;
+}
+
+.rf17-error-alert {
+  display: none;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background-color: #FEE2E2;
+  border: 1px solid #EF4444;
+  color: #991B1B;
+  font-size: 0.83rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+/* ==========================================================================
+   9. Diseño Adaptativo y Responsivo (@media queries)
    ========================================================================== */
 @media (max-width: 1200px) {
   .tables-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  /* En pantallas medianas y laptops (<= 1200px) con el panel de detalle abierto,
-     colapsar la cuadrícula del catálogo a 1 columna para prevenir desbordamientos debajo del panel */
   .order-layout:not(.detail-hidden) .order-products-grid {
     grid-template-columns: 1fr;
   }
@@ -2185,91 +2760,61 @@ aside.ticket-sidebar {
   }
 }
 
+/* Transformación Unificada de Paneles Laterales en Drawers Móviles (<= 1024px) */
 @media (max-width: 1024px) {
-  /* 1. Botón Detalle en móvil: solo muestra el icono para ahorrar espacio */
-  .btn-toggle-detail {
-    display: inline-flex !important;
-    width: 38px;
-    height: 38px;
-    padding: 0 !important;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50% !important;
-    flex-shrink: 0;
-  }
-
-  .btn-toggle-detail span {
-    display: none !important;
-  }
-
-  /* 2. Botón de foto de perfil en móvil: ocultar flecha hacia abajo y metadatos */
-  .profile-dropdown-arrow {
-    display: none !important;
-  }
-
-  .user-meta {
-    display: none !important;
-  }
-
-  .user-profile-badge {
-    padding: 2px !important;
-    gap: 0 !important;
-  }
-
-  .service-user-actions {
-    gap: 10px;
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   .mesas-layout,
   .order-layout,
-  .cierre-layout {
-    grid-template-columns: 1fr;
-    gap: 24px;
-    padding: 0 20px 32px 20px;
-  }
-
-  /* 2. Fondo difuminado y oscurecido (Backdrop) para la vista móvil */
-  .cuenta-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
+  .cierre-layout,
+  .web-orders-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
     width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    z-index: 900;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-    display: block;
+    max-width: 100%;
+    box-sizing: border-box;
+    gap: 20px;
+    padding: 0 20px 32px 20px;
+    height: auto;
+    overflow: visible;
   }
 
-  .cuenta-backdrop.open,
-  .cuenta-backdrop.active {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
+  .mesas-panel,
+  .web-orders-panel,
+  .catalog-panel,
+  .cierre-payment-panel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
-  /* 3. Paneles laterales transformados en Modal/Drawer superpuesto deslizante */
+  /* Estandarizar los 4 paneles laterales derechos como slide-over drawers fijos */
+  #cuentaPanel,
+  #activeOrderSidebar,
+  #ticketSidebar,
+  #webOrderSidebar,
   aside.cuenta-panel,
   aside.active-order-sidebar,
   aside.ticket-sidebar,
-  aside.cierre-ticket-panel {
-    position: fixed;
-    top: 0;
-    right: 0;
-    width: 100%;
-    max-width: 440px;
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100vh;
-    max-height: 100dvh;
-    z-index: 1000;
-    margin: 0;
-    padding: 24px 20px;
+  aside.cierre-ticket-panel,
+  aside.web-order-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: min(100vw, 400px) !important;
+    max-width: min(100vw, 400px) !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    z-index: 1100 !important;
+    margin: 0 !important;
+    padding: 22px 20px !important;
     background-color: var(--color-blanco);
     border: none;
     border-radius: 20px 0 0 20px;
@@ -2277,12 +2822,20 @@ aside.ticket-sidebar {
     overflow: hidden;
     box-sizing: border-box;
     transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.28s ease;
     visibility: hidden;
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s ease;
-    display: flex;
+    display: flex !important;
     flex-direction: column;
   }
 
+  #cuentaPanel.open,
+  #cuentaPanel.active,
+  #activeOrderSidebar.open,
+  #activeOrderSidebar.active,
+  #ticketSidebar.open,
+  #ticketSidebar.active,
+  #webOrderSidebar.open,
+  #webOrderSidebar.active,
   aside.cuenta-panel.open,
   aside.cuenta-panel.active,
   aside.active-order-sidebar.open,
@@ -2290,46 +2843,57 @@ aside.ticket-sidebar {
   aside.ticket-sidebar.open,
   aside.ticket-sidebar.active,
   aside.cierre-ticket-panel.open,
-  aside.cierre-ticket-panel.active {
-    transform: translateX(0);
+  aside.cierre-ticket-panel.active,
+  aside.web-order-sidebar.open,
+  aside.web-order-sidebar.active {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+  }
+
+  /* Overlay .cuenta-backdrop con fondo oscuro desenfocado (z-index: 1050) */
+  #cuentaBackdrop,
+  #activeOrderBackdrop,
+  #cierreBackdrop,
+  #webOrderBackdrop,
+  .cuenta-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(17, 24, 39, 0.52);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 1050;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
+    display: block;
+  }
+
+  #cuentaBackdrop.open,
+  #cuentaBackdrop.active,
+  #activeOrderBackdrop.open,
+  #activeOrderBackdrop.active,
+  #cierreBackdrop.open,
+  #cierreBackdrop.active,
+  #webOrderBackdrop.open,
+  #webOrderBackdrop.active,
+  .cuenta-backdrop.open,
+  .cuenta-backdrop.active {
+    opacity: 1;
     visibility: visible;
-    display: flex;
+    pointer-events: auto;
   }
 
-  /* Cabecera del drawer de ticket en móvil */
-  .ticket-sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 18px;
-    padding-bottom: 0;
-    border-bottom: none;
-    flex-shrink: 0;
-  }
-
-  .ticket-sidebar-title {
-    font-family: var(--fuente-principal) !important;
-    font-size: 1.25rem !important; /* 20px Poppins idéntico a detalle de orden */
-    font-weight: 700 !important;
-    color: var(--color-negro-suave) !important;
-    letter-spacing: -0.01em !important;
-    margin: 0 !important;
-    text-transform: none !important;
-  }
-
-  aside.ticket-sidebar .ticket-card,
-  aside.cierre-ticket-panel .ticket-card {
-    border: 1px solid var(--color-borde-suave);
-    box-shadow: none;
-    padding: 20px 18px;
-    border-radius: 14px;
-    max-height: calc(100dvh - 160px);
-    overflow-y: auto;
-  }
-
-  /* 4. Botón de cierre ("X") visible únicamente en móviles */
+  /* Botón de cierre .cuenta-close-btn visible en el encabezado del drawer en móvil */
+  #cuentaCloseBtn,
+  #activeOrderCloseBtn,
+  #ticketCloseBtn,
+  #webOrderCloseBtn,
   .cuenta-close-btn {
-    display: inline-flex;
+    display: inline-flex !important;
     align-items: center;
     justify-content: center;
     width: 36px;
@@ -2350,64 +2914,360 @@ aside.ticket-sidebar {
     transform: scale(1.05);
   }
 
-  .cierre-ticket-panel {
-    order: 2;
+  /* Cabecera del drawer de ticket en móvil */
+  .ticket-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 0;
+    border-bottom: none;
+    flex-shrink: 0;
   }
 
-  .cierre-payment-panel {
-    order: 1;
+  .ticket-sidebar-title {
+    font-family: var(--fuente-principal) !important;
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+    color: var(--color-negro-suave) !important;
+    letter-spacing: -0.01em !important;
+    margin: 0 !important;
+    text-transform: none !important;
   }
 
-  .ticket-card {
+  /* Asegura que #ticketContainer mantenga formato legible con scroll interno sin alterar su exportación PDF */
+  #ticketSidebar #ticketContainer,
+  aside.ticket-sidebar .ticket-card,
+  aside.cierre-ticket-panel .ticket-card {
+    border: 1px solid var(--color-borde-suave);
+    box-shadow: none;
+    padding: 22px 18px;
+    border-radius: 14px;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100dvh - 155px);
+    overflow-y: auto;
     max-width: 100%;
   }
 
+  /* Cuadrícula de Mesas: 2 columnas en tablets y móviles */
   .tables-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
   }
 
-  .order-products-grid {
-    grid-template-columns: 1fr;
+  /* Gestión de Orden: barra de categorías con scroll horizontal táctil */
+  .order-categories-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+
+  .order-categories-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .order-category-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Controles táctiles cómodos (min-height: 36px) */
+  .card-qty-btn,
+  .qty-circle-btn {
+    min-width: 36px;
+    min-height: 36px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.05rem;
+  }
+
+  .btn-remove-item {
+    min-width: 36px;
+    min-height: 36px;
+    width: 36px;
+    height: 36px;
   }
 }
 
-@media (max-width: 768px) {
+/* Encabezado del Módulo de Servicio (<= 960px) */
+@media (max-width: 960px) {
   .service-header-container {
-    padding: 12px 18px;
-    flex-wrap: nowrap;
+    padding: 12px 20px;
+    gap: 12px;
   }
 
-  .header-center-badge,
-  .header-center-title,
-  .cierre-main-title {
+  .logo-text-group .logo-subtext {
+    display: none;
+  }
+
+  .logo-brand-name {
+    font-size: 1.1rem;
+  }
+
+  .user-profile-badge {
+    padding: 4px 10px 4px 4px;
+    gap: 6px;
+  }
+
+  .user-profile-badge .user-meta {
     display: none !important;
   }
 
-  .tables-grid {
-    grid-template-columns: 1fr;
+  .user-profile-badge .profile-dropdown-arrow {
+    display: inline-block !important;
+    margin-left: 0;
   }
 
-  .order-products-grid {
-    grid-template-columns: 1fr;
+  .service-user-actions {
+    gap: 8px;
   }
 
-  .cash-inputs-row {
-    grid-template-columns: 1fr;
+  .btn-header-nav,
+  #btnToggleDetalle,
+  .btn-toggle-detail {
+    width: 38px;
+    height: 38px;
+    padding: 0 !important;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50% !important;
+    flex-shrink: 0;
   }
 
+  .btn-header-nav span,
+  #btnToggleDetalle span,
+  .btn-toggle-detail span {
+    display: none !important;
+  }
+
+  #userDropdownMenu,
+  .user-dropdown-menu {
+    right: 0;
+    left: auto;
+    z-index: 1250;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* Ajustes para Tablets Verticales y Móviles Grandes (<= 768px) */
+@media (max-width: 768px) {
+  .mesas-layout,
+  .order-layout,
+  .cierre-layout,
+  .web-orders-layout {
+    padding: 0 16px 28px 16px;
+    margin: 18px auto;
+  }
+
+  /* Plano de Mesas y Pedidos Web: apilar título y leyenda de estados sin desbordar */
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .panel-title-group {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .panel-title {
+    font-size: 1.25rem;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .status-legend {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Barra de resumen inferior apilada verticalmente */
   .tables-summary-bar {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+    padding: 14px 16px;
   }
 
-  .panel-header {
+  /* Recepción de Pedidos Web: filtros en una línea deslizable y buscador 100% */
+  .web-orders-toolbar {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .web-filter-pills {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .web-filter-pills::-webkit-scrollbar {
+    display: none;
+  }
+
+  .web-search-group {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  /* Simplificación de la Tabla de Pedidos Web en Móviles (Cero Scroll Horizontal) */
+  .web-orders-table-wrapper {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .web-orders-table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-spacing: 0 8px;
+  }
+
+  .web-orders-table .col-web-folio {
+    width: 26%;
+  }
+
+  .web-orders-table .col-web-cliente {
+    width: 34%;
+  }
+
+  .web-orders-table .col-web-saldo {
+    width: 18%;
+  }
+
+  .web-orders-table .col-web-estado {
+    width: 22%;
+  }
+
+  /* Ocultar columnas secundarias en móvil (<= 768px) */
+  .web-orders-table .col-web-fecha,
+  .web-orders-table .col-web-modalidad,
+  .web-orders-table .col-web-mesa,
+  .web-orders-table .col-web-total,
+  .web-orders-table .col-web-abono {
+    display: none !important;
+  }
+
+  .web-orders-table thead th,
+  .web-orders-table td {
+    padding: 10px 8px;
+    font-size: 0.78rem;
+  }
+
+  /* Asegurar bordes redondeados y laterales completos en primera y última celda visible */
+  .web-order-row td:first-child,
+  .web-order-row td.col-web-folio {
+    border-left: 1.5px solid var(--color-borde-suave);
+    border-radius: 12px 0 0 12px;
+  }
+
+  .web-order-row td:last-child,
+  .web-order-row td.col-web-estado {
+    border-right: 1.5px solid var(--color-borde-suave);
+    border-radius: 0 12px 12px 0;
+    text-align: right;
+  }
+
+  .web-orders-table thead th.col-web-estado {
+    text-align: right;
+  }
+
+  .web-order-row:hover td:first-child,
+  .web-order-row:hover td.col-web-folio,
+  .web-order-row:hover td:last-child,
+  .web-order-row:hover td.col-web-estado {
+    border-color: var(--color-gris-claro);
+  }
+
+  .web-order-row.active td:first-child,
+  .web-order-row.active td.col-web-folio,
+  .web-order-row.active td:last-child,
+  .web-order-row.active td.col-web-estado {
+    border-color: #6E4F42;
+  }
+
+  .web-client-cell {
+    min-width: 0;
+  }
+
+  .web-client-name {
+    font-size: 0.8rem;
+    word-break: break-word;
+  }
+
+  .web-client-phone {
+    display: none;
+  }
+
+  .web-client-mobile-meta {
+    display: flex;
+  }
+
+  .web-folio-code {
+    font-size: 0.78rem;
+  }
+
+  .col-web-saldo {
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  .order-status-pill {
+    padding: 4px 8px;
+    font-size: 0.7rem;
   }
 }
 
+/* Ajustes para Móviles Estándar (<= 640px) */
 @media (max-width: 640px) {
+  /* Reorganizar encabezado en 2 filas limpias para que el título centrado no se encime */
+  .service-header-container {
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    row-gap: 8px;
+    column-gap: 10px;
+  }
+
+  .brand-logo-service {
+    order: 1;
+  }
+
+  .service-user-actions {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .header-center-title {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: center;
+    border-top: 1px solid var(--color-borde-suave);
+    padding-top: 6px;
+  }
+
+  .cierre-main-title {
+    font-size: 0.96rem;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .btn-back-tables {
     width: 38px;
     height: 38px;
@@ -2421,27 +3281,142 @@ aside.ticket-sidebar {
   .btn-back-tables span {
     display: none !important;
   }
+
+  /* Gestión de Orden: catálogo a 1 sola columna */
+  .order-products-grid,
+  .order-layout.detail-hidden .order-products-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Cierre de Cuenta: apilar tarjeta total, métodos de pago y fila de efectivo a 1 columna */
+  .payment-total-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 18px 18px;
+  }
+
+  .payment-total-display {
+    align-self: flex-start;
+  }
+
+  .total-big-number {
+    font-size: 1.85rem;
+  }
+
+  .payment-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .cash-detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .cash-inputs-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }
 
+/* Ajustes para Móviles Compactos (<= 480px) */
 @media (max-width: 480px) {
+  #cuentaPanel,
+  #activeOrderSidebar,
+  #ticketSidebar,
+  #webOrderSidebar,
   aside.cuenta-panel,
   aside.active-order-sidebar,
   aside.ticket-sidebar,
-  aside.cierre-ticket-panel {
-    max-width: 100%;
-    border-radius: 0;
-    padding: 20px 16px;
+  aside.cierre-ticket-panel,
+  aside.web-order-sidebar {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-radius: 0 !important;
+    padding: 18px 16px !important;
   }
 
   .mesas-panel,
   .catalog-panel,
   .cierre-payment-panel {
-    padding: 20px 16px;
+    padding: 18px 14px;
     border-radius: var(--radio-md);
   }
 
-  .ticket-card {
-    padding: 24px 18px;
+  .tables-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .table-card {
+    padding: 14px 12px;
+    min-height: 148px;
+  }
+
+  .table-name {
+    font-size: 0.95rem;
+  }
+
+  .table-data-row {
+    font-size: 0.75rem;
+  }
+
+  .table-status-select {
+    padding: 7px 26px 7px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* Ajuste fino de las 4 columnas esenciales de Pedidos Web en teléfonos estrechos (320px - 480px) */
+  .web-orders-panel {
+    padding: 16px 12px !important;
+    border-radius: var(--radio-md);
+  }
+
+  .web-orders-table thead th,
+  .web-orders-table td {
+    padding: 9px 6px;
+    font-size: 0.74rem;
+  }
+
+  .web-folio-code {
+    font-size: 0.73rem;
+  }
+
+  .web-client-name {
+    font-size: 0.76rem;
+  }
+
+  .order-status-pill {
+    padding: 3px 7px;
+    font-size: 0.66rem;
+  }
+
+  /* Modal Asignar Mesa Web (#modalAsignarMesaWeb) compacto y botones al 100% */
+  #modalAsignarMesaWeb .service-modal-card,
+  .service-modal-card {
+    padding: 20px 16px !important;
+    border-radius: 18px;
+  }
+
+  #modalAsignarMesaWeb .service-modal-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  #btnCancelarAsignarMesaWeb,
+  #btnConfirmarAsignarMesaWeb {
+    width: 100% !important;
+    justify-content: center;
+    text-align: center;
   }
 }
 
+/* Pantallas ultra estrechas (< 360px) */
+@media (max-width: 359px) {
+  .tables-grid {
+    grid-template-columns: 1fr;
+  }
+}

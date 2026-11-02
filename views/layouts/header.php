@@ -99,57 +99,6 @@ $ariaControlsSidebar = match ($currentPage) {
   <!-- Estilos modulares para el módulo de personal de servicio -->
   <link rel="stylesheet" href="/NIXGARU/public/css/servicio.css?v=<?php echo file_exists(__DIR__ . '/../../public/css/servicio.css') ? filemtime(__DIR__ . '/../../public/css/servicio.css') : time(); ?>">
   <?php endif; ?>
-  <style>
-    /* Botones de navegación rápida en Header de Servicio (Plano de Mesas / Pedidos Web) */
-    .service-nav-pills {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .btn-header-nav {
-      background-color: var(--color-blanco);
-      border: 1px solid var(--color-borde-suave);
-      border-radius: var(--radio-pill);
-      padding: 8px 14px;
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--color-negro-suave);
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      user-select: none;
-      white-space: nowrap;
-    }
-    .btn-header-nav:hover {
-      background-color: var(--color-gris-superficie);
-      border-color: var(--color-gris-claro);
-      color: var(--color-negro-suave);
-    }
-    .btn-header-nav.active {
-      background-color: var(--color-rojo-frambuesa);
-      border-color: var(--color-rojo-frambuesa);
-      color: var(--color-blanco);
-      box-shadow: 0 3px 10px rgba(197, 46, 69, 0.22);
-    }
-    .btn-header-nav.active svg {
-      stroke: var(--color-blanco);
-    }
-    @media (max-width: 960px) {
-      .btn-header-nav {
-        width: 38px;
-        height: 38px;
-        padding: 0;
-        justify-content: center;
-        border-radius: 50%;
-      }
-      .btn-header-nav span {
-        display: none;
-      }
-    }
-  </style>
 </head>
 <body>
 
