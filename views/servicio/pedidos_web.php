@@ -406,7 +406,7 @@ require_once __DIR__ . '/../layouts/header.php';
       <div class="panel-header">
         <div class="panel-title-group">
           <h2 class="panel-title">Bandeja de Pedidos en Línea</h2>
-          <p class="panel-subtitle">Gestión de órdenes de envío a domicilio y retiro en sucursal (RF16, RF17)</p>
+          <p class="panel-subtitle">Gestión de órdenes de envío a domicilio y retiro en sucursal</p>
         </div>
         <span class="legend-badge badge-proceso" id="contadorPedidosWebBadge">
           <?php echo count($pedidosWeb); ?> <?php echo count($pedidosWeb) === 1 ? 'Pedido registrado' : 'Pedidos registrados'; ?>

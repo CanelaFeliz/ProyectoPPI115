@@ -696,7 +696,22 @@ try {
 
       <!-- Acciones de Cabecera -->
       <div class="header-actions">
-        <button class="btn-icon" aria-label="Buscar productos" type="button">
+        <!-- Buscador Desplegable en Tiempo Real -->
+        <div class="header-search-box" id="headerSearchBox" role="search">
+          <svg class="search-box-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="inputBuscarCliente" class="header-search-input" placeholder="Buscar café, postre, platillo..." autocomplete="off" aria-label="Buscar productos en el menú">
+          <button type="button" id="btnClearSearch" class="btn-clear-search" aria-label="Limpiar búsqueda" title="Limpiar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <button class="btn-icon btn-search-toggle" id="btnToggleSearch" aria-label="Buscar productos" type="button" title="Buscar productos" aria-expanded="false" aria-controls="headerSearchBox">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -784,6 +799,20 @@ try {
 
           </div>
         <?php endforeach; ?>
+
+        <!-- Mensaje cuando la búsqueda no arroja coincidencias -->
+        <div id="noSearchResults" class="no-search-results" style="display: none;">
+          <div class="no-search-icon">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+          </div>
+          <h3 class="no-search-title">No se encontraron productos</h3>
+          <p class="no-search-desc">No hay productos que coincidan con "<strong id="noSearchTerm"></strong>".</p>
+          <button type="button" class="btn-clear-search-all" id="btnResetSearch">Ver todos los productos</button>
+        </div>
 
       </section>
 

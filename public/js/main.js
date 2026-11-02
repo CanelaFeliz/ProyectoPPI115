@@ -103,38 +103,179 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /**
    * ==========================================================================
-   * FILTRO DINÁMICO DE CATEGORÍAS (VISTA DEL CLIENTE)
+   * FILTRO DINÁMICO DE CATEGORÍAS Y BÚSQUEDA EN TIEMPO REAL (VISTA DEL CLIENTE)
    * ==========================================================================
    */
   const filtroBotones = document.querySelectorAll('.filtro-btn, .category-pill');
   const tarjetasProductos = document.querySelectorAll('.producto-card, .product-card');
+  const btnToggleSearch = document.getElementById('btnToggleSearch');
+  const headerSearchBox = document.getElementById('headerSearchBox');
+  const inputBuscarCliente = document.getElementById('inputBuscarCliente');
+  const btnClearSearch = document.getElementById('btnClearSearch');
+  const noSearchResults = document.getElementById('noSearchResults');
+  const noSearchTerm = document.getElementById('noSearchTerm');
+  const btnResetSearch = document.getElementById('btnResetSearch');
 
+  let terminoBusquedaActivo = '';
+  let categoriaFiltroActiva = 'all';
+
+  function normalizarTextoBusqueda(txt) {
+    return String(txt || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }
+
+  function aplicarFiltrosYBusquedaCliente() {
+    const terminoNorm = normalizarTextoBusqueda(terminoBusquedaActivo);
+    let totalVisibles = 0;
+
+    tarjetasProductos.forEach((tarjeta) => {
+      const catTarjeta = (tarjeta.dataset.category || '').toString().trim().toLowerCase();
+      const coincideCategoria = (categoriaFiltroActiva === 'all' || categoriaFiltroActiva === 'todos' || catTarjeta === categoriaFiltroActiva);
+
+      if (!coincideCategoria) {
+        tarjeta.style.display = 'none';
+        return;
+      }
+
+      if (!terminoNorm) {
+        tarjeta.style.display = 'flex';
+        totalVisibles++;
+        return;
+      }
+
+      const nombre = tarjeta.dataset.name || tarjeta.querySelector('.product-name')?.textContent || '';
+      const desc = tarjeta.dataset.desc || tarjeta.querySelector('.product-description')?.textContent || '';
+      const ingredients = tarjeta.dataset.ingredients || '';
+      const contenidoBusqueda = normalizarTextoBusqueda(`${nombre} ${desc} ${ingredients}`);
+
+      if (contenidoBusqueda.includes(terminoNorm)) {
+        tarjeta.style.display = 'flex';
+        totalVisibles++;
+      } else {
+        tarjeta.style.display = 'none';
+      }
+    });
+
+    // Control de mensaje de sin coincidencias
+    if (noSearchResults) {
+      if (totalVisibles === 0 && tarjetasProductos.length > 0) {
+        if (noSearchTerm) {
+          noSearchTerm.textContent = terminoBusquedaActivo.trim() || 'el criterio actual';
+        }
+        noSearchResults.style.display = 'block';
+      } else {
+        noSearchResults.style.display = 'none';
+      }
+    }
+
+    // Visibilidad del botón de limpiar búsqueda (X)
+    if (btnClearSearch) {
+      btnClearSearch.classList.toggle('visible', terminoBusquedaActivo.trim().length > 0);
+    }
+  }
+
+  // Eventos de selección de categoría
   if (filtroBotones.length > 0) {
     filtroBotones.forEach((boton) => {
       boton.addEventListener('click', () => {
-        // 1. Quitar la clase active de todos los botones y asignarla al seleccionado
         filtroBotones.forEach((b) => b.classList.remove('active'));
         boton.classList.add('active');
 
-        // 2. Leer el valor de data-filter (o fallback a data-category)
-        const filtroSeleccionado = (boton.dataset.filter || boton.dataset.category || 'all').toString().trim().toLowerCase();
-
-        // 3. Iterar sobre todas las tarjetas de producto y filtrar
-        tarjetasProductos.forEach((tarjeta) => {
-          const categoriaTarjeta = (tarjeta.dataset.category || '').toString().trim().toLowerCase();
-
-          // Si el filtro es "all" o "todos", mostrar todas las tarjetas
-          if (filtroSeleccionado === 'all' || filtroSeleccionado === 'todos') {
-            tarjeta.style.display = 'flex';
-          } else if (categoriaTarjeta === filtroSeleccionado) {
-            // Si coincide con el id_categoria o identificador, mostrarla
-            tarjeta.style.display = 'flex';
-          } else {
-            // Si no coincide, ocultarla
-            tarjeta.style.display = 'none';
-          }
-        });
+        categoriaFiltroActiva = (boton.dataset.filter || boton.dataset.category || 'all').toString().trim().toLowerCase();
+        aplicarFiltrosYBusquedaCliente();
       });
+    });
+  }
+
+  // Eventos y controles del buscador en el header
+  if (btnToggleSearch && headerSearchBox && inputBuscarCliente) {
+    function abrirBuscador() {
+      headerSearchBox.classList.add('open');
+      btnToggleSearch.classList.add('active');
+      btnToggleSearch.setAttribute('aria-expanded', 'true');
+      setTimeout(() => {
+        inputBuscarCliente.focus();
+        inputBuscarCliente.select();
+      }, 100);
+    }
+
+    function cerrarBuscador() {
+      headerSearchBox.classList.remove('open');
+      btnToggleSearch.classList.remove('active');
+      btnToggleSearch.setAttribute('aria-expanded', 'false');
+    }
+
+    function limpiarBuscador() {
+      inputBuscarCliente.value = '';
+      terminoBusquedaActivo = '';
+      aplicarFiltrosYBusquedaCliente();
+    }
+
+    btnToggleSearch.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = headerSearchBox.classList.contains('open');
+      if (isOpen) {
+        cerrarBuscador();
+      } else {
+        abrirBuscador();
+      }
+    });
+
+    inputBuscarCliente.addEventListener('input', (e) => {
+      terminoBusquedaActivo = e.target.value;
+      aplicarFiltrosYBusquedaCliente();
+
+      // Al escribir el primer carácter, desplazar suavemente al catálogo si está más abajo
+      if (terminoBusquedaActivo.trim().length === 1 && typeof desplazarseHaciaMenu === 'function') {
+        desplazarseHaciaMenu();
+      }
+    });
+
+    inputBuscarCliente.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (inputBuscarCliente.value) {
+          limpiarBuscador();
+        } else {
+          cerrarBuscador();
+        }
+      } else if (e.key === 'Enter') {
+        inputBuscarCliente.blur();
+        if (typeof desplazarseHaciaMenu === 'function') {
+          desplazarseHaciaMenu();
+        }
+      }
+    });
+
+    if (btnClearSearch) {
+      btnClearSearch.addEventListener('click', (e) => {
+        e.stopPropagation();
+        limpiarBuscador();
+        inputBuscarCliente.focus();
+      });
+    }
+
+    if (btnResetSearch) {
+      btnResetSearch.addEventListener('click', () => {
+        limpiarBuscador();
+        categoriaFiltroActiva = 'all';
+        filtroBotones.forEach((b) => {
+          const val = (b.dataset.filter || b.dataset.category || '').toLowerCase();
+          b.classList.toggle('active', val === 'all' || val === 'todos');
+        });
+        aplicarFiltrosYBusquedaCliente();
+      });
+    }
+
+    // Cerrar buscador si se hace clic fuera del header y está vacío
+    document.addEventListener('click', (e) => {
+      if (!headerSearchBox.contains(e.target) && !btnToggleSearch.contains(e.target)) {
+        if (headerSearchBox.classList.contains('open') && !inputBuscarCliente.value.trim()) {
+          cerrarBuscador();
+        }
+      }
     });
   }
 

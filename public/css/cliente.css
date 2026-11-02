@@ -857,6 +857,137 @@
 /* ==========================================================================
    Adaptabilidad Responsiva (Media Queries)
    ========================================================================== */
+
+/* ==========================================================================
+   Buscador del Menú en Cabecera (Vista Cliente)
+   ========================================================================== */
+.header-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-gris-superficie);
+  border: 1.5px solid var(--color-borde-suave);
+  border-radius: var(--radio-pill);
+  padding: 6px 14px;
+  width: 0;
+  max-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.header-search-box.open {
+  width: 290px;
+  max-width: 290px;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.header-search-box:focus-within {
+  border-color: var(--color-rojo-frambuesa);
+  background-color: var(--color-blanco);
+  box-shadow: 0 0 0 3px rgba(197, 46, 69, 0.12);
+}
+
+.search-box-icon {
+  color: var(--color-texto-muted);
+  flex-shrink: 0;
+}
+
+.header-search-input {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--color-negro-suave);
+  width: 100%;
+  outline: none;
+}
+
+.header-search-input::placeholder {
+  color: var(--color-texto-muted);
+  opacity: 0.85;
+}
+
+.btn-clear-search {
+  background: none;
+  border: none;
+  color: var(--color-texto-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-clear-search.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.btn-clear-search:hover {
+  color: var(--color-rojo-frambuesa);
+  background-color: rgba(197, 46, 69, 0.08);
+}
+
+.btn-search-toggle.active {
+  background-color: rgba(197, 46, 69, 0.1);
+  color: var(--color-rojo-frambuesa);
+}
+
+/* Estado de Sin Coincidencias en Catálogo */
+.no-search-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 50px 20px;
+  background-color: var(--color-gris-superficie);
+  border-radius: var(--radio-md);
+  border: 1.5px dashed var(--color-gris-claro);
+  margin: 10px 0 30px;
+}
+
+.no-search-icon {
+  color: var(--color-texto-muted);
+  margin-bottom: 12px;
+}
+
+.no-search-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-negro-suave);
+  margin-bottom: 6px;
+}
+
+.no-search-desc {
+  font-size: 0.92rem;
+  color: var(--color-texto-muted);
+  margin-bottom: 18px;
+}
+
+.btn-clear-search-all {
+  background-color: var(--color-rojo-frambuesa);
+  color: var(--color-blanco);
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--radio-pill);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.btn-clear-search-all:hover {
+  background-color: #ad253a;
+  transform: translateY(-1px);
+}
+
 @media (max-width: 1200px) {
   .cart-sidebar:not([aria-hidden="true"]) ~ .main-content .products-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -966,6 +1097,37 @@
 }
 
 @media (max-width: 768px) {
+  /* Buscador en Pantallas Móviles */
+  .header-search-box {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0;
+    background: var(--color-blanco);
+    border-top: 1px solid var(--color-borde-suave);
+    border-bottom: 2px solid var(--color-rojo-frambuesa);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    padding: 10px 18px;
+    z-index: 45;
+    transform: translateY(-8px);
+    transition: transform 0.25s ease, opacity 0.2s ease, visibility 0.25s;
+    visibility: hidden;
+  }
+
+  .header-search-box.open {
+    transform: translateY(0);
+    visibility: visible;
+    opacity: 1;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .header-search-input {
+    font-size: 0.95rem;
+  }
   .nav-links {
     display: none;
   }
