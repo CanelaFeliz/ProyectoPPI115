@@ -31,8 +31,8 @@ try {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/NIXGARU/public/css/global.css">
-  <link rel="stylesheet" href="/NIXGARU/public/css/cliente.css">
+  <link rel="stylesheet" href="/NIXGARU/public/css/global.css?v=<?php echo filemtime(__DIR__ . '/../../public/css/global.css'); ?>">
+  <link rel="stylesheet" href="/NIXGARU/public/css/cliente.css?v=<?php echo filemtime(__DIR__ . '/../../public/css/cliente.css'); ?>">
   <!-- Librería html2pdf.js para exportación del comprobante PDF del cliente (RF10, RF15) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
@@ -57,43 +57,6 @@ try {
     .product-price,
     .total-amount {
       color: var(--color-rojo-frambuesa) !important;
-    }
-
-    /* Indicador de modalidad Pedido en Línea en la barra lateral del carrito (RF15) */
-    .cart-online-modality {
-      padding: 12px 16px;
-      background: linear-gradient(135deg, rgba(197, 46, 69, 0.06) 0%, rgba(198, 111, 80, 0.09) 100%);
-      border-bottom: 1px solid var(--color-borde-suave);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .cart-online-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background-color: rgba(197, 46, 69, 0.12);
-      color: var(--color-rojo-frambuesa);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .cart-online-copy {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.3;
-    }
-    .cart-online-title {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--color-negro-suave);
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    .cart-online-sub {
-      font-size: 0.74rem;
-      color: var(--color-texto-muted);
     }
 
     /* ==========================================================================
@@ -682,6 +645,26 @@ try {
         justify-content: center;
       }
     }
+  
+    /* Prevención de parpadeo azul nativo de Android/Chrome al presionar productos o botones */
+    *, *::before, *::after {
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    .product-card,
+    .card-quantity-control,
+    .qty-btn,
+    .card-qty-btn {
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+      user-select: none !important;
+      -webkit-user-select: none !important;
+      touch-action: manipulation !important;
+      outline: none !important;
+    }
+    .product-card::selection,
+    .product-card *::selection {
+      background: transparent !important;
+    }
   </style>
 </head>
 <body>
@@ -816,7 +799,7 @@ try {
         <!-- Cabecera del Carrito -->
         <div class="cart-header">
           <div class="cart-title-wrapper">
-            <h2 class="cart-title">Tu carrito <span class="cart-table-indicator" id="cartTableIndicator" style="font-size: 13px; font-weight: 600; color: var(--color-terracota);">(Pedido en línea)</span></h2>
+            <h2 class="cart-title">Tu carrito</h2>
             <span class="cart-badge" id="cart-badge">0 Items</span>
           </div>
           <button id="cart-close-btn" class="cart-close-btn" aria-label="Cerrar carrito" type="button">
@@ -825,21 +808,6 @@ try {
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
-        </div>
-
-        <!-- Indicador informativo de Modalidad en Línea (sin mesa forzosa - RF15) -->
-        <div class="cart-online-modality">
-          <div class="cart-online-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <path d="M16 10a4 4 0 0 1-8 0"></path>
-            </svg>
-          </div>
-          <div class="cart-online-copy">
-            <span class="cart-online-title">Orden Web NIXGARU</span>
-            <span class="cart-online-sub">Envío a domicilio o retiro en el local</span>
-          </div>
         </div>
 
         <!-- Lista de Artículos en el Carrito (Inyección dinámica con JS) -->
@@ -1030,13 +998,13 @@ try {
         <div id="bloqueDatosLogisticos" class="logistics-conditional-box">
           <h3 class="checkout-section-title" style="margin-bottom: 10px;">
             <span class="checkout-section-dot" style="background-color: var(--color-terracota);"></span>
-            Datos Logísticos de Entrega
+            Datos para la Entrega
           </h3>
           <div class="checkout-grid-2">
             <div class="checkout-field full-width">
               <label class="checkout-label" for="selectMunicipioCliente">Municipio de cobertura <span class="req">*</span></label>
               <select id="selectMunicipioCliente" name="municipio" class="checkout-select locked-select" required>
-                <option value="San Salvador" selected>San Salvador (Zona exclusiva de cobertura)</option>
+                <option value="San Salvador" selected>San Salvador</option>
               </select>
             </div>
             <div class="checkout-field full-width">
@@ -1098,7 +1066,7 @@ try {
               </div>
               <div class="option-pill-text">
                 <span class="option-pill-title">Tarjeta</span>
-                <span class="option-pill-desc">Pago anticipado en línea (Simulado)</span>
+                <span class="option-pill-desc">Pago en linea</span>
               </div>
             </label>
           </div>
@@ -1106,12 +1074,11 @@ try {
           <!-- Bloque Simulado de Pago con Tarjeta (Sandbox no real - RNF03) -->
           <div id="bloquePagoTarjetaSimulado" class="card-sandbox-box is-hidden">
             <div class="sandbox-header-tag">
-              <span>Pasarela Sandbox Simulada (RNF03)</span>
-              <span>Solo datos de prueba</span>
+              <span>Ingrese sus datos de pago</span>
             </div>
             <div class="checkout-grid-2">
               <div class="checkout-field full-width">
-                <label class="checkout-label" for="inputTarjetaNumero">Número de tarjeta de prueba <span class="req">*</span></label>
+                <label class="checkout-label" for="inputTarjetaNumero">Número de tarjeta <span class="req">*</span></label>
                 <input type="text" id="inputTarjetaNumero" class="checkout-input" placeholder="4532 1111 2222 8890" maxlength="19" inputmode="numeric" autocomplete="off">
               </div>
               <div class="checkout-field">
