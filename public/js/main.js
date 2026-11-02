@@ -2679,7 +2679,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const opciones = {
           margin:       [margenMm, margenMm, margenMm, margenMm],
-          filename:     `Ticket_NIXGARU_Mesa_${mesaCierre}.pdf`,
+          filename:     (() => {
+            const folioTexto = (
+              btnImprimirTicket.dataset.folio
+              || document.getElementById('ticketFolioVal')?.textContent
+              || (btnProcesarPago?.dataset.idpedido ? `NIX-${String(btnProcesarPago.dataset.idpedido).padStart(5, '0')}` : '')
+            ).trim().replace(/^#/, '').replace(/[^a-zA-Z0-9_-]/g, '');
+            return folioTexto ? `Ticket_${folioTexto}.pdf` : `Ticket_NIXGARU_Mesa_${mesaCierre}.pdf`;
+          })(),
           image:        { type: 'jpeg', quality: 0.98 },
           html2canvas:  {
             scale: 2,
