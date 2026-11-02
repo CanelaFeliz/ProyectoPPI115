@@ -1137,25 +1137,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const idPedidoPdf = btnDescargarTicketCliente.dataset.idPedido || ultimoIdPedidoCliente || '0';
       const nombreArchivo = `Comprobante_NIXGARU_Pedido_${idPedidoPdf}.pdf`;
 
-      const opcionesPdf = {
-        margin: [10, 10, 10, 10],
-        filename: nombreArchivo,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          backgroundColor: '#ffffff',
-          scrollY: 0
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
       const htmlOriginalDescarga = btnDescargarTicketCliente.innerHTML;
       btnDescargarTicketCliente.disabled = true;
       btnDescargarTicketCliente.innerHTML = '<span>Generando PDF...</span>';
 
       if (typeof html2pdf !== 'undefined') {
+        const anchoPx = Math.max(clientTicketContainer.scrollWidth, clientTicketContainer.offsetWidth, 380);
+        const altoPx = Math.max(clientTicketContainer.scrollHeight, clientTicketContainer.offsetHeight);
+        const margenMm = 10;
+        const anchoPdfMm = 210;
+        const anchoContenidoMm = anchoPdfMm - (margenMm * 2);
+        const altoContenidoMm = Math.ceil((altoPx * anchoContenidoMm) / anchoPx);
+        const altoPdfMm = Math.max(297, altoContenidoMm + (margenMm * 2) + 6);
+
+        const opcionesPdf = {
+          margin: [margenMm, margenMm, margenMm, margenMm],
+          filename: nombreArchivo,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            letterRendering: true,
+            backgroundColor: '#ffffff',
+            scrollY: 0,
+            windowHeight: altoPx + 200
+          },
+          jsPDF: { unit: 'mm', format: [anchoPdfMm, altoPdfMm], orientation: 'portrait' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
         html2pdf()
           .set(opcionesPdf)
           .from(clientTicketContainer)
@@ -2604,14 +2614,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. Botón "Imprimir": exporta el comprobante de venta a PDF mediante html2pdf.js
   if (btnImprimirTicket && ticketContainer) {
     btnImprimirTicket.addEventListener('click', () => {
-      const opciones = {
-        margin:       [10, 10, 10, 10],
-        filename:     `Ticket_NIXGARU_Mesa_${mesaCierre}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
       const textoOriginal = btnImprimirTicket.innerHTML;
       btnImprimirTicket.disabled = true;
       btnImprimirTicket.innerHTML = `
@@ -2625,11 +2627,81 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       if (typeof html2pdf !== 'undefined') {
+        const ticketSidebarEl = document.getElementById('ticketSidebar');
+        const prevTicketStyle = {
+          maxHeight: ticketContainer.style.maxHeight,
+          height: ticketContainer.style.height,
+          overflow: ticketContainer.style.overflow,
+          overflowY: ticketContainer.style.overflowY,
+          scrollTop: ticketContainer.scrollTop
+        };
+        const prevSidebarStyle = ticketSidebarEl ? {
+          maxHeight: ticketSidebarEl.style.maxHeight,
+          height: ticketSidebarEl.style.height,
+          overflow: ticketSidebarEl.style.overflow
+        } : null;
+
+        // Expandir temporalmente el contenedor para capturar todo el contenido sin recortes por scroll
+        ticketContainer.scrollTop = 0;
+        ticketContainer.style.setProperty('max-height', 'none', 'important');
+        ticketContainer.style.setProperty('height', 'auto', 'important');
+        ticketContainer.style.setProperty('overflow', 'visible', 'important');
+        ticketContainer.style.setProperty('overflow-y', 'visible', 'important');
+
+        if (ticketSidebarEl) {
+          ticketSidebarEl.style.setProperty('max-height', 'none', 'important');
+          ticketSidebarEl.style.setProperty('height', 'auto', 'important');
+          ticketSidebarEl.style.setProperty('overflow', 'visible', 'important');
+        }
+
+        const restaurarEstilosTicket = () => {
+          ticketContainer.style.maxHeight = prevTicketStyle.maxHeight;
+          ticketContainer.style.height = prevTicketStyle.height;
+          ticketContainer.style.overflow = prevTicketStyle.overflow;
+          ticketContainer.style.overflowY = prevTicketStyle.overflowY;
+          ticketContainer.scrollTop = prevTicketStyle.scrollTop;
+
+          if (ticketSidebarEl && prevSidebarStyle) {
+            ticketSidebarEl.style.maxHeight = prevSidebarStyle.maxHeight;
+            ticketSidebarEl.style.height = prevSidebarStyle.height;
+            ticketSidebarEl.style.overflow = prevSidebarStyle.overflow;
+          }
+        };
+
+        const anchoPx = Math.max(ticketContainer.scrollWidth, ticketContainer.offsetWidth, 380);
+        const altoPx = Math.max(ticketContainer.scrollHeight, ticketContainer.offsetHeight);
+        // Mantener el ancho estándar A4 (210 mm) y ajustar el alto dinámicamente si el ticket supera una página A4 (297 mm)
+        const margenMm = 10;
+        const anchoPdfMm = 210;
+        const anchoContenidoMm = anchoPdfMm - (margenMm * 2);
+        const altoContenidoMm = Math.ceil((altoPx * anchoContenidoMm) / anchoPx);
+        const altoPdfMm = Math.max(297, altoContenidoMm + (margenMm * 2) + 6);
+
+        const opciones = {
+          margin:       [margenMm, margenMm, margenMm, margenMm],
+          filename:     `Ticket_NIXGARU_Mesa_${mesaCierre}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  {
+            scale: 2,
+            useCORS: true,
+            letterRendering: true,
+            scrollY: 0,
+            windowHeight: altoPx + 200
+          },
+          jsPDF:        {
+            unit: 'mm',
+            format: [anchoPdfMm, altoPdfMm],
+            orientation: 'portrait'
+          },
+          pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
         html2pdf()
           .set(opciones)
           .from(ticketContainer)
           .save()
           .then(() => {
+            restaurarEstilosTicket();
             btnImprimirTicket.innerHTML = `
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
@@ -2642,6 +2714,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 1800);
           })
           .catch((err) => {
+            restaurarEstilosTicket();
             console.error('Error al generar PDF del ticket:', err);
             btnImprimirTicket.disabled = false;
             btnImprimirTicket.innerHTML = textoOriginal;

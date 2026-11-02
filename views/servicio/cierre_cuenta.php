@@ -204,11 +204,11 @@ require_once __DIR__ . '/../layouts/header.php';
       <!-- Tarjeta informativa para cobro simulado con Tarjeta (RNF03) -->
       <div class="card-terminal-sim-box" id="cardTerminalSimBox">
         <div style="display: flex; align-items: center; justify-content: space-between;">
-          <strong style="font-size: 0.9rem; color: var(--color-negro-suave);">Terminal POS Bancaria (Simulación RNF03)</strong>
+          <strong style="font-size: 0.9rem; color: var(--color-negro-suave);">Terminal POS</strong>
           <span style="font-size: 0.78rem; font-weight: 700; color: #059669; background: #ECFDF5; padding: 3px 10px; border-radius: 999px;">Cargo Exacto</span>
         </div>
         <p style="font-size: 0.82rem; color: var(--color-texto-muted); margin: 0;">
-          Se procesará un cargo simulado por exactamente <strong>$<?php echo number_format($saldoPendiente, 2); ?> USD</strong> sin generación de cambio en efectivo.
+          Se procesará un cargo por exactamente <strong>$<?php echo number_format($saldoPendiente, 2); ?> USD</strong>.
         </p>
       </div>
 
