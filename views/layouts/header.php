@@ -11,14 +11,20 @@ if (session_status() === PHP_SESSION_NONE) {
     }
 }
 
+// Protección de ruta (RNF04): rechazar acceso directo si no existe una sesión activa y redirigir al login
+if (empty($_SESSION['id_usuario'])) {
+    header('Location: /NIXGARU/index.php');
+    exit;
+}
+
 // Identificación dinámica de la vista actual
 $currentPage = $currentPage ?? basename($_SERVER['PHP_SELF']);
 
-// Variables dinámicas con valores de sesión real prioritarios (RNF04)
+// Variables dinámicas obtenidas exclusivamente de la sesión activa (RNF04)
 $idMesaSeleccionada = $idMesaSeleccionada ?? 1;
 $numeroMesa = $numeroMesa ?? (string)$idMesaSeleccionada;
-$nombreUsuario = $_SESSION['nombre'] ?? ($nombreUsuario ?? ($nombreAtendio ?? 'Carlos Méndez'));
-$rolUsuario = $_SESSION['rol'] ?? ($rolUsuario ?? 'Personal de servicio');
+$nombreUsuario = trim((string)($_SESSION['nombre'] ?? $_SESSION['nombre_completo'] ?? $_SESSION['usuario'] ?? ''));
+$rolUsuario = trim((string)($_SESSION['rol'] ?? $_SESSION['nombre_rol'] ?? ''));
 
 // Generar iniciales reales para el avatar del empleado autenticado
 $palabras = preg_split('/\s+/', trim((string)$nombreUsuario)) ?: [];

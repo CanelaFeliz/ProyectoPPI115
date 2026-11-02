@@ -6,6 +6,14 @@
  * Cumple con RF05 (Registro, edición, capacidad y validación de unicidad)
  * ==============================================================================
  */
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    session_start();
+}
+if (empty($_SESSION['id_usuario'])) {
+    header('Location: /NIXGARU/index.php');
+    exit;
+}
+
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Mesa.php';
 

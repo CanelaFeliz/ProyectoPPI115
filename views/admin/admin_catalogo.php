@@ -6,6 +6,14 @@
  * Conexión dinámica con PDO a base de datos nixgaru_db (RF04)
  * ==============================================================================
  */
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    session_start();
+}
+if (empty($_SESSION['id_usuario'])) {
+    header('Location: /NIXGARU/index.php');
+    exit;
+}
+
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Producto.php';
 require_once __DIR__ . '/../../models/Categoria.php';

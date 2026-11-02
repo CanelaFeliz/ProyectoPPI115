@@ -13,6 +13,11 @@ if (session_status() === PHP_SESSION_NONE) {
     }
 }
 
+if (empty($_SESSION['id_usuario'])) {
+    header('Location: /NIXGARU/index.php');
+    exit;
+}
+
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/Pedido.php';
 require_once __DIR__ . '/../../models/Mesa.php';

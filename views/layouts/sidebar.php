@@ -11,13 +11,27 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
 }
 
+// Protección de ruta (RNF04): rechazar acceso directo si no existe una sesión activa y redirigir al login
+if (empty($_SESSION['id_usuario'])) {
+    header('Location: /NIXGARU/index.php');
+    exit;
+}
+
+// Verificar que el usuario autenticado tenga rol de Administrador; si es de servicio, redirigir a su módulo
+$idRolSesion = isset($_SESSION['id_rol']) ? (int)$_SESSION['id_rol'] : 0;
+$rolNormalizadoSesion = mb_strtolower(trim((string)($_SESSION['rol'] ?? $_SESSION['nombre_rol'] ?? '')), 'UTF-8');
+if ($idRolSesion !== 1 && !in_array($rolNormalizadoSesion, ['administrador', 'administradora'], true)) {
+    header('Location: /NIXGARU/views/servicio/mesas.php');
+    exit;
+}
+
 // Detección dinámica de la página actual para aplicar la clase .active en la navegación
 $currentPage = $currentPage ?? basename($_SERVER['PHP_SELF']);
 
-// Datos del usuario administrador en sesión
-$idUsuarioSesion = isset($_SESSION['id_usuario']) ? (int)$_SESSION['id_usuario'] : 0;
-$nombreUsuario = $_SESSION['nombre'] ?? ($nombreUsuario ?? 'María López');
-$rolUsuario = $_SESSION['rol'] ?? ($rolUsuario ?? 'Administradora');
+// Datos del usuario administrador obtenidos exclusivamente de la sesión activa (RNF04)
+$idUsuarioSesion = (int)$_SESSION['id_usuario'];
+$nombreUsuario = trim((string)($_SESSION['nombre'] ?? $_SESSION['nombre_completo'] ?? $_SESSION['usuario'] ?? ''));
+$rolUsuario = trim((string)($_SESSION['rol'] ?? $_SESSION['nombre_rol'] ?? ''));
 
 // Generar iniciales para el avatar
 if (!isset($avatarUsuario)) {
