@@ -49,9 +49,6 @@ try {
     .btn-confirm-order {
       background-color: var(--color-rojo-frambuesa) !important;
     }
-    .promo-banner {
-      background-color: var(--color-terracota) !important;
-    }
     .category-pill.active {
       background-color: var(--color-rojo-frambuesa) !important;
       border-color: var(--color-rojo-frambuesa) !important;
@@ -711,7 +708,6 @@ try {
       <nav class="nav-links">
         <a href="#inicio" class="nav-link active">Inicio</a>
         <a href="#menu" class="nav-link">Menú</a>
-        <a href="#promociones" class="nav-link">Promociones</a>
         <a href="#nosotros" class="nav-link">Sobre nosotros</a>
       </nav>
 
@@ -744,7 +740,7 @@ try {
     <main class="main-content">
 
       <!-- Banner de Promociones del día -->
-      <section class="promo-banner" id="promociones" style="background-color: var(--color-terracota);">
+      <section class="promo-banner" id="promociones">
         <div class="promo-content">
           <h1 class="promo-title">Promociones del día</h1>
           <p class="promo-description">
