@@ -752,6 +752,20 @@ document.addEventListener('DOMContentLoaded', () => {
       inputTarjetaCvv.value = inputTarjetaCvv.value.replace(/\D/g, '').substring(0, 4);
     });
   }
+  if (inputTelefonoCliente) {
+    inputTelefonoCliente.addEventListener('input', () => {
+      let soloDigitos = inputTelefonoCliente.value.replace(/\D/g, '');
+      if (soloDigitos.startsWith('503') && soloDigitos.length > 8) {
+        soloDigitos = soloDigitos.substring(3);
+      }
+      soloDigitos = soloDigitos.substring(0, 8);
+      if (soloDigitos.length > 4) {
+        inputTelefonoCliente.value = `${soloDigitos.substring(0, 4)}-${soloDigitos.substring(4)}`;
+      } else {
+        inputTelefonoCliente.value = soloDigitos;
+      }
+    });
+  }
 
   radiosTipoOrden.forEach((radio) => {
     radio.addEventListener('change', () => {
@@ -830,11 +844,21 @@ document.addEventListener('DOMContentLoaded', () => {
         inputApellidoCliente?.focus();
         return;
       }
-      if (!telefonoCliente || telefonoCliente.replace(/\D/g, '').length < 8) {
-        mostrarErrorCheckout('Por favor ingresa un número de teléfono válido (ej. 7000-0000).');
+      let digitosTel = telefonoCliente.replace(/\D/g, '');
+      if (digitosTel.startsWith('503') && digitosTel.length === 11) {
+        digitosTel = digitosTel.substring(3);
+      }
+      if (digitosTel.length !== 8) {
+        mostrarErrorCheckout('El número de teléfono debe tener exactamente 8 cifras según el formato de El Salvador (ej. 7000-0000).');
         inputTelefonoCliente?.focus();
         return;
       }
+      if (!/^[267]/.test(digitosTel)) {
+        mostrarErrorCheckout('El número de teléfono de El Salvador debe iniciar con 2 (fijo), 6 o 7 (móvil).');
+        inputTelefonoCliente?.focus();
+        return;
+      }
+      const telefonoNormalizado = `${digitosTel.substring(0, 4)}-${digitosTel.substring(4)}`;
       const patronCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!correoCliente || !patronCorreo.test(correoCliente)) {
         mostrarErrorCheckout('Por favor ingresa un correo electrónico válido.');
@@ -887,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tipo_orden: tipoOrden,
         nombre_cliente: nombreCliente,
         apellido_cliente: apellidoCliente,
-        telefono_cliente: telefonoCliente,
+        telefono_cliente: telefonoNormalizado,
         correo_cliente: correoCliente,
         municipio: esDomicilio ? 'San Salvador' : null,
         direccion: esDomicilio ? direccion : null,

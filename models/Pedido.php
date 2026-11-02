@@ -520,6 +520,25 @@ class Pedido
             throw new InvalidArgumentException('El nombre del cliente es obligatorio para registrar el pedido web.');
         }
 
+        if ($telefonoCliente === '') {
+            throw new InvalidArgumentException('El número de teléfono es obligatorio para registrar el pedido web.');
+        }
+
+        $digitosTel = preg_replace('/\D+/', '', $telefonoCliente);
+        if (str_starts_with($digitosTel, '503') && strlen($digitosTel) === 11) {
+            $digitosTel = substr($digitosTel, 3);
+        }
+
+        if (strlen($digitosTel) !== 8) {
+            throw new InvalidArgumentException('El número de teléfono debe tener exactamente 8 cifras según el formato de El Salvador (ej. 7000-0000).');
+        }
+
+        if (!in_array($digitosTel[0], ['2', '6', '7'], true)) {
+            throw new InvalidArgumentException('El número de teléfono de El Salvador debe iniciar con 2 (fijo), 6 o 7 (móvil).');
+        }
+
+        $telefonoCliente = substr($digitosTel, 0, 4) . '-' . substr($digitosTel, 4);
+
         $tipoRaw   = mb_strtolower(trim((string)($datosCliente['tipo_orden'] ?? 'Retiro en el local')), 'UTF-8');
         $esDomicilio = str_contains($tipoRaw, 'domicilio') || str_contains($tipoRaw, 'envio') || str_contains($tipoRaw, 'envío');
         $tipoOrden = $esDomicilio ? 'Envío a domicilio' : 'Retiro en el local';

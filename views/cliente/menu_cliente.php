@@ -946,7 +946,7 @@ try {
             </div>
             <div class="checkout-field">
               <label class="checkout-label" for="inputTelefonoCliente">Teléfono <span class="req">*</span></label>
-              <input type="tel" id="inputTelefonoCliente" name="telefono_cliente" class="checkout-input" placeholder="7000-0000" required maxlength="20" autocomplete="tel">
+              <input type="tel" id="inputTelefonoCliente" name="telefono_cliente" class="checkout-input" placeholder="7000-0000" required maxlength="9" pattern="^[267][0-9]{3}-?[0-9]{4}$" title="Ingrese un número de teléfono de 8 dígitos de El Salvador (ej. 7000-0000 o 2222-0000)" inputmode="numeric" autocomplete="tel">
             </div>
             <div class="checkout-field">
               <label class="checkout-label" for="inputCorreoCliente">Correo electrónico <span class="req">*</span></label>
